@@ -265,7 +265,7 @@ function acquia_agent_watchdog($log_entry) {
   // Add link to show current subscription status
   $links[] = array(
     'title' => 'acquia_subscription_status',
-    'path' => 'http://acquia.com/network',
+    'path' => 'http://acquia.com',
     'weight' => -80,
     'parent_path' => '<root>',
     'options' => array('extra class' => 'admin-menu-action acquia-subscription-status', 'html' => TRUE),
@@ -302,6 +302,7 @@ function acquia_agent_translated_menu_link_alter(&$item, $map) {
       $icon = '<img src="'. base_path() . 'misc/watchdog-error.png" height="10" alt="error" />';
       $item['title'] = t("!icon Subscription not active", array('!icon' => $icon));
       $item['localized_options']['attributes']['class'] .= "acquia-inactive-subscription";
+      $item['href'] = 'http://acquia.com/network';
     }
   }
 }
