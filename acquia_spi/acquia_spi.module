@@ -260,7 +260,7 @@ function acquia_spi_hash_path($path = '') {
       // Remove trailing whitespace
       $string = rtrim($string);
       // Replace all line endings and CVS/svn Id tags
-      $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x'.'$Id$', $string);
+      $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$'.'Id$', $string);
       $string = preg_replace('/\r\n|\n|\r/', ' ', $string);
       $hash =  base64_encode(pack("H*",sha1($string)));
     }
