@@ -2,4 +2,5 @@
 name = Acquia agent
 description = "Allows Drupal to securely communicate with the Acquia Network, and checks for updates to Acquia Drupal."
 package = Acquia Network
+php = 5.0
 core = 6.x

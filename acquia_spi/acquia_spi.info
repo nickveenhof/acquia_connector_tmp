@@ -2,5 +2,6 @@
 name = Acquia site information
 description = "Sends a site profile including Acquia Drupal version, platform and module information; number of posts, comments and users; as well as file hashes and file metainformation on files in the system to the Acquia Network to facilitate support and update notifications."
 package = Acquia Network
+php = 5.0
 core = 6.x
 dependencies[] = acquia_agent
