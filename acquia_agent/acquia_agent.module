@@ -357,7 +357,7 @@ function acquia_agent_call($method, $params, $identifier = NULL, $key = NULL, $a
   $path = isset($uri['path']) ? $uri['path'] : '';
   $acquia_network_address = $uri['host'] . $port . $path;
   // Add a scheme based on PHP's capacity.
-  if (defined('X509_PURPOSE_SSL_CLIENT') && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+  if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
     // OpenSSL is available in PHP
     $acquia_network_address = 'https://'. $acquia_network_address;
   }
@@ -490,3 +490,4 @@ function acquia_agent_load_versions() {
   // Include version number information.
   include_once 'acquia_agent_drupal_version.inc';
 }
+
