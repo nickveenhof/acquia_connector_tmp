@@ -440,7 +440,7 @@ function acquia_agent_settings($variable_name) {
     case 'acquia_key':
       return variable_get('acquia_key', '');
     case 'acquia_network_address':
-      return variable_get('acquia_network_address', 'acquia.com');
+      return variable_get('acquia_network_address', 'rpc.acquia.com');
     case 'acquia_subscription_data':
       return variable_get('acquia_subscription_data', array('active' => FALSE));
   }
