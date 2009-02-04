@@ -290,7 +290,7 @@ function acquia_agent_translated_menu_link_alter(&$item, $map) {
     return;
   }
   if ($item['title'] == 'acquia_subscription_status') {
-    $subscription = variable_get('acquia_subscription_data', array('active' => FALSE));
+    $subscription = acquia_agent_settings('acquia_subscription_data');
     if (empty($subscription['timestamp']) || (time() - $subscription['timestamp'] > 60*60*24)) {
       $subscription = acquia_agent_check_subscription(array('no_heartbeat' => 1));
     }
@@ -414,20 +414,20 @@ function acquia_agent_connection_error_message() {
 }
 
 /**
- * Helper function to check if an identifer and key exist
+ * Helper function to check if an identifer and key exist.
  */
 function acquia_agent_has_credentials() {
   return (bool)(variable_get('acquia_identifier', '') && variable_get('acquia_key', ''));
 }
 
 /**
- * Helper function to check if the site has an active subscription
+ * Helper function to check if the site has an active subscription.
  */
 function acquia_agent_subscription_is_active() {
   $active = FALSE;
   // Subscription cannot be active if we have no credentials.
-  if (variable_get('acquia_identifier', '') && variable_get('acquia_key', '')) {
-    $subscription = variable_get('acquia_subscription_data', array('active' => FALSE));
+  if (acquia_agent_has_credentials()) {
+    $subscription = acquia_agent_settings('acquia_subscription_data');
     $active = !empty($subscription['active']);
   }
   return $active;
