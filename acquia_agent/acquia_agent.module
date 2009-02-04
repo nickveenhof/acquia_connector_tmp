@@ -99,10 +99,13 @@ function acquia_agent_check_subscription($params = array()) {
           break;
       }
     }
-    elseif (acquia_agent_valid_response($data) && isset($data['result']['body']['active'])) {
+    elseif (acquia_agent_valid_response($data)) {
       $subscription += $data['result']['body'];
       variable_set('acquia_subscription_data', $subscription);
-      // use: variable_get('acquia_subscription_data', array('active' => FALSE));
+      // use: acquia_agent_settings('acquia_subscription_data');
+    }
+    else {
+      watchdog('acquia agent', 'HMAC validation error: <pre>@data</pre>', array('@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
     }
   }
   return $subscription;
