@@ -494,3 +494,16 @@ function acquia_agent_load_versions() {
   include_once 'acquia_agent_drupal_version.inc';
 }
 
+/**
+ * Implementation of hook_form_[form_id]_alter()..
+ */
+function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
+  if (isset($form['description']['acquia_search'])) {
+    $subscription = acquia_agent_settings('acquia_subscription_data');
+    if (!module_exists('acquia_search') && empty($subscription['heartbeat_data']['search_service_enabled'])) {
+      $form['status']['#disabled_modules'][] = 'acquia_search';
+      $form['description']['acquia_search']['#value'] = '<span id="acquia-agent-no-search"><strong>'. t('Your Acquia Network subscription is not enabled for search.  <a href="@url">Enable the Acquia Search network service</a>.', array('@url' => url($subscription['href'] . '/health/search'))) . '</strong><br /></span> '. $form['description']['acquia_search']['#value'];
+    }  
+  }
+}
+
