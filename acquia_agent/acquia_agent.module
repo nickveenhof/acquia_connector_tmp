@@ -89,6 +89,13 @@ function acquia_agent_check_subscription($params = array()) {
       $params['branch']   = ACQUIA_DRUPAL_BRANCH;
       $params['revision'] = ACQUIA_DRUPAL_REVISION;
     }
+    // Include Acquia Search module version number.
+    if (module_exists('acquia_search')) {
+      $info = db_result(db_query("SELECT info FROM {system} WHERE name = 'acquia_search'"));
+      if ($info = unserialize($info)) {
+        $params['search_version'] = $info['version'];
+      }
+    }
     $data = acquia_agent_call('acquia.agent.subscription', $params);
     $subscription['timestamp'] = time();
     if ($errno = xmlrpc_errno()) {
