@@ -510,12 +510,13 @@ function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
     if (!module_exists('acquia_search') && empty($subscription['heartbeat_data']['search_service_enabled'])) {
       $form['status']['#disabled_modules'][] = 'acquia_search';
       if (empty($subscription['active'])) {
-        $message = t('Acquia Search requires an active subscription to the <a href="@network-url">Acquia Network</a>. Please enter your subscription keys on the <a href="@settings-url">settings page</a> and return here for further instructions.', array('@network-url' => 'http://acquia.com/network', '@settings-url' => url('admin/settings/acquia-agent')));
+        $message = t('Acquia Search requires a free subscription to the Acquia Network. <a href="@network-url">Signup instructions</a>.',
+                     array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
       }
       else {
         $message = t('Your Acquia Network subscription is not enabled for search. <a href="@url">Enable the Acquia Search network service</a>.', array('@url' => url($subscription['href'] . '/health/search')));
       }
-      $form['description']['acquia_search']['#value'] = '<span id="acquia-agent-no-search"><strong>'. $message .'</strong></span><br />'. $form['description']['acquia_search']['#value'];
+      $form['description']['acquia_search']['#value'] = '<div class="messages error" id="acquia-agent-no-search"><strong>'. $message .'</strong></div><br />'. $form['description']['acquia_search']['#value'];
     }  
   }
 }
