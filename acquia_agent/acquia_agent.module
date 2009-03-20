@@ -50,17 +50,20 @@ function acquia_agent_menu() {
 function acquia_agent_init() {
   if (empty($_POST) && user_access('administer site configuration') && (!acquia_agent_has_credentials())) {
     if (arg(2) != 'acquia-agent') {
-      drupal_set_message(t('Please enter your Acquia Network subscription keys on the !settings-url.', array('!settings-url' => l(t('settings page'), 'admin/settings/acquia-agent'))), 'warning', FALSE);
+      drupal_set_message(t('If you have an <a href="@network_url">Acquia Network subscription</a>, please enter your subscription key and identifier on the <a href="@settings_url">settings page</a>.', array('@network_url' => 'http://acquia.com/network', '@settings_url' => url('admin/settings/acquia-agent'))), 'warning', FALSE);
     }
     if (arg(0) == 'admin') {
       drupal_set_message(t('Complete your Drupal experience. Subscribe to the Acquia Network to:
 <ul>
-<li>Contact dedicated Drupal support professionals.</li>
-<li>Access your operations dashboard integrated across multiple Drupal sites.</li>
-<li>Assign and manage tasks across distributed website teams.</li>
-<li>Extend your Drupal sites with cloud-based services.</li>
+<li>Know instantly if your site is in trouble with Drupal web site health monitoring</li>
+<li>Automatically block content and comment spam with Mollom</li>
+<li>Provide quick faceted search with results sorting and automatic content recommendations with <a href="@search_url">Acquia Search</a></li>
+<li>View site usage, up-time and spam blocking statistics</li>
+<li>Automate the scheduling of site maintenance with remote cron activation</li>
+<li>Access commercial-grade Drupal support through <a href="@forums_url">Acquia\'s forums</a> and <a href="@tac_url">Technical Assistance Center</a></li>
+<li>Access your Drupal web site\'s operations dashboard to manage contacts and notifications</li>
 </ul>
-To learn more, visit the <a href="http://acquia.com/network/">Acquia Network Services overview page</a>'), 'warning', FALSE);
+To learn more, visit the <a href="@overview_url">Acquia Network overview</a> page.', array('@search_url' => 'http://acquia.com/products-services/acquia-search', '@forums_url' => 'http://acquia.com/forum', '@tac_url' => 'http://acquia.com/products-services/drupal-technical-support', '@overview_url' => 'http://acquia.com/products-services/acquia-network')), 'warning', FALSE);
     }
   }
 }
