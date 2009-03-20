@@ -13,6 +13,16 @@ if (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE == 'update' && isset($_POST[
 }
 
 /**
+ * Implementation of hook_uninstall().
+ */
+function acquia_agent_uninstall() {
+  variable_del('acquia_identifier');
+  variable_del('acquia_key');
+  variable_del('acquia_network_address');
+  variable_del('acquia_subscription_data');
+}
+
+/**
  * Alter a list of module updates so that Acquia's updates run first.
  */
 function acquia_agent_alter_module_updates(&$updates) {
