@@ -327,7 +327,7 @@ function acquia_agent_theme_registry_alter(&$theme_registry) {
   if (isset($theme_registry['admin_menu_icon'])) {
     $theme_registry['admin_menu_icon']['function'] = 'acquia_agent_menu_icon';
   }
-  #retheme the modules page to add extra warnings inline
+  // Re-theme the modules page to add extra warnings inline.
   
   if (isset($theme_registry['system_modules'])) {
     $theme_registry['system_modules']['function'] = 'acquia_agent_system_modules';
@@ -521,11 +521,12 @@ function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
     
     if (!module_exists('acquia_search') && empty($subscription['heartbeat_data']['search_service_enabled'])) {
       $form['status']['#disabled_modules'][] = 'acquia_search';
+      $text = 'Acquia Search requires an Acquia Network subscription and that you join the <a href="@network-url">Acquia Search beta program</a>';
       if (empty($subscription['active'])) {
-        $message = t('Acquia Search requires an active subscription to the <a href="@network-url">Acquia Network</a>. Please enter your subscription keys on the <a href="@settings-url">settings page</a> and return here for further instructions.', array('@network-url' => 'http://acquia.com/network', '@settings-url' => url('admin/settings/acquia-agent')));
+        $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
       }
       else {
-        $message = t('Your Acquia Network subscription is not enabled for search. <a href="@url">Enable the Acquia Search network service</a>.', array('@url' => url($subscription['href'] . '/health/search')));
+        $message = t($text, array('@network-url' => url($subscription['href'] . '/health/search')));
       }
       $form['description']['acquia_search']['#extra'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">'. $message .'</div>';
     }

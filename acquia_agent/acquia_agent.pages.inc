@@ -107,7 +107,7 @@ function acquia_agent_set_validate($form, &$form_state) {
   }
   $identifier = $form_state['values']['acquia_identifier'];
   $key = $form_state['values']['acquia_key'];
-  
+
   // Don't make the XML-RPC call with empty values.
   if (!empty($identifier) && !empty($key)) {
     if (!acquia_agent_valid_credentials($identifier, $key)) {
@@ -154,7 +154,8 @@ function acquia_agent_change_submit($form, &$form_state) {
 
 /**
  * Override of the theme callback for the modules form.
- * Used to provide warnings when $form['description][$key]['#extra'] is set
+ *
+ * Used add extra rows when $form['description][$key]['#extra'] is set.
  *
  * @param $form
  *   An associative array containing the structure of the form.
@@ -221,23 +222,23 @@ function acquia_agent_system_modules($form) {
       else {
         $row[] = '<strong>'. drupal_render($form['name'][$key]) .'</strong>';
       }
-      
+
       $row[] = array('data' => drupal_render($form['version'][$key]), 'class' => 'version');
       $row[] = array('data' => $description, 'class' => 'description');
-      
-      # Add the extra info inline above the affected module row
+
+      // Add the extra info inline above the affected module row
       if ($form['description'][$key]['#extra']) {
         $extra_row[] = array(
           'data' => $form['description'][$key]['#extra'],
           'colspan' => '4',
-          'style' => 'padding:0px',
+          'style' => 'padding:0',
         );
         $rows[] = array(
-          'style' => 'padding:0px',
+          'style' => 'padding:0',
           'data' => $extra_row,
         );
       }
-      
+
       $rows[] = $row;
     }
     $fieldset = array(
