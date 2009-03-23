@@ -23,6 +23,16 @@ function acquia_agent_uninstall() {
 }
 
 /**
+ * Implementation of hook_disable().
+ */
+function acquia_agent_disable() {
+  $mlid = db_result(db_query("SELECT mlid FROM {menu_links} WHERE link_title = 'acquia_subscription_status' AND menu_name = 'admin_menu'"));
+  if ($mlid) {
+     menu_link_delete($mlid);
+  }
+}
+
+/**
  * Alter a list of module updates so that Acquia's updates run first.
  */
 function acquia_agent_alter_module_updates(&$updates) {

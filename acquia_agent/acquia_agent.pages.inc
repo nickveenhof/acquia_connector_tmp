@@ -227,7 +227,7 @@ function acquia_agent_system_modules($form) {
       $row[] = array('data' => $description, 'class' => 'description');
 
       // Add the extra info inline above the affected module row
-      if ($form['description'][$key]['#extra']) {
+      if (isset($form['description'][$key]['#extra'])) {
         $extra_row[] = array(
           'data' => $form['description'][$key]['#extra'],
           'colspan' => '4',
