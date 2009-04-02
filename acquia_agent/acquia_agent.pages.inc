@@ -37,11 +37,39 @@ function acquia_agent_settings_page() {
     $link .= "<p>". l($title, $subscription['href']) ."</p>\n";
   }
 
-  return $link . drupal_get_form('acquia_agent_settings_form', $change);
+  $output = $link . drupal_get_form('acquia_agent_settings_form', $change);
+  $output .= drupal_get_form('acquia_agent_communication_form');
+  return $output;
 }
 
 /**
- * Settings form menu callback.
+ * Settings form builder function.
+ */
+function acquia_agent_communication_form($form_state) {
+  $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
+
+  $form['acquia_agent_verify_peer'] = array(
+    '#type' => 'radios',
+    '#title' => t('Enhanced SSL security'),
+    '#default_value' => (int) (variable_get('acquia_agent_verify_peer', 0) && $ssl_available),
+    '#options' => array(0 => t('Disabled'), 1 => t('Enabled')),
+    '#description' => t('If enabled the Acquia Connector will attempty to verify Acquia server identities before sending data.  May cause communication to fail, however, depending on your local configuration.'),
+    '#disabled' => !$ssl_available,
+
+  );
+
+  if ($ssl_available) {
+    $form['acquia_agent_verify_peer']['#description'] .= ' <div class="ok">'. t('PHP has SSL support and may support this feature.') .'</div>';
+  }
+  else {
+    $form['acquia_agent_verify_peer']['#description'] .= ' <div class="error">'. t('PHP does not have SSL support.') .'</div>';
+  }
+
+  return system_settings_form($form);
+}
+
+/**
+ * Settings form builder function.
  */
 function acquia_agent_settings_form($form_state, $change = FALSE) {
   $identifier = acquia_agent_settings('acquia_identifier');
