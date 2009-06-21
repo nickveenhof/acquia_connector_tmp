@@ -515,7 +515,7 @@ function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
     if (!module_exists('acquia_search') && empty($subscription['active'])) {
       $form['status']['#disabled_modules'][] = 'acquia_search';
       $text = 'Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>';
-      $message = t($text, array('@network-url' => 'http://acquia.com/products-services/'));
+      $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
       $form['description']['acquia_search']['#extra'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">'. $message .'</div>';
     }
   }
