@@ -213,7 +213,9 @@ function acquia_agent_menu_alter(&$items) {
  */
 function acquia_agent_refresh_status() {
   // Refresh subscription information, so we are sure about our update status.
-  module_invoke('acquia_spi', 'send');
+  if (module_exists('acquia_spi')) {
+    acquia_spi_send_profile_info();
+  }
   // We send a heartbeat here so that all of our status information gets
   // updated locally via the return data.
   acquia_agent_check_subscription();
@@ -226,7 +228,9 @@ function acquia_agent_refresh_status() {
  */
 function acquia_agent_manual_status() {
   // Refresh subscription information, so we are sure about our update status.
-  module_invoke('acquia_spi', 'send');
+  if (module_exists('acquia_spi')) {
+    acquia_spi_send_profile_info();
+  }
   // We send a heartbeat here so that all of our status information gets
   // updated locally via the return data.
   acquia_agent_check_subscription();
