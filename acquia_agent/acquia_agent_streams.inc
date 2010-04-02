@@ -21,7 +21,7 @@
  *   The rest of the parameters and return values are the same as xmlrpc().
  */
 function _acquia_agent_xmlrpc() {
-  require_once './includes/xmlrpc.inc';
+  require_once DRUPAL_ROOT . '/includes/xmlrpc.inc';
 
   $args = func_get_args();
   $context = array_shift($args);
@@ -67,7 +67,7 @@ function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {
   $uri = parse_url($url);
   if (isset($uri['scheme']) && ($uri['scheme'] == 'https') && variable_get('acquia_agent_verify_peer', 0)) {
     // Look for a local certificate to validate the server identity.
-    $pem_file = drupal_get_path('module', $module) .'/'. $uri['host'] . '.pem';
+    $pem_file = drupal_get_path('module', $module) . '/' . $uri['host'] . '.pem';
     if (file_exists($pem_file)) {
       $opts['ssl'] = array(
         'verify_peer' => TRUE,
@@ -98,18 +98,18 @@ function acquia_agent_http_request($context, $url, $headers = array(), $method =
   switch ($uri['scheme']) {
     case 'http':
       $port = isset($uri['port']) ? $uri['port'] : 80;
-      $host = $uri['host'] . ($port != 80 ? ':'. $port : '');
+      $host = $uri['host'] . ($port != 80 ? ':' . $port : '');
       $fp = @fsockopen($uri['host'], $port, $errno, $errstr, 15);
       break;
     case 'https':
       // Note: Only works for PHP 4.3 compiled with OpenSSL.
       $port = isset($uri['port']) ? $uri['port'] : 443;
-      $host = $uri['host'] . ($port != 443 ? ':'. $port : '');
+      $host = $uri['host'] . ($port != 443 ? ':' . $port : '');
       if (!isset($context)) {
-        $fp = @fsockopen('ssl://'. $uri['host'], $port, $errno, $errstr, 20);
+        $fp = @fsockopen('ssl://' . $uri['host'], $port, $errno, $errstr, 20);
       }
       else {
-        $fp = @stream_socket_client('ssl://'. $uri['host'] .':'. $port, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $context);
+        $fp = @stream_socket_client('ssl://' . $uri['host'] . ':' . $port, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $context);
         if (!$fp && $errno == 0) {
           // An SSL error occurred.  I do not know of any way to get
           // an error code or message programmatically.  By not having
@@ -121,7 +121,7 @@ function acquia_agent_http_request($context, $url, $headers = array(), $method =
       }
       break;
     default:
-      $result->error = 'invalid schema '. $uri['scheme'];
+      $result->error = 'invalid schema ' . $uri['scheme'];
       return $result;
   }
 
@@ -137,7 +137,7 @@ function acquia_agent_http_request($context, $url, $headers = array(), $method =
   // Construct the path to act on.
   $path = isset($uri['path']) ? $uri['path'] : '/';
   if (isset($uri['query'])) {
-    $path .= '?'. $uri['query'];
+    $path .= '?' . $uri['query'];
   }
 
   // Create HTTP request.
@@ -154,23 +154,23 @@ function acquia_agent_http_request($context, $url, $headers = array(), $method =
   // at least HEAD/GET requests, and Squid always requires Content-Length in
   // POST/PUT requests.
   if (!empty($data) || $method == 'POST' || $method == 'PUT') {
-    $defaults['Content-Length'] = 'Content-Length: '. strlen($data);
+    $defaults['Content-Length'] = 'Content-Length: ' . strlen($data);
   }
 
   // If the server url has a user then attempt to use basic authentication
   if (isset($uri['user'])) {
-    $defaults['Authorization'] = 'Authorization: Basic '. base64_encode($uri['user'] . (!empty($uri['pass']) ? ":". $uri['pass'] : ''));
+    $defaults['Authorization'] = 'Authorization: Basic ' . base64_encode($uri['user'] . (!empty($uri['pass']) ? ":" . $uri['pass'] : ''));
   }
 
   foreach ($headers as $header => $value) {
-    $defaults[$header] = $header .': '. $value;
+    $defaults[$header] = $header . ': ' . $value;
   }
 
-  $request = $method .' '. $path ." HTTP/1.0\r\n";
+  $request = $method . ' ' . $path . " HTTP/1.0\r\n";
   $request .= implode("\r\n", $defaults);
   $request .= "\r\n\r\n";
   if ($data) {
-    $request .= $data ."\r\n";
+    $request .= $data . "\r\n";
   }
   $result->request = $request;
 
@@ -196,7 +196,7 @@ function acquia_agent_http_request($context, $url, $headers = array(), $method =
     if (isset($result->headers[$header]) && $header == 'Set-Cookie') {
       // RFC 2109: the Set-Cookie response header comprises the token Set-
       // Cookie:, followed by a comma-separated list of one or more cookies.
-      $result->headers[$header] .= ','. trim($value);
+      $result->headers[$header] .= ',' . trim($value);
     }
     else {
       $result->headers[$header] = trim($value);
@@ -290,8 +290,8 @@ function _acquia_agent_authenticator($params = array(), $identifier = NULL, $key
   if (empty($key)) {
     $key = acquia_agent_settings('acquia_key');
   }
-  $time = time();
-  $nonce = md5(acquia_agent_random_bytes(55));
+  $time = REQUEST_TIME;
+  $nonce = md5(drupal_random_bytes(55));
   $authenticator['identifier'] = $identifier;
   $authenticator['time'] = $time;
   $authenticator['hash'] = _acquia_agent_hmac($key, $time, $nonce, $params);
@@ -307,7 +307,7 @@ function _acquia_agent_hmac($key, $time, $nonce, $params) {
   return base64_encode(
     pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) .
     pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
-    $time .':'. $nonce .':'. $key .':'. serialize($params)))))
+    $time . ':' . $nonce . ':' . $key . ':' . serialize($params)))))
   );
 }
 

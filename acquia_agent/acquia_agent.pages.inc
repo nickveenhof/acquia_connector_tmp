@@ -28,24 +28,25 @@ function acquia_agent_settings_page() {
       $change = TRUE;
     }
   }
-  $link = '';
+  $page = array();
   $subscription = acquia_agent_settings('acquia_subscription_data');
   // Check $_POST so we don't tell people status about previously stored
   // credentials during form submission.
   if ($subscription['active'] && empty($_POST)) {
     $title = t("Subscription active. Click here to go to the Acquia Network.");
-    $link .= "<p>". l($title, $subscription['href']) ."</p>\n";
+    $page['subscription_link'] = array( '#markup' => "<p>" . l($title, $subscription['href']) . "</p>\n" );
   }
 
-  $output = $link . drupal_get_form('acquia_agent_settings_form', $change);
-  $output .= drupal_get_form('acquia_agent_communication_form');
-  return $output;
+  $page['settings_form'] = drupal_get_form('acquia_agent_settings_form', $change);
+  $page['communication_form'] = drupal_get_form('acquia_agent_communication_form');  
+    
+  return $page;
 }
 
 /**
  * Settings form builder function.
  */
-function acquia_agent_communication_form($form_state) {
+function acquia_agent_communication_form($form, $form_state) {
   $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
 
   $form['acquia_agent_verify_peer'] = array(
@@ -59,10 +60,10 @@ function acquia_agent_communication_form($form_state) {
   );
 
   if ($ssl_available) {
-    $form['acquia_agent_verify_peer']['#description'] .= ' <div class="ok">'. t('PHP has SSL support and may support this feature.') .'</div>';
+    $form['acquia_agent_verify_peer']['#description'] .= ' <div class="ok">' . t('PHP has SSL support and may support this feature.') . '</div>';
   }
   else {
-    $form['acquia_agent_verify_peer']['#description'] .= ' <div class="error">'. t('PHP does not have SSL support.') .'</div>';
+    $form['acquia_agent_verify_peer']['#description'] .= ' <div class="error">' . t('PHP does not have SSL support.') . '</div>';
   }
 
   return system_settings_form($form);
@@ -71,7 +72,7 @@ function acquia_agent_communication_form($form_state) {
 /**
  * Settings form builder function.
  */
-function acquia_agent_settings_form($form_state, $change = FALSE) {
+function acquia_agent_settings_form($form, $form_state, $change = FALSE) {
   $identifier = acquia_agent_settings('acquia_identifier');
   $key = acquia_agent_settings('acquia_key');
 
@@ -88,7 +89,7 @@ function acquia_agent_settings_form($form_state, $change = FALSE) {
     '#default_value' => $identifier,
     // Disable field if not changing values, making this a display only field.
     '#disabled' => !$change,
-    '#description' => t('Identifier of this website (a public key).') . ($change ? ' '. $copy_help : ''),
+    '#description' => t('Identifier of this website (a public key).') . ($change ? ' ' . $copy_help : ''),
     '#required' => $change,
   );
   $form['acquia_key'] = array(
@@ -97,7 +98,7 @@ function acquia_agent_settings_form($form_state, $change = FALSE) {
     '#default_value' => $key,
     // Disallow access if not changing values. Only the identifier is shown then.
     '#access' => $change,
-    '#description' => t('Key of this website (a private key).') . ($change ? ' '. $copy_help : ''),
+    '#description' => t('Key of this website (a private key).') . ($change ? ' ' . $copy_help : ''),
     '#required' => $change,
   );
   $form['buttons']['submit'] = array(
@@ -110,7 +111,7 @@ function acquia_agent_settings_form($form_state, $change = FALSE) {
   );
   $form['buttons']['delete'] = array(
     '#type' => 'submit',
-    '#value' => t('Delete subscription information '),
+    '#value' => t('Delete subscription information'),
     '#submit' => array('acquia_agent_delete_submit'),
     // Only show this button if changing values and we have existing settings to delete.
     '#access' => ($change && (!empty($identifier) || !empty($key))),
@@ -224,7 +225,7 @@ function acquia_agent_system_modules($form) {
       if (isset($form['status']['#incompatible_modules_core'][$key])) {
         unset($form['status'][$key]);
         $status = theme('image', 'misc/watchdog-error.png', t('incompatible'), t('Incompatible with this version of Drupal core'));
-        $description .= '<div class="incompatible">'. t('This version is incompatible with the !core_version version of Drupal core.', array('!core_version' => VERSION)) .'</div>';
+        $description .= '<div class="incompatible">' . t('This version is incompatible with the !core_version version of Drupal core.', array('!core_version' => VERSION)) . '</div>';
       }
       elseif (isset($form['status']['#incompatible_modules_php'][$key])) {
         unset($form['status'][$key]);
@@ -233,7 +234,7 @@ function acquia_agent_system_modules($form) {
         if (substr_count($php_required, '.') < 2) {
           $php_required .= '.*';
         }
-        $description .= '<div class="incompatible">'. t('This module requires PHP version @php_required and is incompatible with PHP version !php_version.', array('@php_required' => $php_required, '!php_version' => phpversion())) .'</div>';
+        $description .= '<div class="incompatible">' . t('This module requires PHP version @php_required and is incompatible with PHP version !php_version.', array('@php_required' => $php_required, '!php_version' => phpversion())) . '</div>';
       }
       else {
         $status = drupal_render($form['status'][$key]);
@@ -245,10 +246,10 @@ function acquia_agent_system_modules($form) {
 
       // Add labels only when there is also a checkbox.
       if (isset($form['status'][$key])) {
-        $row[] = '<strong><label for="'. $form['status'][$key]['#id'] .'">'. drupal_render($form['name'][$key]) .'</label></strong>';
+        $row[] = '<strong><label for="' . $form['status'][$key]['#id'] . '">' . drupal_render($form['name'][$key]) . '</label></strong>';
       }
       else {
-        $row[] = '<strong>'. drupal_render($form['name'][$key]) .'</strong>';
+        $row[] = '<strong>' . drupal_render($form['name'][$key]) . '</strong>';
       }
 
       $row[] = array('data' => drupal_render($form['version'][$key]), 'class' => 'version');

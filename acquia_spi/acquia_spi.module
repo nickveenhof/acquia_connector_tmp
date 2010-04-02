@@ -13,7 +13,7 @@ function acquia_spi_help($path, $arg) {
   $welcome_nid = variable_get('acquia_welcome', 0);
   if ($path == 'admin/help#acquia_spi' && $welcome_nid) {
     // Only provide help text if the welcome message is avalailable.
-    if ($nid = db_result(db_query('SELECT nid FROM {node} where nid = %d', $welcome_nid))) {
+    if ($nid = db_query('SELECT nid FROM {node} where nid = %d', $welcome_nid)->fetchField()) {
       $txt = 'The !acquia_welcome provides information about how to '
       .'quickly get your site up and running.  Also there are instructions for '
       .'setting the site theme as well as many other configuration tasks.';
@@ -30,7 +30,7 @@ function acquia_spi_cron() {
   $last = variable_get('acquia_spi_cron_last', 0);
   // 8 hour interval for sending site profile.
   $interval = variable_get('acquia_spi_cron_interval', 8*60*60);
-  $now = time();
+  $now = REQUEST_TIME;
   if ($now - $last > $interval) {
     acquia_spi_send_profile_info();
     variable_set('acquia_spi_cron_last', $now);
@@ -99,10 +99,6 @@ function acquia_spi_get() {
  *   An associative array keyed by a platform information type.
  */
 function acquia_spi_get_platform() {
-  // Database detection depends on the structure starting with the database
-  // 'type-name' => array('title' => 'name', 'value' => 'version-info') data.
-  $database = db_status_report('');
-  $database_type = array_shift(array_keys($database));
   // Webserver detection is based on name being before the slash, and
   // version being after the slash.
   preg_match('!^([^/]+)(/.+)?$!', $_SERVER['SERVER_SOFTWARE'], $webserver);
@@ -110,8 +106,8 @@ function acquia_spi_get_platform() {
     'php'               => PHP_VERSION,
     'webserver_type'    => $webserver[1],
     'webserver_version' => $webserver[2],
-    'database_type'     => $database_type,
-    'database_version'  => $database[$database_type]['value'],
+    'database_type'     => db_driver(),
+    'database_version'  => Database::getConnection()->getAttribute(PDO::ATTR_SERVER_VERSION),
     'system_type'       => php_uname('s'),
     // php_uname() only accepts one character, so we need to concatenate ourselves.
     'system_version'    => php_uname('r') .' '. php_uname('v') .' '. php_uname('m') .' '. php_uname('n'),
@@ -133,7 +129,7 @@ function acquia_spi_get_platform() {
  *   information on the modules.
  */
 function acquia_spi_get_modules() {
-  $modules = module_rebuild_cache();
+  $modules = system_rebuild_module_data();
   $result = array();
   $keys_to_send = array('name', 'version', 'package', 'core');
   foreach ($modules as $filename => $file) {
@@ -158,11 +154,11 @@ function acquia_spi_get_modules() {
 function acquia_spi_get_quantum() {
   $quantum = array();
   // Get only published nodes.
-  $quantum['nodes'] =  db_result(db_query("SELECT COUNT(nid) FROM {node} WHERE status = 1"));
+  $quantum['nodes'] = db_query("SELECT COUNT(nid) FROM {node} WHERE status = 1")->fetchField();
   // Get only active users.
-  $quantum['users'] = db_result(db_query("SELECT COUNT(uid) FROM {users} WHERE status = 1"));
+  $quantum['users'] = db_query("SELECT COUNT(uid) FROM {users} WHERE status = 1")->fetchField();
   // Get only active comments. NOTE: in case of comments, 0 is the active comment!
-  $quantum['comments'] = db_result(db_query("SELECT COUNT(cid) FROM {comments} WHERE status = 0"));
+  $quantum['comments'] = db_query("SELECT COUNT(cid) FROM {comment} WHERE status = :comment_constant", array(':comment_constant' => COMMENT_PUBLISHED))->fetchField();
   return $quantum;
 }
 
