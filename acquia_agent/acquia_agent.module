@@ -28,14 +28,14 @@ define('SUBSCRIPTION_MESSAGE_LIFETIME', 15*60);
  * Implementation of hook_menu().
  */
 function acquia_agent_menu() {
-  $items['admin/settings/acquia-agent'] = array(
-    'title' => 'Acquia settings',
+  $items['admin/config/system/acquia-agent'] = array(
+    'title' => 'Acquia Network',
     'description' => 'Connect your site to the Acquia Network.',
     'page callback' => 'acquia_agent_settings_page',
     'file' => 'acquia_agent.pages.inc',
     'access arguments' => array('administer site configuration'),
   );
-  $items['admin/settings/acquia-agent/refresh-status'] = array(
+  $items['admin/config/system/acquia-agent/refresh-status'] = array(
     'title' => 'Manual update check',
     'page callback' => 'acquia_agent_refresh_status',
     'access arguments' => array('administer site configuration'),
@@ -53,10 +53,10 @@ function acquia_agent_init() {
       drupal_set_message(t('Subscribe to the <a href="@acquia-network">Acquia Network</a> to access Network Services and Technical Support for your Drupal site.<br /> 
 To learn how Acquia can help you manage your Drupal site, visit the <a href="@acquia-ps">Acquia Products &amp; Services page</a>.<br />
 Once subscribed, please enter your subscription key and identifier on the <a href="@settings">settings page</a>.<br />
-To turn this message off, disable the Acquia Network Connector modules.', array('@acquia-network' => 'http://acquia.com/network', '@acquia-ps' => 'http://acquia.com/products-services', '@settings' => url('admin/settings/acquia-agent'))), 'warning', FALSE);
+To turn this message off, disable the Acquia Network Connector modules.', array('@acquia-network' => 'http://acquia.com/network', '@acquia-ps' => 'http://acquia.com/products-services', '@settings' => url('admin/config/system/acquia-agent'))), 'warning', FALSE);
     }
     else {
-      drupal_set_message(t('If you have an <a href="@acquia-network">Acquia Network subscription</a>, please enter your subscription key and identifier on the <a href="@settings">settings page</a>.', array('@acquia-network' => 'http://acquia.com/network', '@settings' => url('admin/settings/acquia-agent'))), 'warning', FALSE);
+      drupal_set_message(t('If you have an <a href="@acquia-network">Acquia Network subscription</a>, please enter your subscription key and identifier on the <a href="@settings">settings page</a>.', array('@acquia-network' => 'http://acquia.com/network', '@settings' => url('admin/config/system/acquia-agent'))), 'warning', FALSE);
     }
   }
 }
@@ -209,7 +209,7 @@ function acquia_agent_menu_alter(&$items) {
 }
 
 /**
- * Menu callback for 'admin/settings/acquia-agent/refresh-status'.
+ * Menu callback for 'admin/config/system/acquia-agent/refresh-status'.
  */
 function acquia_agent_refresh_status() {
   // Refresh subscription information, so we are sure about our update status.
@@ -220,7 +220,7 @@ function acquia_agent_refresh_status() {
   // updated locally via the return data.
   acquia_agent_check_subscription();
   // Return to the setting page (or destination)
-  drupal_goto('admin/settings/acquia-agent');
+  drupal_goto('admin/config/system/acquia-agent');
 }
 
 /**
