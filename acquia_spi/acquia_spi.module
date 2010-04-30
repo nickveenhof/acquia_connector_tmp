@@ -120,7 +120,7 @@ function acquia_spi_get_platform() {
   }
   return $platform;
 }
-  
+
 /**
  * Gather information about modules on the site.
  *
@@ -133,6 +133,10 @@ function acquia_spi_get_modules() {
   $result = array();
   $keys_to_send = array('name', 'version', 'package', 'core');
   foreach ($modules as $filename => $file) {
+    if (!empty($file->info['hidden'])) {
+      // Skip hidden modules.
+      continue;
+    }
     $info = array();
     $info['status'] = $file->status;
     foreach ($keys_to_send as $key) {
@@ -167,7 +171,7 @@ function acquia_spi_get_quantum() {
  *
  * @param $excuded_dirs
  *   Optional array of directory paths to be excluded.
- * 
+ *
  * @return
  *   An associative array keyed by filename of hashes.
  */
@@ -263,4 +267,3 @@ function acquia_spi_hash_path($path = '') {
   }
   return $hash;
 }
-
