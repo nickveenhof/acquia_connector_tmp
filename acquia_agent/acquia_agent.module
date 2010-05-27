@@ -324,13 +324,6 @@ function acquia_agent_theme_registry_alter(&$theme_registry) {
   if (isset($theme_registry['admin_menu_icon'])) {
     $theme_registry['admin_menu_icon']['function'] = 'acquia_agent_menu_icon';
   }
-  // Re-theme the modules page to add extra warnings inline.
-  
-  if (isset($theme_registry['system_modules'])) {
-    $theme_registry['system_modules']['function'] = 'acquia_agent_system_modules';
-    $theme_registry['system_modules']['file'] = 'acquia_agent.pages.inc';
-    $theme_registry['system_modules']['path'] = drupal_get_path('module', 'acquia_agent');
-  }
 }
 
 /**
@@ -481,14 +474,15 @@ function acquia_agent_load_versions() {
  */
 function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
   
-  if (isset($form['description']['acquia_search'])) {
+  if (isset($form['modules']['Acquia Network Connector']['acquia_search'])) {
     $subscription = acquia_agent_settings('acquia_subscription_data');
     
     if (!module_exists('acquia_search') && empty($subscription['active'])) {
-      $form['status']['#disabled_modules'][] = 'acquia_search';
-      $text = 'Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>';
-      $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
-      $form['description']['acquia_search']['#extra'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $message . '</div>';
+      $row = &$form['modules']['Acquia Network Connector']['acquia_search'];
+      $row['enable']['#disabled'] = TRUE;
+      $text = t('Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>', array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
+      $message = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $text . '</div>';  
+      $row['description']['#markup'] =  $message . $row['description']['#markup'];
     }
   }
 }
