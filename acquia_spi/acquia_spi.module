@@ -131,7 +131,7 @@ function acquia_spi_get_platform() {
 function acquia_spi_get_modules() {
   $modules = system_rebuild_module_data();
   $result = array();
-  $keys_to_send = array('name', 'version', 'package', 'core');
+  $keys_to_send = array('name', 'version', 'package', 'core', 'project');
   foreach ($modules as $filename => $file) {
     if (!empty($file->info['hidden'])) {
       // Skip hidden modules.
