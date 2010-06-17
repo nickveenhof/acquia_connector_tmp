@@ -75,7 +75,7 @@ function acquia_agent_check_subscription($params = array()) {
     variable_del('acquia_subscription_data');
   }
   else {
-    // There is an indentifier and key, so attempt comunication.
+    // There is an identifier and key, so attempt communication.
 
     // Include version number information.
     acquia_agent_load_versions();
