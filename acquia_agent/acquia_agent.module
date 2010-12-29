@@ -18,6 +18,7 @@ define('SUBSCRIPTION_MESSAGE_FUTURE'  , 1500);
 define('SUBSCRIPTION_MESSAGE_EXPIRED' , 1600);
 define('SUBSCRIPTION_MESSAGE_INVALID' , 1700);
 define('SUBSCRIPTION_VALIDATION_ERROR', 1800);
+define('SUBSCRIPTION_PROVISION_ERROR' , 9000);
 
 /**
  * Subscription message lifetime defined by the Acquia Network.
@@ -29,7 +30,7 @@ define('SUBSCRIPTION_MESSAGE_LIFETIME', 15*60);
  */
 function acquia_agent_menu() {
   $items['admin/config/system/acquia-agent'] = array(
-    'title' => 'Acquia Network',
+    'title' => 'Acquia Network settings',
     'description' => 'Connect your site to the Acquia Network.',
     'page callback' => 'acquia_agent_settings_page',
     'file' => 'acquia_agent.pages.inc',
@@ -48,17 +49,29 @@ function acquia_agent_menu() {
  * Implementation of hook_init().
  */
 function acquia_agent_init() {
-  if (empty($_POST) && user_access('administer site configuration') && (!acquia_agent_has_credentials())) {
+  if ( !(arg(0) == 'overlay-ajax' && arg(1) == 'page_top') &&
+      arg(3) != 'acquia-agent' &&
+      empty($_POST) &&
+      user_access('administer site configuration') &&
+      (!acquia_agent_has_credentials())) {
+    $message = t('Get a <a href="@acquia-free">free 30 day trial</a> of Drupal support, enhanced content search, comment spam blocking and more. If you have an Acquia Network subscription, <a href="@settings">connect now</a>.', array('@acquia-free' => url('admin/config/system/acquia-agent'), '@settings' => url('admin/config/system/acquia-agent/connection')));
     if (arg(0) == 'admin') {
-      drupal_set_message(t('Subscribe to the <a href="@acquia-network">Acquia Network</a> to access Network Services and Technical Support for your Drupal site.<br /> 
-To learn how Acquia can help you manage your Drupal site, visit the <a href="@acquia-ps">Acquia Products &amp; Services page</a>.<br />
-Once subscribed, please enter your subscription key and identifier on the <a href="@settings">settings page</a>.<br />
-To turn this message off, disable the Acquia Network Connector modules.', array('@acquia-network' => 'http://acquia.com/network', '@acquia-ps' => 'http://acquia.com/products-services', '@settings' => url('admin/config/system/acquia-agent'))), 'warning', FALSE);
+      $message .= '<br />' . t('To turn this message off, disable the Acquia Network Connector <a href="@admin-modules">modules</a>.', array('@admin-modules' => url('admin/modules', array('fragment' => 'edit-modules-acquia-network-connector'))));
     }
-    else {
-      drupal_set_message(t('If you have an <a href="@acquia-network">Acquia Network subscription</a>, please enter your subscription key and identifier on the <a href="@settings">settings page</a>.', array('@acquia-network' => 'http://acquia.com/network', '@settings' => url('admin/config/system/acquia-agent'))), 'warning', FALSE);
-    }
+    drupal_set_message($message, 'warning', FALSE);
   }
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function acquia_agent_theme() {
+  return array(
+    'acquia_agent_banner_form' => array(
+      'render element' => 'form',
+      'file' => 'acquia_agent.pages.inc',
+    ),
+  );
 }
 
 /**
@@ -87,11 +100,14 @@ function acquia_agent_check_subscription($params = array()) {
     }
     // Include Acquia Search module version number.
     if (module_exists('acquia_search')) {
-      $info = db_query("SELECT info FROM {system} WHERE name = 'acquia_search'")->fetchField();
-      if ($info = unserialize($info)) {
-        $params['search_version'] = $info['version'];
+      $result = db_query("SELECT name, info FROM {system} WHERE name IN ('acquia_search', 'apachesolr')");
+      foreach ($result as $data) {
+        if ($info = unserialize($data->info)) {
+          $params['search_version'][$data->name] = $info['version'];
+        }
       }
     }
+    $old_status = acquia_agent_subscription_is_active();
     $data = acquia_agent_call('acquia.agent.subscription', $params);
     $subscription['timestamp'] = REQUEST_TIME;
     if ($errno = xmlrpc_errno()) {
@@ -99,6 +115,10 @@ function acquia_agent_check_subscription($params = array()) {
         case SUBSCRIPTION_NOT_FOUND:
         case SUBSCRIPTION_EXPIRED:
           variable_del('acquia_subscription_data');
+          //notify everybody that the subscription status has changed
+          if ($old_status) {
+            module_invoke_all('acquia_subscription_status', FALSE);
+          }
           break;
       }
     }
@@ -106,6 +126,11 @@ function acquia_agent_check_subscription($params = array()) {
       $subscription += $data['result']['body'];
       variable_set('acquia_subscription_data', $subscription);
       // use: acquia_agent_settings('acquia_subscription_data');
+
+      // notify everybody that the subscription status has changed
+      if (!$old_status) {
+        module_invoke_all('acquia_subscription_status', TRUE);
+      }
     }
     else {
       watchdog('acquia agent', 'HMAC validation error: <pre>@data</pre>', array('@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
@@ -114,6 +139,9 @@ function acquia_agent_check_subscription($params = array()) {
   return $subscription;
 }
 
+function acquia_agent_report_xmlrpc_error() {
+  drupal_set_message(t('Error: @message (@errno)', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno())), 'error');
+}
 /**
  * Implementation of hook_update_status_alter().
  *
@@ -129,12 +157,12 @@ function acquia_agent_check_subscription($params = array()) {
  * @see update_calculate_project_data()
  */
 function acquia_agent_update_status_alter(&$projects) {
-  
+
   if (!$subscription = acquia_agent_has_update_service()) {
     // Get subscription data or return if the service is not enabled.
     return;
   }
-  
+
   foreach ($projects as $project => $project_info) {
     if ($project == 'drupal') {
       if (isset($subscription['update'])) {
@@ -195,7 +223,7 @@ function acquia_agent_has_update_service() {
     // that the web service willingly told us to not do update notifications.
     return FALSE;
   }
-  
+
   return $subscription;
 }
 
@@ -355,26 +383,7 @@ function acquia_agent_valid_credentials($identifier, $key, $acquia_network_addre
  *
  */
 function acquia_agent_call($method, $params, $identifier = NULL, $key = NULL, $acquia_network_address = NULL) {
-  $path = drupal_get_path('module', 'acquia_agent');
-  require_once $path . '/acquia_agent_streams.inc';
-
-  if (empty($acquia_network_address)) {
-    $acquia_network_address = acquia_agent_settings('acquia_network_address');
-  }
-  // Strip protocol (scheme) from Network address
-  $uri = parse_url($acquia_network_address);
-  $port = isset($uri['port']) ? ':' . $uri['port'] : '';
-  $path = isset($uri['path']) ? $uri['path'] : '';
-  $acquia_network_address = $uri['host'] . $port . $path;
-  // Add a scheme based on PHP's capacity.
-  if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
-    // OpenSSL is available in PHP
-    $acquia_network_address = 'https://' . $acquia_network_address;
-  }
-  else {
-    $acquia_network_address = 'http://' . $acquia_network_address;
-  }
-  $acquia_network_address .= '/xmlrpc.php';
+  $acquia_network_address = acquia_agent_network_address($acquia_network_address);
   $host = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
   $data = array(
     'authenticator' => _acquia_agent_authenticator($params, $identifier, $key),
@@ -421,6 +430,30 @@ function acquia_agent_connection_error_message() {
 }
 
 /**
+ * Helper function to build the xmlrpc target address.
+ */
+function acquia_agent_network_address($acquia_network_address = NULL) {
+  if (empty($acquia_network_address)) {
+    $acquia_network_address = acquia_agent_settings('acquia_network_address');
+  }
+  // Strip protocol (scheme) from Network address
+  $uri = parse_url($acquia_network_address);
+  $port = isset($uri['port']) ? ':' . $uri['port'] : '';
+  $path = isset($uri['path']) ? $uri['path'] : '';
+  $acquia_network_address = $uri['host'] . $port . $path;
+  // Add a scheme based on PHP's capacity.
+  if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+    // OpenSSL is available in PHP
+    $acquia_network_address = 'https://' . $acquia_network_address;
+  }
+  else {
+    $acquia_network_address = 'http://' . $acquia_network_address;
+  }
+  $acquia_network_address .= '/xmlrpc.php';
+  return $acquia_network_address;
+}
+
+/**
  * Helper function to check if an identifer and key exist.
  */
 function acquia_agent_has_credentials() {
@@ -459,7 +492,7 @@ function acquia_agent_settings($variable_name) {
 /**
  * API function used by others to ensure version information is loaded.
  *
- * Saves us some cycles to not load it each time, when it is actually 
+ * Saves us some cycles to not load it each time, when it is actually
  * not needed. We store this in a separate file, so that the Acquia
  * build process only needs to alter that file instead of the main
  * module file.
@@ -473,18 +506,104 @@ function acquia_agent_load_versions() {
  * Implementation of hook_form_[form_id]_alter()..
  */
 function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
-  
-  if (isset($form['modules']['Acquia Network Connector']['acquia_search'])) {
+
+  if (isset($form['description']['acquia_search'])) {
     $subscription = acquia_agent_settings('acquia_subscription_data');
-    
+
     if (!module_exists('acquia_search') && empty($subscription['active'])) {
-      $row = &$form['modules']['Acquia Network Connector']['acquia_search'];
-      $row['enable']['#disabled'] = TRUE;
-      $text = t('Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>', array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
-      $message = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $text . '</div>';  
-      $row['description']['#markup'] =  $message . $row['description']['#markup'];
+      $form['status']['#disabled_modules'][] = 'acquia_search';
+      $text = 'Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>';
+      $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
+      $form['description']['acquia_search']['#value'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $message . '</div>' . $form['description']['acquia_search']['#value'];
     }
   }
 }
 
+/**
+ * Builds a stream context based on a url and local .pem file if available.
+ */
+function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {
+  $opts = array();
+  $uri = parse_url($url);
+  if (isset($uri['scheme']) && ($uri['scheme'] == 'https') && variable_get('acquia_agent_verify_peer', 0)) {
+    // Look for a local certificate to validate the server identity.
+    $pem_file = drupal_get_path('module', $module) . '/' . $uri['host'] . '.pem';
+    if (file_exists($pem_file)) {
+      $opts['ssl'] = array(
+        'verify_peer' => TRUE,
+        'cafile' => $pem_file,
+        'allow_self_signed' => FALSE, // doesn't mean anything in this case
+        'CN_match' => $uri['host']);
+    }
+  }
+  return stream_context_create($opts);
+}
 
+
+/**
+ * Determine if a response from the Acquia Network is valid.
+ *
+ * @param $data
+ *   The data array returned by acquia_agent_call().
+ * @return
+ *   TRUE or FALSE.
+ */
+function acquia_agent_valid_response($data) {
+  $authenticator = $data['authenticator'];
+  $result = $data['result'];
+  $result_auth = $result['authenticator'];
+  $valid = ($authenticator['nonce'] == $result_auth['nonce']);
+  $valid = $valid && ($authenticator['time'] < $result_auth['time']);
+  $key = acquia_agent_settings('acquia_key');
+  $hash = _acquia_agent_hmac($key, $result_auth['time'], $result_auth['nonce'], $result['body']);
+  return $valid && ($hash == $result_auth['hash']);
+}
+
+/**
+ * Send a XML-RPC request.
+ *
+ * This function should never be called directly - use acquia_agent_call().
+ */
+function _acquia_agent_request($url, $method, $data) {
+  $ctx = acquia_agent_stream_context_create($url);
+  if (!$ctx) {
+    // TODO: what's a meaningful fault code?
+    xmlrpc_error(-1, t('SSL is not supported or setup failed'));
+    $result = FALSE;
+  }
+  else {
+    $result = xmlrpc($url, array($method => array($data)), array('context' => $ctx));
+  }
+  if ($errno = xmlrpc_errno()) {
+    watchdog('acquia agent', '@message (@errno): %server - %method - <pre>@data</pre>', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method, '@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
+  }
+  return $result;
+}
+
+/**
+ * Creates an authenticator based on xmlrpc params and a HMAC-SHA1.
+ */
+function _acquia_agent_authenticator($params = array(), $identifier = NULL, $key = NULL) {
+  if (empty($identifier)) {
+    $identifier = acquia_agent_settings('acquia_identifier');
+  }
+  if (empty($key)) {
+    $key = acquia_agent_settings('acquia_key');
+  }
+  $time = REQUEST_TIME;
+  $nonce = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
+  $authenticator['identifier'] = $identifier;
+  $authenticator['time'] = $time;
+  $authenticator['hash'] = _acquia_agent_hmac($key, $time, $nonce, $params);
+  $authenticator['nonce'] = $nonce;
+  return $authenticator;
+}
+
+/**
+ * Calculates a HMAC-SHA1 according to RFC2104 (http://www.ietf.org/rfc/rfc2104.txt).
+ * With addition of xmlrpc params.
+ */
+function _acquia_agent_hmac($key, $time, $nonce, $params) {
+  $data = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
+  return base64_encode(hash_hmac('sha1', $data, $key, TRUE));
+}
