@@ -46,6 +46,43 @@ function acquia_agent_menu() {
 }
 
 /**
+ * Implement hook_page_alter().
+ */
+function acquia_agent_page_alter(&$page) {
+  if (isset($page['page_top']['toolbar']) && user_access('administer site configuration')) {
+    $page['page_top']['toolbar']['#pre_render'][] = 'acquia_agent_toolbar_add_links';
+  }
+}
+
+/**
+ * Pre-render function which dynamically adds links to the toolbar.
+ */
+function acquia_agent_toolbar_add_links($toolbar) {
+
+    $subscription = acquia_agent_settings('acquia_subscription_data');
+    if (empty($subscription['timestamp']) || (time() - $subscription['timestamp'] > 60*60*24)) {
+      $subscription = acquia_agent_check_subscription(array('no_heartbeat' => 1));
+    }
+    $link['html'] = TRUE;
+    if (!empty($subscription['active'])) {
+      $icon = '<img src="'. base_path() . 'misc/message-16-ok.png" alt="ok" />';
+      $link['title'] = t("!icon Subscription active (expires !date)", array('!icon' => $icon, '!date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
+      $link['attributes']['class'][] = "acquia-active-subscription";
+      $link['attributes']['title'] = $subscription['product']['view'];
+      $link['href'] = $subscription['href'];
+    }
+    else {
+      $icon = '<img src="'. base_path() . 'misc/message-16-error.png" alt="error" />';
+      $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
+      $link['attributes']['class'][] = "acquia-inactive-subscription";
+      $link['href'] = 'http://acquia.com/network';
+    }
+
+  $toolbar['toolbar_user']['#links'] = array_merge(array('acquia_agent' => $link), $toolbar['toolbar_user']['#links']);
+  return $toolbar;
+}
+
+/**
  * Implementation of hook_init().
  */
 function acquia_agent_init() {

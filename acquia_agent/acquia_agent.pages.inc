@@ -548,7 +548,7 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
     '#title' => t('Enhanced SSL security'),
     '#default_value' => (int) (variable_get('acquia_agent_verify_peer', 0) && $ssl_available),
     '#options' => array(0 => t('Disabled'), 1 => t('Enabled')),
-    '#description' => t('If enabled the Acquia Connector will attempty to verify Acquia server identities before sending data.  May cause communication to fail, however, depending on your local configuration.'),
+    '#description' => t('If enabled the Acquia Connector will attempt to verify Acquia server identities before sending data.  May cause communication to fail, however, depending on your local configuration.'),
     '#disabled' => !$ssl_available,
   );
 
