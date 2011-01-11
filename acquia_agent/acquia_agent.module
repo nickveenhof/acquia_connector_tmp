@@ -350,48 +350,6 @@ function acquia_agent_watchdog($log_entry) {
 }
 
 /**
- * Implementation of hook_translated_menu_link_alter().
- *
- * Here is where we make changes to links that need dynamic information such
- * as the current page path or the number of users.
- */
-function acquia_agent_translated_menu_link_alter(&$item) {
-  global $user;
-
-  if (empty($user->uid) || ($item['module'] != 'admin_menu')) {
-    return;
-  }
-  if ($item['title'] == 'acquia_subscription_status') {
-    $subscription = acquia_agent_settings('acquia_subscription_data');
-    if (empty($subscription['timestamp']) || (REQUEST_TIME - $subscription['timestamp'] > 60*60*24)) {
-      $subscription = acquia_agent_check_subscription(array('no_heartbeat' => 1));
-    }
-    if ($subscription['active']) {
-      $icon = '<img src="' . base_path() . 'misc/watchdog-ok.png" height="10" alt="ok" />';
-      $item['title'] = t("!icon Subscription active (expires !date)", array('!icon' => $icon, '!date' => format_date(strtotime($subscription['expiration_date']['value']), 'small')));
-      $item['localized_options']['extra class'] .= " acquia-active-subscription";
-      $item['localized_options']['attributes']['title'] = $subscription['product']['view'];
-      $item['href'] = $subscription['href'];
-    }
-    else {
-      $icon = '<img src="' . base_path() . 'misc/watchdog-error.png" height="10" alt="error" />';
-      $item['title'] = t("!icon Subscription not active", array('!icon' => $icon));
-      $item['localized_options']['extra class'] .= " acquia-inactive-subscription";
-      $item['href'] = 'http://acquia.com/network';
-    }
-  }
-}
-
-/**
- * Implementation of hook_theme_registry_alter().
- */
-function acquia_agent_theme_registry_alter(&$theme_registry) {
-  if (isset($theme_registry['admin_menu_icon'])) {
-    $theme_registry['admin_menu_icon']['function'] = 'acquia_agent_menu_icon';
-  }
-}
-
-/**
  * Render an icon to display in the Administration Menu.
  */
 function acquia_agent_menu_icon() {
