@@ -140,7 +140,8 @@ function acquia_agent_check_subscription($params = array()) {
       $result = db_query("SELECT name, info FROM {system} WHERE name IN ('acquia_search', 'apachesolr')");
       foreach ($result as $data) {
         if ($info = unserialize($data->info)) {
-          $params['search_version'][$data->name] = $info['version'];
+          // Send the version, or at least the core compatibility as a fallback.
+          $params['search_version'][$data->name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
         }
       }
     }
