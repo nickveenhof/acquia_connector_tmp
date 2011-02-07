@@ -145,7 +145,6 @@ function acquia_agent_check_subscription($params = array()) {
         }
       }
     }
-    $old_status = acquia_agent_subscription_is_active();
     $data = acquia_agent_call('acquia.agent.subscription', $params);
     $subscription['timestamp'] = REQUEST_TIME;
     if ($errno = xmlrpc_errno()) {
@@ -153,27 +152,20 @@ function acquia_agent_check_subscription($params = array()) {
         case SUBSCRIPTION_NOT_FOUND:
         case SUBSCRIPTION_EXPIRED:
           variable_del('acquia_subscription_data');
-          //notify everybody that the subscription status has changed
-          if ($old_status) {
-            module_invoke_all('acquia_subscription_status', FALSE);
-          }
           break;
       }
     }
     elseif (acquia_agent_valid_response($data)) {
       $subscription += $data['result']['body'];
       variable_set('acquia_subscription_data', $subscription);
-      // use: acquia_agent_settings('acquia_subscription_data');
-
-      // notify everybody that the subscription status has changed
-      if (!$old_status) {
-        module_invoke_all('acquia_subscription_status', TRUE);
-      }
     }
     else {
       watchdog('acquia agent', 'HMAC validation error: <pre>@data</pre>', array('@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
     }
   }
+
+  module_invoke_all('acquia_subscription_status', acquia_agent_subscription_is_active());  
+
   return $subscription;
 }
 

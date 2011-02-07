@@ -615,8 +615,6 @@ function acquia_agent_set_submit($form, &$form_state) {
  * Delete acquia_agent settings.
  */
 function acquia_agent_delete_submit($form, &$form_state) {
-  $old_status = acquia_agent_subscription_is_active();
-
   variable_del('acquia_key');
   variable_del('acquia_identifier');
   variable_del('acquia_network_address');
@@ -626,10 +624,8 @@ function acquia_agent_delete_submit($form, &$form_state) {
   $form_state['redirect'] = 'admin/config/system/acquia-agent/connection';
   cache_clear_all();
 
-  // notify everybody that the subscription status may have changed
-  if ($old_status) {
-    module_invoke_all('acquia_subscription_status', FALSE);
-  }
+  // Notify everybody that the subscription status may have changed.
+  module_invoke_all('acquia_subscription_status', FALSE);
 }
 
 function theme_acquia_agent_banner_form($variables) {
