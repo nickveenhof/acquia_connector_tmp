@@ -41,7 +41,7 @@ function acquia_spi_cron() {
  * Implementation of hook_form_[form_id]_alter().
  */
 function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
-  $form['buttons']['submit']['#submit'][] = 'acquia_spi_agent_settings_submit';
+  $form['cs']['buttons']['submit']['#submit'][] = 'acquia_spi_agent_settings_submit';
 }
 
 /**
@@ -59,8 +59,10 @@ function acquia_spi_send_profile_info() {
   // Do nothing unless we have credentials.
   if (acquia_agent_has_credentials()) {
     $spi = acquia_spi_get();
-    return acquia_agent_call('acquia.spi.update', $spi);
+    $data = acquia_agent_call('acquia.spi.update', $spi);
+    return (bool)$data['result'];
   }
+  return FALSE;
 }
 
 /**
@@ -87,6 +89,7 @@ function acquia_spi_get() {
     'file_hashes'    => $hashes,
     'hashes_md5'     => md5($hashes_string),
     'hashes_sha1'    => sha1($hashes_string),
+    'hashes_sha256'  => hash('sha256', $hashes_string),
     'fileinfo'       => $fileinfo,
     'acquia_version' => $acquia_version,
   );
@@ -191,7 +194,7 @@ function _acquia_spi_generate_hashes($dir, $exclude_dirs, $limit_dirs = array())
   $fileinfo = array();
   if (is_dir($dir) && $handle = opendir($dir)) {
     while ($file = readdir($handle)) {
-      if (!in_array($file, array('.', '..', 'CVS', '.svn'))) {
+      if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git', '.bzr'))) {
         $path = ($dir == '.')?$file:"$dir/$file";
 
         if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
@@ -250,7 +253,7 @@ function acquia_spi_is_manifest_type($path) {
  * @param $path
  *   The name of the file or a directory.
  * @return
- *   bas64 encoded sha1 hash. 'hash' is an empty string for directories.
+ *   bas64 encoded sha256 hash. 'hash' is an empty string for directories.
  */
 function acquia_spi_hash_path($path = '') {
   $hash = '';
@@ -262,7 +265,7 @@ function acquia_spi_hash_path($path = '') {
       // Replace all line endings and CVS/svn Id tags
       $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$'.'Id$', $string);
       $string = preg_replace('/\r\n|\n|\r/', ' ', $string);
-      $hash =  base64_encode(pack("H*",sha1($string)));
+      $hash =  base64_encode(hash('sha256', $string, TRUE));
     }
   }
   return $hash;
