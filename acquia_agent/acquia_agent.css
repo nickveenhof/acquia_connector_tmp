@@ -30,6 +30,10 @@ div#an-info-box{
   padding-left: 2em;
 }
 
+#acquia-agent-an-trial-form {
+  padding-bottom: 2em;
+}
+
 div#an-pg-container{
   display: table;
   width: 100%;
