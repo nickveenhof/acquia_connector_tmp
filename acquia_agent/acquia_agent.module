@@ -65,14 +65,18 @@ function acquia_agent_toolbar_add_links($toolbar) {
     }
     $link['html'] = TRUE;
     if (!empty($subscription['active'])) {
-      $icon = '<img src="'. base_path() . 'misc/message-16-ok.png" alt="ok" />';
+      // Yes, this uses inline CSS, which sounds bad, but including a CSS file
+      // just for this sounds equally bad.
+      $icon = '<img src="'. base_path() . 'misc/message-16-ok.png" alt="ok" style="vertical-align: middle;" />';
       $link['title'] = t("!icon Subscription active (expires !date)", array('!icon' => $icon, '!date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
       $link['attributes']['class'][] = "acquia-active-subscription";
       $link['attributes']['title'] = $subscription['product']['view'];
       $link['href'] = $subscription['href'];
     }
     else {
-      $icon = '<img src="'. base_path() . 'misc/message-16-error.png" alt="error" />';
+      // Yes, this uses inline CSS, which sounds bad, but including a CSS file
+      // just for this sounds equally bad.
+      $icon = '<img src="'. base_path() . 'misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
       $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
       $link['attributes']['class'][] = "acquia-inactive-subscription";
       $link['href'] = 'http://acquia.com/network';
@@ -86,11 +90,12 @@ function acquia_agent_toolbar_add_links($toolbar) {
  * Implementation of hook_init().
  */
 function acquia_agent_init() {
-  if ( !(arg(0) == 'overlay-ajax' && arg(1) == 'page_top') &&
-      arg(3) != 'acquia-agent' &&
+  if ((arg(0) != 'overlay-ajax') &&
+      (arg(3) != 'acquia-agent') &&
       empty($_POST) &&
       user_access('administer site configuration') &&
-      (!acquia_agent_has_credentials())) {
+      (!acquia_agent_has_credentials()) &&
+      ($_GET['q'] != 'admin/config/search/clean-urls/check')) {
     $message = t('Get a <a href="@acquia-free">free 30 day trial</a> of Drupal support, enhanced content search, comment spam blocking and more. If you have an Acquia Network subscription, <a href="@settings">connect now</a>.', array('@acquia-free' => url('admin/config/system/acquia-agent'), '@settings' => url('admin/config/system/acquia-agent/connection')));
     if (arg(0) == 'admin') {
       $message .= '<br />' . t('To turn this message off, disable the Acquia Network Connector <a href="@admin-modules">modules</a>.', array('@admin-modules' => url('admin/modules', array('fragment' => 'edit-modules-acquia-network-connector'))));
@@ -164,7 +169,7 @@ function acquia_agent_check_subscription($params = array()) {
     }
   }
 
-  module_invoke_all('acquia_subscription_status', acquia_agent_subscription_is_active());  
+  module_invoke_all('acquia_subscription_status', acquia_agent_subscription_is_active());
 
   return $subscription;
 }
