@@ -94,12 +94,8 @@ function acquia_agent_init() {
       (arg(3) != 'acquia-agent') &&
       empty($_POST) &&
       user_access('administer site configuration') &&
-      (!acquia_agent_has_credentials()) &&
-      ($_GET['q'] != 'admin/config/search/clean-urls/check')) {
-    $message = t('Get a <a href="@acquia-free">free 30 day trial</a> of Drupal support, enhanced content search, comment spam blocking and more. If you have an Acquia Network subscription, <a href="@settings">connect now</a>.', array('@acquia-free' => url('admin/config/system/acquia-agent'), '@settings' => url('admin/config/system/acquia-agent/connection')));
-    if (arg(0) == 'admin') {
-      $message .= '<br />' . t('To turn this message off, disable the Acquia Network Connector <a href="@admin-modules">modules</a>.', array('@admin-modules' => url('admin/modules', array('fragment' => 'edit-modules-acquia-network-connector'))));
-    }
+      (!acquia_agent_has_credentials())) {
+    $message = t('Get a <a href="@acquia-free">free 30 day trial</a> of Drupal support, enhanced content search, comment spam blocking and more. If you have an Acquia Network subscription, <a href="@settings">connect now</a>. You can turn this message off by disabling the Acquia Network <a href="@admin-modules">modules</a> too.', array('@acquia-free' => url('admin/config/system/acquia-agent'), '@settings' => url('admin/config/system/acquia-agent/connection'), '@admin-modules' => url('admin/modules', array('fragment' => 'edit-modules-acquia-network-connector'))));
     drupal_set_message($message, 'warning', FALSE);
   }
 }
