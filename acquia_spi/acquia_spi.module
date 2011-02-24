@@ -7,24 +7,19 @@
  */
 
 /**
- * Implementation of hook_help()
+ * Implements of hook_help().
  */
 function acquia_spi_help($path, $arg) {
-  $welcome_nid = variable_get('acquia_welcome', 0);
-  if ($path == 'admin/help#acquia_spi' && $welcome_nid) {
+  if (($path == 'admin/help#acquia_spi') && ($welcome_nid = variable_get('acquia_welcome', 0))) {
     // Only provide help text if the welcome message is avalailable.
-    if ($nid = db_query('SELECT nid FROM {node} where nid = %d', $welcome_nid)->fetchField()) {
-      $txt = 'The !acquia_welcome provides information about how to '
-      .'quickly get your site up and running.  Also there are instructions for '
-      .'setting the site theme as well as many other configuration tasks.';
-      $link = l('Acquia Drupal welcome page', 'node/' . $nid);
-      return '<p>'. t($txt, array('!acquia_welcome' => $link)). '<p>';
+    if ($nid = db_query('SELECT nid FROM {node} where nid = :nid', array(':nid' => $welcome_nid))->fetchField()) {
+      return '<p>' . t('The <a href="@welcome_url">Acquia Drupal welcome page</a> provides information about how to quickly get your site up and running. Also there are instructions for setting the site theme as well as many other configuration tasks.', array('@welcome_url' => url('node/' . $nid))) . '<p>';
     }
   }
 }
 
 /**
- * Implementation of hook_cron().
+ * Implements hook_cron().
  */
 function acquia_spi_cron() {
   $last = variable_get('acquia_spi_cron_last', 0);
@@ -38,7 +33,7 @@ function acquia_spi_cron() {
 }
 
 /**
- * Implementation of hook_form_[form_id]_alter().
+ * Implements hook_form_[form_id]_alter().
  */
 function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
   $form['cs']['buttons']['submit']['#submit'][] = 'acquia_spi_agent_settings_submit';
