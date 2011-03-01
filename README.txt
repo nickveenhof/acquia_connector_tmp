@@ -7,7 +7,7 @@ the Acquia Network gain access to remote network services, documentation and
 the Acquia Network's subscriber forums. Premium subscriptions provide
 web-based ticket management, as well as email and telephone support.
 
-These modules allow you to connect any Drupal 6.x site to the Acquia Network.
+These modules allow you to connect any Drupal 7.x site to the Acquia Network.
 Acquia also has a distribution of Drupal called Acquia Drupal which is
 composed of purely open source GPL licensed components. If you are looking
 for a quick start with Drupal, Acquia Drupal [2] might be of great use for you.
@@ -36,19 +36,20 @@ Drupal, which includes these modules and provides an easier start up experience
 with the Acquia Network.
 
 If you choose to install the Acquia Network Connector modules to an existing
-Drupal 6 site, please do the following:
+Drupal 7.x site, please do the following:
 
- 1. Copy the acquia_connector directory to under sites/all/modules or one of
+ 1. Copy the acquia_connector directory to sites/all/modules or one of
     the other places where Drupal finds modules.
- 2. Go to the Administer >> Site building >> Modules page, and enable both
+ 2. Go to the Administer >> Modules page, and enable both
     submodules.
  3. You will be prompted to enter your Acquia Network connection details.
     If you did not set up an Acquia Network subscription yet, go to
     http://acquia.com/ and choose an appropriate option.
  4. Ready. Enjoy using your Acquia Network subscription at
-    http://acquia.com/network.
+    http://network.acquia.com/.
     
-Read more in Acquia's Getting Started Guide at http://acquia.com/downloads
+Read more in Acquia's Getting Started Guide at
+http://network.acquia.com/documentation/getting-started/introduction
 
 Maintainers
 --------------------------------------------------------------------------------
