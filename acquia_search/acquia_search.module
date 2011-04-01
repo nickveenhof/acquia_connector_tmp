@@ -11,14 +11,12 @@ define('ACQUIA_SEARCH_SERVER_ID', 'acquia_search_server_1');
  * Predefined Acquia Search network server
  */
 function acquia_search_get_server() {
-  $acquia_server = array(
+  return array(
     'server_id' => ACQUIA_SEARCH_SERVER_ID,
     'name' => t('Acquia Search'),
-    'host' => variable_get('acquia_search_host', 'search.acquia.com'),
-    'port' => variable_get('acquia_search_port', '80'),
-    'path' => variable_get('acquia_search_path', '/solr/'. acquia_agent_settings('acquia_identifier')),
-    'service_class' => 'AcquiaSearchService');
-  return $acquia_server;
+    'url' => variable_get('acquia_search_url', 'http://search.acquia.com/solr/'. acquia_agent_settings('acquia_identifier')),
+    'service_class' => 'AcquiaSearchService',
+  );
 }
 
 /**
@@ -26,7 +24,7 @@ function acquia_search_get_server() {
  */
 function acquia_search_enable() {
   if (acquia_agent_subscription_is_active()) {
-    acquia_search_lock_acquia_solr_server();
+    acquia_search_enable_acquia_solr_server();
     // Send a heartbeat so the Acquia Network knows the module is enabled.
     acquia_agent_check_subscription();
   }
@@ -49,30 +47,27 @@ function acquia_search_init() {
 /**
  * Create a new record pointing to the Acquia apachesolr search server and set it as the default
  */
-function acquia_search_lock_acquia_solr_server() {
-  apachesolr_server_save(acquia_search_get_server());
-
-  variable_set('apachesolr_default_server', ACQUIA_SEARCH_SERVER_ID);
-  if (!variable_get('apachesolr_failure', FALSE)) {
-    variable_set('apachesolr_failure', 'show_drupal_results');
+function acquia_search_enable_acquia_solr_server() {
+  $server = apachesolr_server_load(ACQUIA_SEARCH_SERVER_ID);
+  if ($server != acquia_search_get_server()) {
+    apachesolr_server_save(acquia_search_get_server());
+  }
+  // Only set the default if we just createdd the server.
+  if (!$server) {
+    variable_set('apachesolr_default_server', ACQUIA_SEARCH_SERVER_ID);
   }
 }
 
 /**
  * Implementation of hook_disable().
- */
-function acquia_search_disable() {
-  acquia_search_unlock_acquia_solr_server();
-}
-
-/**
+ *
  * Helper function to clear variables we may have set.
  */
-function acquia_search_unlock_acquia_solr_server() {
+function acquia_search_disable() {
   apachesolr_server_delete(ACQUIA_SEARCH_SERVER_ID);
   $servers = apachesolr_load_all_servers();
   if (empty($servers)) {
-    apachesolr_server_save(array('server_id' => 'solr', 'name' => 'Apache Solr server', 'host' => 'localhost', 'port' => '8983', 'path' => '/solr'));
+    apachesolr_server_save(array('server_id' => 'solr', 'name' => 'Apache Solr server', 'url' => 'http://localhost:8983/solr'));
     variable_set('apachesolr_default_server', 'solr');
   }
   else {
@@ -126,6 +121,14 @@ function acquia_search_form_apachesolr_settings_alter(&$form, $form_state) {
         break;
       }
     }
+    $form['advanced']['acquia_search_edismax_default'] = array(
+      '#type' => 'radios',
+      '#title' => t('Always allow advanced syntax for Acquia Search'),
+      '#default_value' => variable_get('acquia_search_edismax_default', 0),
+      '#options' => array(0 => t('Disabled'), 1 => t('Enabled')),
+      '#description' => t('If enabled, all Acquia Search keyword searches may use advanced <a href="@url">Lucene syntax</a> such as wildcard searches, fuzzy searches, proximity searches, boolean operators and more via the Extended Dismax parser. If not enabled, this syntax wll only be used when needed to enable wildcard searches.', array('@url' => 'http://lucene.apache.org/java/2_9_3/queryparsersyntax.html')),
+      '#weight' => 10,
+    );
   }
 }
 
@@ -135,9 +138,7 @@ function acquia_search_form_apachesolr_settings_alter(&$form, $form_state) {
 function acquia_search_form_apachesolr_server_edit_form_alter(&$form, $form_state) {
   // Do not allow editing of Acquia Search server parameters
   if (isset($form_state['build_info']['args'][0]['server_id']) && $form_state['build_info']['args'][0]['server_id'] == ACQUIA_SEARCH_SERVER_ID ) {
-    $form['host']['#disabled'] = TRUE; 
-    $form['port']['#disabled'] = TRUE;
-    $form['path']['#disabled'] = TRUE;
+    $form['url']['#disabled'] = TRUE; 
     $form['name']['#disabled'] = TRUE;
     $form['server_id']['#disabled'] = TRUE;    
   }
@@ -158,10 +159,10 @@ function acquia_search_server_edit_form_validate($form, &$form_state) {
 
 function acquia_search_acquia_subscription_status($active) {
   if ($active) {
-    acquia_search_lock_acquia_solr_server();
+    acquia_search_enable_acquia_solr_server();
   }
   else {
-    acquia_search_unlock_acquia_solr_server();
+    acquia_search_disable();
   }
 }
 
@@ -270,11 +271,11 @@ function acquia_search_valid_response($hmac, $nonce, $string, $derived_key = NUL
  * @return string hmac_digest
  *
  */
-function acquia_search_extract_hmac($http_response_header) {
+function acquia_search_extract_hmac($headers) {
   $reg = array();
-  if (is_array($http_response_header)) {
-    foreach ($http_response_header as $header) {
-      if (preg_match("/Pragma:.*hmac_digest=(.+);/i", $header, $reg)) {
+  if (is_array($headers)) {
+    foreach ($headers as $name => $value) {
+      if (strtolower($name) == 'pragma' && preg_match("/hmac_digest=([^;]+);/i", $value, $reg)) {
         return trim($reg[1]);
       }
     }
@@ -282,4 +283,33 @@ function acquia_search_extract_hmac($http_response_header) {
   return '';
 }
 
+/**
+ * Implementation of hook_apachesolr_modify_query().
+ *
+ * Possibly alters the query type ('defType') param to edismax.
+ */
+function acquia_search_apachesolr_modify_query($query, $caller) {
+  // @todo - does it make sense to check $caller too?
+  if ($query->solr('getServerId') != ACQUIA_SEARCH_SERVER_ID || isset($query->params['qt']) || isset($query->params['defType'])) {
+    // This is a 'mlt' query or something else custom.
+    return;
+  }
+  // Set the qt to edismax if we have keywords, and we always use it, or are
+  // using a wildcard (* or ?).
+  $keys = $query->get_query_basic();
+  if ($keys && (($wildcard = preg_match('/\S+[*?]/', $keys)) || variable_get('acquia_search_edismax_default', 0))) {
+    $query->params['defType'] = 'edismax';
+    if ($wildcard) {
+      $keys = preg_replace_callback('/(\S+[*?]\S*)/', '_acquia_search_lower', $keys);
+      $query->set_keys($keys);
+    }
+  }
+}
+
+/**
+ * Convert to lower-case any keywords containing a wildcard.
+ */
+function _acquia_search_lower($matches) {
+  return drupal_strtolower($matches[1]);
+}
 

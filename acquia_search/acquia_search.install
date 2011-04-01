@@ -111,7 +111,7 @@ function _acquia_search_find_block_region($block_regions = array()) {
 function _acquia_search_get_default_facets() {
 
   $default_enabled_facets['apachesolr_search']['bundle'] = 'bundle';
-  $default_enabled_facets['apachesolr_search']['is_uid'] =  'is_uid';
+  $default_enabled_facets['apachesolr_search']['is_uid'] = 'is_uid';
 
   return $default_enabled_facets;
 }
@@ -121,6 +121,14 @@ function _acquia_search_get_default_facets() {
  * Implementation of hook_uninstall().
  */
 function acquia_search_uninstall() {
-  // Nothing to do, but allows the module to be uninstalled.
+  variable_del('acquia_search_url');
 }
 
+/**
+ * Clear out old variables.
+ */
+function acquia_search_update_7000() {
+  variable_del('acquia_search_host');
+  variable_del('acquia_search_port');
+  variable_del('acquia_search_path');
+}
