@@ -243,7 +243,7 @@ function acquia_agent_has_update_service() {
   acquia_agent_load_versions();
 
   $subscription = acquia_agent_settings('acquia_subscription_data');
-  if (!IS_ACQUIA_DRUPAL || !$subscription['active'] || (isset($subscription['update_service']) && empty($subscription['update_service']))) {
+  if (!IS_ACQUIA_DRUPAL || empty($subscription['active']) || (isset($subscription['update_service']) && empty($subscription['update_service']))) {
     // We don't have update service if (1) this is not Acquia Drupal, (2) there
     // is no subscription or (3) the update service was disabled on acquia.com.
     // Requiring the update_service key and checking its value separately is
