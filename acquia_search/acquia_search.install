@@ -48,10 +48,10 @@ function acquia_search_requirements($phase) {
  * Implementation of hook_install().
  */
 function acquia_search_install() {
-
+  return;
   $facets = _acquia_search_get_default_facets();
   
-  apachesolr_save_enabled_facets(ACQUIA_SEARCH_SERVER_ID, $facets);
+  //apachesolr_save_enabled_facets(ACQUIA_SEARCH_ENVIRONMENT_ID, $facets);
 
   $theme_key = variable_get('theme_default', 'bartik');
   $block_regions = array_keys(system_region_list($theme_key));
