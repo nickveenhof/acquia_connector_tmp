@@ -286,7 +286,7 @@ function acquia_search_extract_hmac($headers) {
  *
  * Possibly alters the query type ('defType') param to edismax.
  */
-function acquia_search_apachesolr_modify_query($query) {
+function acquia_search_apachesolr_query_alter($query) {
   // @todo - does it make sense to check $caller too?
   if ($query->solr('getId') != ACQUIA_SEARCH_ENVIRONMENT_ID || $query->getParam('qt') || $query->getParam('defType')) {
     // This is a 'mlt' query or something else custom.
