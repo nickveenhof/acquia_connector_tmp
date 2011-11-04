@@ -254,6 +254,7 @@ function acquia_nspi_get_version_info() {
 
   $ver['base_version'] = VERSION;
   $install_root = $_SERVER['DOCUMENT_ROOT'] . base_path();
+  $ver['distribution']  = '';
 
   // Determine if this puppy is Acquia Drupal
   acquia_agent_load_versions();
@@ -266,7 +267,7 @@ function acquia_nspi_get_version_info() {
   }
 
   // Determine if we are looking at Pressflow
-  if (defined(CACHE_EXTERNAL)) {
+  if (defined('CACHE_EXTERNAL')) {
     $ver['distribution']  = 'Pressflow';
     $press_version_file = $install_root . './PRESSFLOW.txt';
     if (is_file($press_version_file)) {
@@ -560,11 +561,11 @@ function acquia_nspi_get_super_name() {
 function acquia_nspi_get_admin_count() {
   $count = null;
   $sql = "SELECT COUNT(DISTINCT u.uid) as count
-              FROM {users} u, {users_roles} ur, {permission} p
+              FROM {users} u, {users_roles} ur, {role_permission} p
               WHERE u.uid = ur.uid
                 AND ur.rid = p.rid
                 AND u.status = 1
-                AND (p.permissionLIKE '%administer permissions%' OR p.permissionLIKE LIKE '%administer users%')";
+                AND (p.permission LIKE '%administer permissions%' OR p.permission LIKE '%administer users%')";
   $result = db_query($sql)->fetchObject();
 
   return (isset($result->count) && is_numeric($result->count)) ? $result->count : null;
@@ -784,11 +785,11 @@ function acquia_nspi_get_modules() {
 function acquia_nspi_get_quantum() {
   $quantum = array();
   // Get only published nodes.
-  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute();
+  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetch();
   // Get only active users.
-  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute();
+  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetch();
   // Get only active comments.
-  $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute();
+  $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute()->fetch();
 
   // Get some data about caches
   $result = db_query("SELECT cid, created, expire FROM {cache} WHERE 1");
