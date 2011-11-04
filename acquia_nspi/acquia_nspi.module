@@ -499,7 +499,7 @@ function acquia_nspi_get_variables_data() {
   foreach ($result as $record) {
     $variables[$record->name] = unserialize($record->value);
   }
-  return serialize($variables);
+  return drupal_json_encode($variables);
 }
 
 /**
