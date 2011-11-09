@@ -214,7 +214,7 @@ function acquia_nspi_get() {
     'hashes_md5'     => md5($hashes_string),
     'hashes_sha1'    => sha1($hashes_string),
     'fileinfo'       => $fileinfo,
-    'distribution'   => $drupal_version['distribution'],
+    'distribution'   => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
     'base_version'   => $drupal_version['base_version'],
     'build_data'     => $drupal_version,
   );
@@ -231,7 +231,7 @@ function acquia_nspi_get() {
 
     // Values returned only over SSL
     $spi_ssl = array(
-      //'system_vars'  => acquia_nspi_get_variables_data(),
+      'system_vars'  => acquia_nspi_get_variables_data(),
       'settings_ra'  => acquia_nspi_get_settings_permissions(),
       'admin_count'  => variable_get('acquia_nspi_admin_priv',1) ? acquia_nspi_get_admin_count() : '',
       'admin_name'   => variable_get('acquia_nspi_admin_priv',1) ? acquia_nspi_get_super_name() : '',
@@ -266,7 +266,7 @@ function acquia_nspi_get_version_info() {
   }
 
   // Determine if we are looking at Pressflow
-  if (defined(CACHE_EXTERNAL)) {
+  if (defined('CACHE_EXTERNAL')) {
     $ver['distribution']  = 'Pressflow';
     $press_version_file = $install_root . './PRESSFLOW.txt';
     if (is_file($press_version_file)) {
@@ -726,7 +726,7 @@ function acquia_nspi_get_system_status() {
 function acquia_nspi_get_modules() {
   
   // Only do a full rebuild of the module cache every 1 at the most
-  $last_build = variable_get('acquia_nspi_module_rebuild',0);
+  $last_build = variable_get('acquia_nspi_module_rebuild', 0);
   if ($last_build < time() - 86400) {
     $modules = system_rebuild_module_data();
     variable_set('acquia_nspi_module_rebuild', time());
