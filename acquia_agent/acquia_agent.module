@@ -421,9 +421,11 @@ function acquia_agent_network_address($acquia_network_address = NULL) {
   }
   // Strip protocol (scheme) from Network address
   $uri = parse_url($acquia_network_address);
-  $port = isset($uri['port']) ? ':' . $uri['port'] : '';
-  $path = isset($uri['path']) ? $uri['path'] : '';
-  $acquia_network_address = $uri['host'] . $port . $path;
+  if (isset($uri['host'])) {
+    $acquia_network_address = $uri['host'];
+  }
+  $acquia_network_address .= isset($uri['port']) ? ':' . $uri['port'] : '';
+  $acquia_network_address .= (isset($uri['path']) && isset($uri['host'])) ? $uri['path'] : '';
   // Add a scheme based on PHP's capacity.
   if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
     // OpenSSL is available in PHP
