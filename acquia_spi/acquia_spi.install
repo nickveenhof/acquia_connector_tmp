@@ -10,7 +10,7 @@
 /**
  * Implementation of hook_uninstall().
  */
-function acquia_nspi_uninstall() {
-  variable_del('acquia_nspi_cron_last');
-  variable_del('acquia_nspi_cron_interval');
+function acquia_spi_uninstall() {
+  variable_del('acquia_spi_cron_last');
+  variable_del('acquia_spi_cron_interval');
 }
