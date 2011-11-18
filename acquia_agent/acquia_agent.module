@@ -583,7 +583,7 @@ function _acquia_agent_authenticator($params = array(), $identifier = NULL, $key
   $nonce = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
   $authenticator['identifier'] = $identifier;
   $authenticator['time'] = $time;
-  $authenticator['hash'] = _acquia_agent_hmac($key, $time, $nonce, $params);
+  $authenticator['hash'] = _acquia_agent_hmac($key, $time, $nonce, array());
   $authenticator['nonce'] = $nonce;
   return $authenticator;
 }
