@@ -305,6 +305,7 @@ function acquia_nspi_get_version_info() {
 
   $ver['base_version'] = VERSION;
   $install_root = $_SERVER['DOCUMENT_ROOT'] . base_path();
+  $ver['distribution']  = '';
 
   // Determine if this puppy is Acquia Drupal
   acquia_agent_load_versions();
