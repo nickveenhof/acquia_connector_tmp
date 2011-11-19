@@ -23,6 +23,7 @@ function acquia_spi_requirements($phase) {
   $requirements = array();
   $has_credentials = acquia_agent_has_credentials();
   $last_sent = variable_get('acquia_spi_cron_last', 0);
+  $id = variable_get('acquia_identifier', '');
 
   switch ($phase) {
     case 'runtime':
@@ -31,7 +32,7 @@ function acquia_spi_requirements($phase) {
           'title' => t('Acquia Network SPI'),
           'severity' => REQUIREMENT_OK,
           'value' => t('Last sent @time ago', array('@time' => format_interval(REQUEST_TIME - $last_sent))),
-          'description' => t('You can also <a href="@refresh-status">manually refresh the subscription status</a>.', array('@refresh-status' => url('admin/config/system/acquia-agent/refresh-status', array('query' => drupal_get_destination())))),
+          'description' => t('You can <a href="!spi-send">manually send SPI data</a>.', array('!spi-send' => url('admin/config/system/acquia-agent/spi-send', array('query' => drupal_get_destination())))),
         );
       }
       break;

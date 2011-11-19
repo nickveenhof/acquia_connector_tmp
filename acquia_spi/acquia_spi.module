@@ -92,6 +92,47 @@ function acquia_spi_cron() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function acquia_spi_menu() {
+  $items['system/acquia-spi-send'] = array(
+    'title' => 'Acquia SPI Send',
+    'description' => 'Send SPI data to Acquia Network.',
+    'page callback' => '_acquia_spi_send',
+    'access callback' => array('_acquia_spi_send_access'),
+  );
+  $items['admin/config/system/acquia-agent/spi-send'] = array(
+    'title' => 'Acquia SPI Send',
+    'description' => 'Send SPI data to Acquia Network.',
+    'page callback' => '_acquia_spi_send',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+/**
+ * Access callback check for NSPI independent cron.
+ */
+function _acquia_spi_send_access() {
+  $id = variable_get('acquia_identifier', '');
+  if (!isset($_GET['key']) && !drupal_valid_token($_GET['key'], $id . '-spi-send')) {
+    return FALSE;
+  }
+  else {
+    return TRUE;
+  }
+}
+
+function _acquia_spi_send() {
+  acquia_spi_send_profile_info();
+  if (arg(0) == 'admin') {
+    drupal_goto();
+  }
+  return '';
+}
+
+/**
  * Implementation of hook_form_[form_id]_alter().
  */
 function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
@@ -856,7 +897,9 @@ function acquia_spi_get_quantum() {
   foreach ($result as $record) {
     $cdata[] = (array) $record;
   }
-  $quantum['cache'] = $cdata;
+  if (isset($cdata)) {
+    $quantum['cache'] = $cdata;
+  }
 
   return $quantum;
 }
