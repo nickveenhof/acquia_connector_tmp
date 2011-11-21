@@ -214,7 +214,7 @@ function acquia_spi_send_profile_info() {
   // Do nothing unless we have credentials.
   if (acquia_agent_has_credentials()) {
     // acquia_agent_network_address() sets remote server protocol.
-    $nspi_server = variable_get('acquia_spi_server', 'http://nspi.acquia.com');
+    $nspi_server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
     $spi = acquia_spi_get();
     variable_set('acquia_spi_cron_last', REQUEST_TIME);
     return acquia_agent_call('acquia.nspi.update', $spi, NULL, NULL, $nspi_server);
@@ -260,7 +260,8 @@ function acquia_spi_get() {
     'build_data'     => $drupal_version,
   );
 
-  $via_ssl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? TRUE : FALSE;
+  $scheme = parse_url(variable_get('acquia_spi_server', 'https://nspi.acquia.com'), PHP_URL_SCHEME);
+  $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
   if (variable_get('acquia_spi_ssl_override', FALSE)) {
     $via_ssl = TRUE;
   }
