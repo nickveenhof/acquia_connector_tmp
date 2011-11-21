@@ -29,7 +29,7 @@ function acquia_spi_xmlrpc() {
   return array(
     array(
       'acquia.nspi.send.module.data',
-      'acquia_nspi_send_module_data',
+      'acquia_spi_send_module_data',
       array('string','array'),
       t('Send file data for the provided path.')),
     );
