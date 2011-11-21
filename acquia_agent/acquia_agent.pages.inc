@@ -637,7 +637,7 @@ function theme_acquia_agent_banner_form($variables) {
   $output .= drupal_render_children($form);
   $output .= "\n</div>\n";
   $output .= '<div class="an-pg-banner" id="' . $form['#id'] . '-banner">';
-  $output .= '<a href="http://acquia.com/products-services/acquia-network" target="_blank">' . $banner . '</a>';
+  $output .= '<a href="http://www.acquia.com/trial" target="_blank">' . $banner . '</a>';
   $output .= "\n</div>\n</div>\n";
   return $output;
 }
