@@ -1,4 +1,4 @@
-name = Acquia (new) Site Profile Information
+name = Acquia Site Profile Information
 description = "Sends detailed information about your Drupal site (status, info, debugging, etc...) to the Acquia Network."
 package = Acquia Network Connector
 php = 5.0
