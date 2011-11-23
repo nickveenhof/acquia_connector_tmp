@@ -216,8 +216,9 @@ function acquia_spi_send_profile_info() {
     // acquia_agent_network_address() sets remote server protocol.
     $nspi_server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
     $spi = acquia_spi_get();
-    // Use JSON encoding of parameters instead of serialization.
-    $spi['rpc_version'] = 2;
+    // Specify version 3 of the RPC, which ommits request parameters in the HMAC.
+    // @todo move to version 4, JSON over XML-RPC.
+    $spi['rpc_version'] = 3;
     variable_set('acquia_spi_cron_last', REQUEST_TIME);
     return acquia_agent_call('acquia.nspi.update', $spi, NULL, NULL, $nspi_server);
   }

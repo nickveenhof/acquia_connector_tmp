@@ -602,9 +602,13 @@ function _acquia_agent_hmac($key, $time, $nonce, $params) {
       pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
       $string)))));
   }
-  else {
+  elseif ($params['rpc_version'] == 2) {
     $encoded_params = json_encode($params);
     $string = $time .':'. $nonce .':'. $encoded_params;
+    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
+  }
+  else {
+    $string = $time .':'. $nonce;
     return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
 }
