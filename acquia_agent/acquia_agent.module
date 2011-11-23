@@ -367,10 +367,14 @@ function acquia_agent_valid_credentials($identifier, $key, $acquia_network_addre
  */
 function acquia_agent_call($method, $params, $identifier = NULL, $key = NULL, $acquia_network_address = NULL) {
   $acquia_network_address = acquia_agent_network_address($acquia_network_address);
-  $host = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
+  $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
+  $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
+  $ssl = isset($_SERVER["HTTPS"]) ? TRUE : FALSE;
   $data = array(
     'authenticator' => _acquia_agent_authenticator($params, $identifier, $key),
+    'ip' => $ip,
     'host' => $host,
+    'ssl' => $ssl,
     'body' => $params,
   );
   $data['result'] = _acquia_agent_request($acquia_network_address, $method, $data);
