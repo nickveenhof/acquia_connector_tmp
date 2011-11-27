@@ -40,7 +40,6 @@ function acquia_spi_xmlrpc() {
  * 
  */
 function acquia_spi_send_module_data($file = array()) {
-  
   // We only do this if we are on SSL
   $via_ssl = $_SERVER['HTTPS'] ? TRUE : FALSE;
   if (variable_get('acquia_spi_ssl_override', FALSE)) {
@@ -49,11 +48,13 @@ function acquia_spi_send_module_data($file = array()) {
   
   // If our checks pass muster, then we'll provide this data.
   if (acquia_agent_has_credentials() && $via_ssl) {
-
-    // If the file variable is set and if the user has allowed file diffing
-    if (isset($file) && variable_get('acquia_spi_module_diff_data',1)) {
-      $file_path = $_SERVER['DOCUMENT_ROOT'].'/'.$file;
-      if (is_file($file_path)) {
+    // If the file variable is set and if the user has allowed file diffing.
+    if (isset($file) && variable_get('acquia_spi_module_diff_data', 1)) {
+      $document_root = getcwd();
+      $file_path = realpath($document_root . '/' . $file);
+      // Be sure the file being requested is within the webroot and is not any
+      // settings.php file.
+      if (is_file($file_path) && strpos($file_path, $document_root) === 0 && strpos($file_path, 'settings.php') === FALSE) {
         $file_contents = file_get_contents($file_path);
         header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
         header("Content-Type:text");  
@@ -116,7 +117,7 @@ function acquia_spi_menu() {
  */
 function _acquia_spi_send_access() {
   $id = variable_get('acquia_identifier', '');
-  if (!isset($_GET['key']) && !drupal_valid_token($_GET['key'], $id . '-spi-send')) {
+  if (empty($id) || (!isset($_GET['key']) && !drupal_valid_token($_GET['key'], $id . '-spi-send'))) {
     return FALSE;
   }
   else {
