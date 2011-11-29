@@ -87,7 +87,7 @@ function acquia_spi_cron() {
   
   // Determine if the required interval has passed.
   $now = REQUEST_TIME;
-  if ($now - $last > ($interval * 60)) {
+  if (variable_get('acquia_spi_use_cron', 1) && $now - $last > ($interval * 60)) {
     $ret = acquia_spi_send_profile_info();
   }
 }
@@ -100,37 +100,39 @@ function acquia_spi_menu() {
     'title' => 'Acquia SPI Send',
     'description' => 'Send SPI data to Acquia Network.',
     'page callback' => '_acquia_spi_send',
-    'access callback' => array('_acquia_spi_send_access'),
-  );
-  $items['admin/config/system/acquia-agent/spi-send'] = array(
-    'title' => 'Acquia SPI Send',
-    'description' => 'Send SPI data to Acquia Network.',
-    'page callback' => '_acquia_spi_send',
-    'access arguments' => array('administer site configuration'),
+    'access callback' => '_acquia_spi_send_access',
   );
 
   return $items;
 }
 
 /**
- * Access callback check for NSPI independent cron.
+ * Access callback check for SPI send independent call.
  */
 function _acquia_spi_send_access() {
-  $id = variable_get('acquia_identifier', '');
-  if (empty($id) || (!isset($_GET['key']) && !drupal_valid_token($_GET['key'], $id . '-spi-send'))) {
-    return FALSE;
+  $acquia_key = variable_get('acquia_key', '');
+  if (!empty($acquia_key) && isset($_GET['key'])) {
+    $key = md5($acquia_key . '-spi-send-' . drupal_get_private_key());
+    if ($key == $_GET['key']) {
+      return TRUE;
+    }
   }
-  else {
-    return TRUE;
-  }
+  return FALSE;
 }
 
+/**
+ * Callback for sending SPI data.
+ */
 function _acquia_spi_send() {
   acquia_spi_send_profile_info();
-  if (arg(0) == 'admin') {
+  if (isset($_GET['destination'])) {
+    drupal_set_message(t('SPI data sent.'));
     drupal_goto();
   }
-  return '';
+  // If destination was not sent the call is via cron so close request and exit.
+  module_invoke_all('exit');
+  print '';
+  exit;
 }
 
 /**
@@ -179,6 +181,22 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
     '#options' => array(0=>'No',1=>'Yes'),
     '#description' => 'Enabling this setting will allow the Acquia site profile information system to send critical watchdog alerts, failed logins, and 404s to the Acquia Network. This information is used in generating dashboards for your review as well as optionally sending you alerts if certain thresholds are crossed.',
   );
+  $use_cron = variable_get('acquia_spi_use_cron', 1);
+  $form['spi']['spi_use_cron'] = array(
+    '#type' => 'radios',
+    '#title' => t('Send via Drupal cron'),
+    '#default_value' => $use_cron,
+    '#options' => array(0 => 'No', 1 => 'Yes'),
+    '#description' => t('Send SPI data to the Acquia Network during Drupal\'s internal cron system. This is recommended for all sites unless you notice cron run fails.'),
+  );
+  if (!$use_cron) {
+    $key = md5(variable_get('acquia_key', '') . '-spi-send-' . drupal_get_private_key());
+    $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
+    $form['spi']['spi_use_cron_url'] = array(
+      '#type' => 'markup',
+      '#markup' => t('<p>Enter the following URL in your server\'s crontab:<br/><em>!url</em></p>', array('!url' => $url)),
+    );
+  }
 
   $form['spi']['buttons']['submit'] = array(
     '#type' => 'submit',
@@ -205,6 +223,7 @@ function acquia_agent_spi_set_submit($form, &$form_state) {
   variable_set('acquia_spi_admin_priv', $form_state['values']['admin_priv']);
   variable_set('acquia_spi_send_node_user', $form_state['values']['send_node_user']);
   variable_set('acquia_spi_send_watchdog', $form_state['values']['send_watchdog']);
+  variable_set('acquia_spi_use_cron', $form_state['values']['spi_use_cron']);
   drupal_set_message(t('The Acquia configuration options have been saved.'));
 }
 
