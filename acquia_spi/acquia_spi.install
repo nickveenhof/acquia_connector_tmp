@@ -21,12 +21,13 @@ function acquia_spi_uninstall() {
 function acquia_spi_requirements($phase) {
 
   $requirements = array();
-  $has_credentials = acquia_agent_has_credentials();
   $last_sent = variable_get('acquia_spi_cron_last', 0);
   $use_cron = variable_get('acquia_spi_use_cron', 1);
 
   switch ($phase) {
     case 'runtime':
+      $has_credentials = acquia_agent_has_credentials();
+
       if ($has_credentials) {
         $key = md5(variable_get('acquia_key', '') . '-spi-send-' . drupal_get_private_key());
         $config_url = $description = $interval = '';
