@@ -414,8 +414,6 @@ function acquia_spi_get_version_info() {
 function acquia_spi_check_login() {
   $login_safe = 0;
   if (module_exists('securepages')) {
-    $pages = variable_get('securepages_pages', '');
-    $ignore = variable_get('securepages_ignore', '');
 
     if (drupal_match_path('user/login', variable_get('securepages_pages', ''))) { 
       $login_safe = 1; 
@@ -423,7 +421,7 @@ function acquia_spi_check_login() {
     if (drupal_match_path('user/login', variable_get('securepages_ignore', ''))) { 
       $login_safe = 0; 
     }
-    if (!variable_get('securepages_secure', FALSE) || !!variable_get('securepages_enable', FALSE)) { 
+    if (!variable_get('securepages_secure', FALSE) || !variable_get('securepages_enable', FALSE)) { 
       $login_safe = 0; 
     }
     
