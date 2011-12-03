@@ -316,6 +316,11 @@ function acquia_spi_get() {
  * Run some checks from the Security Review module.
  */
 function acquia_spi_run_security_review() {
+  if (!_acquia_spi_security_review_compatible()) {
+    // Older versions of Security Review are not compatible and the results
+    // cannot easily be retrieved.
+    return array();
+  }
   include_once('security_review.inc');
 
   $checklist_results = array();
@@ -355,6 +360,22 @@ function acquia_spi_run_security_review() {
     }
   }
   return $checklist_results;
+}
+
+/**
+ * Helper function checks for conflict with full Security Review module.
+ */
+function _acquia_spi_security_review_compatible() {
+  if (module_exists('security_review')) {
+    if (file_exists(drupal_get_path('module', 'security_review'). 'security_review.inc')) {
+      // Versions with the separate .inc file are compatible.
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
+  }
+  return TRUE;
 }
 
 /**
