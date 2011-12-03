@@ -426,7 +426,7 @@ function acquia_spi_check_login() {
     }
     
   }
-  
+
   return $login_safe;
 }
 
@@ -560,15 +560,17 @@ function acquai_spi_get_watchdog_size() {
  *
  */
 function acquia_spi_get_watchdog_data() {
-  $result = db_select('watchdog', 'w')
-    ->fields('w', array('wid','severity', 'type', 'message', 'timestamp'))
-    ->condition('w.severity', array(WATCHDOG_EMERGENCY, WATCHDOG_CRITICAL), 'IN')
-    ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
-    ->execute();
-
   $wd = array();
-  while ($record = $result->fetchAssoc()) {
-    $wd[$record['severity']] = $record;
+  if (module_exists('dblog')) {
+    $result = db_select('watchdog', 'w')
+      ->fields('w', array('wid','severity', 'type', 'message', 'timestamp'))
+      ->condition('w.severity', array(WATCHDOG_EMERGENCY, WATCHDOG_CRITICAL), 'IN')
+      ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
+      ->execute();
+
+    while ($record = $result->fetchAssoc()) {
+      $wd[$record['severity']] = $record;
+    }
   }
   return $wd;
 }
@@ -585,22 +587,23 @@ function acquai_spi_get_404s() {
   $data = array();
   $row = 0;
 
-  $result = db_select('watchdog', 'w')
-    ->fields('w', array('message', 'hostname', 'referer', 'timestamp'))
-    ->condition('w.type', 'page not found', '=')
-    ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
-    ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
-    ->orderBy('w.timestamp', 'DESC')
-    ->range(0, 10)
-    ->execute();
-  
-  foreach ($result as $record) {
-    $data[$row]['message'] = $record->message;
-    $data[$row]['hostname'] = $record->hostname;
-    $data[$row]['referer'] = $record->referer;
-    $data[$row]['timestamp'] = $record->timestamp;
+  if (module_exists('dblog')) {
+    $result = db_select('watchdog', 'w')
+      ->fields('w', array('message', 'hostname', 'referer', 'timestamp'))
+      ->condition('w.type', 'page not found', '=')
+      ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
+      ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
+      ->orderBy('w.timestamp', 'DESC')
+      ->range(0, 10)
+      ->execute();
 
-    $row++;
+    foreach ($result as $record) {
+      $data[$row]['message'] = $record->message;
+      $data[$row]['hostname'] = $record->hostname;
+      $data[$row]['referer'] = $record->referer;
+      $data[$row]['timestamp'] = $record->timestamp;
+      $row++;
+    }
   }
 
   return $data;
@@ -634,23 +637,23 @@ function acquia_spi_get_variables_data() {
  *
  */
 function acquia_spi_get_failed_logins() {
-
+  $last_logins = array();
   $cron_interval = variable_get('acquia_spi_cron_interval', 8*60*60);
 
-  $last_logins = array();
-
-  $result = db_select('watchdog', 'w')
-    ->fields('w', array('message', 'variables'))
-    ->condition('w.message', 'login attempty failed%', 'LIKE')
-    ->condition('w.timestamp', REQUEST_TIME - $cron_interval, '>')
-    ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
-    ->orderBy('w.timestamp', 'DESC')
-    ->range(0, 10)
-    ->execute();
-
-  foreach ($result as $record) {
-    $variables = unserialize($record->variables);
-    $last_logins['failed'][$record->timestamp] = $variables['%user'];
+  if (module_exists('dblog')) {
+    $result = db_select('watchdog', 'w')
+      ->fields('w', array('message', 'variables'))
+      ->condition('w.message', 'login attempty failed%', 'LIKE')
+      ->condition('w.timestamp', REQUEST_TIME - $cron_interval, '>')
+      ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
+      ->orderBy('w.timestamp', 'DESC')
+      ->range(0, 10)
+      ->execute();
+  
+    foreach ($result as $record) {
+      $variables = unserialize($record->variables);
+      $last_logins['failed'][$record->timestamp] = $variables['%user'];
+    }
   }
   return $last_logins;
 }
@@ -661,9 +664,7 @@ function acquia_spi_get_failed_logins() {
  * @return boolean
  */
 function acquia_spi_get_super_name() {
-  $return = null;
-
-  $result = db_query("SELECT name FROM {users} WHERE uid = 1 AND (name = 'admin' OR name = 'root')")->fetch();
+  $result = db_query("SELECT name FROM {users} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
   if ($result) {
     return TRUE;
   }
@@ -681,7 +682,7 @@ function acquia_spi_get_super_name() {
  *
  */
 function acquia_spi_get_admin_count() {
-  $count = null;
+  $count = NULL;
   $sql = "SELECT COUNT(DISTINCT u.uid) as count
               FROM {users} u, {users_roles} ur, {role_permission} p
               WHERE u.uid = ur.uid
@@ -690,7 +691,7 @@ function acquia_spi_get_admin_count() {
                 AND (p.permission LIKE '%administer permissions%' OR p.permission LIKE '%administer users%')";
   $result = db_query($sql)->fetchObject();
 
-  return (isset($result->count) && is_numeric($result->count)) ? $result->count : null;
+  return (isset($result->count) && is_numeric($result->count)) ? $result->count : NULL;
 }
 
 /**
@@ -839,7 +840,7 @@ function acquia_spi_get_system_status() {
 
   return $requirements;
 }
-  
+
 /**
  * Gather information about modules on the site.
  *
