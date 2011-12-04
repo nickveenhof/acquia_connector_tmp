@@ -23,53 +23,6 @@ function acquia_spi_help($path, $arg) {
 }
 
 /**
- * Implementation of hook_xmlrpc().
- */
-function acquia_spi_xmlrpc() {
-  return array(
-    array(
-      'acquia.nspi.send.module.data',
-      'acquia_spi_send_module_data',
-      array('string','array'),
-      t('Send file data for the provided path.')),
-    );
-}
-
-/**
- * Send a file's contents to the requestor
- * 
- */
-function acquia_spi_send_module_data($file = array()) {
-  // We only do this if we are on SSL
-  $via_ssl = $_SERVER['HTTPS'] ? TRUE : FALSE;
-  if (variable_get('acquia_spi_ssl_override', FALSE)) {
-    $via_ssl = TRUE;
-  }
-  
-  // If our checks pass muster, then we'll provide this data.
-  if (acquia_agent_has_credentials() && $via_ssl) {
-    // If the file variable is set and if the user has allowed file diffing.
-    if (isset($file) && variable_get('acquia_spi_module_diff_data', 1)) {
-      $document_root = getcwd();
-      $file_path = realpath($document_root . '/' . $file);
-      // Be sure the file being requested is within the webroot and is not any
-      // settings.php file.
-      if (is_file($file_path) && strpos($file_path, $document_root) === 0 && strpos($file_path, 'settings.php') === FALSE) {
-        $file_contents = file_get_contents($file_path);
-        header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
-        header("Content-Type:text");  
-        header("Cache-Control: no-cache");
-        header("Pragma: no-cache");
-        return $file_contents;
-      }
-    } 
-    
-  }
-
-  return FALSE;
-}
-
-/**
  * Implementation of hook_cron().
  */
 function acquia_spi_cron() {
@@ -110,7 +63,7 @@ function acquia_spi_menu() {
  * Access callback check for SPI send independent call.
  */
 function _acquia_spi_send_access() {
-  $acquia_key = variable_get('acquia_key', '');
+  $acquia_key = acquia_agent_settings('acquia_key');
   if (!empty($acquia_key) && isset($_GET['key'])) {
     $key = md5($acquia_key . '-spi-send-' . drupal_get_private_key());
     if ($key == $_GET['key']) {
@@ -190,7 +143,7 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
     '#description' => t('Send SPI data to the Acquia Network during Drupal\'s internal cron system. This is recommended for all sites unless you notice cron run fails.'),
   );
   if (!$use_cron) {
-    $key = md5(variable_get('acquia_key', '') . '-spi-send-' . drupal_get_private_key());
+    $key = md5(acquia_agent_settings('acquia_key') . '-spi-send-' . drupal_get_private_key());
     $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
     $form['spi']['spi_use_cron_url'] = array(
       '#type' => 'markup',
