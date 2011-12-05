@@ -89,6 +89,63 @@ function _acquia_spi_send() {
 }
 
 /**
+ * Implementation of hook_xmlrpc().
+ */
+function acquia_spi_xmlrpc() {
+  return array(
+    array(
+      'acquia.nspi.send.module.data',
+      'acquia_spi_send_module_data',
+      array('string', 'array'),
+      t('Send file data for the provided path.')),
+    );
+}
+
+function acquia_spi_valid_request($data, $message) {
+  $key = acquia_agent_settings('acquia_key');
+  if (!isset($data['authenticator']) || !isset($data['authenticator']['time']) || !isset($data['authenticator']['nonce'])) {
+    return FALSE;
+  }
+  $string = $data['authenticator']['time'] .':'. $data['authenticator']['nonce'] .':' . $message;
+  $hash = sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
+  if ($hash == $data['authenticator']['hash']) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Send a file's contents to the requestor
+ */
+function acquia_spi_send_module_data($data = array()) {
+  // We only do this if we are on SSL
+  $via_ssl = isset($_SERVER['HTTPS']) ? TRUE : FALSE;
+  if (variable_get('acquia_spi_module_diff_data', 1) && $via_ssl
+      && acquia_agent_has_credentials() && isset($data['body']['file'])
+      && acquia_spi_valid_request($data, $data['body']['file'])) {
+    // If our checks pass muster, then we'll provide this data.
+    // If the file variable is set and if the user has allowed file diffing.
+    $file = $data['body']['file'];
+    $document_root = getcwd();
+    $file_path = realpath($document_root . '/' . $file);
+    // Be sure the file being requested is within the webroot and is not any
+    // settings.php file.
+    if (is_file($file_path) && strpos($file_path, $document_root) === 0 && strpos($file_path, 'settings.php') === FALSE) {
+      $file_contents = file_get_contents($file_path);
+      header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+      header("Content-Type:text");  
+      header("Cache-Control: no-cache");
+      header("Pragma: no-cache");
+      return $file_contents;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
  * Implementation of hook_form_[form_id]_alter().
  */
 function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
@@ -102,9 +159,9 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
   $form['spi']['module_diff_data'] = array(
     '#type' => 'radios',
     '#title' => t('Allow Acquia to request source code from your site so that it can create diffs and patch files for core and module changes.'),
-    '#default_value' => variable_get('acquia_spi_module_diff_data',1),
-    '#options' => array(0=>'No',1=>'Yes'),
-    '#description' => 'The Acquia site profile information system can detect if your Drupal source code (core or contrib) has been altered at all. If you select \'Yes\' then it will also create a diff and patch file of the changes for you to review. NOTE: This will only work if you enable SSL security below.',
+    '#default_value' => variable_get('acquia_spi_module_diff_data', 1),
+    '#options' => array(0 => 'No', 1 => 'Yes'),
+    '#description' => 'The Acquia site profile information system can detect if your Drupal source code (core or contrib) has been altered at all. If you select \'Yes\' then it will also create a diff and patch file of the changes for you to review. NOTE: This will only work if you enable SSL security below and if your site allows outside connections.',
   );
   $form['spi']['module_diff_data'] = array(
     '#type' => 'radios',
@@ -863,7 +920,8 @@ function acquia_spi_get_modules() {
       // too hard to tell an individual module appart from a project
       //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
       list($info['module_data']['hashes'],$info['module_data']['fileinfo']) = _acquia_spi_generate_hashes($contrib_path);
-    } else {
+    }
+    else {
       $info['module_data']['hashes'] = array();
       $info['module_data']['fileinfo'] = array();
     }
