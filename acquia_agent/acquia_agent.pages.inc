@@ -488,7 +488,89 @@ function acquia_agent_settings_form_page($banner = NULL) {
       drupal_set_message($error_message, 'error', FALSE);
     }
   }
+  return drupal_get_form('acquia_agent_automatic_setup_form');
   return drupal_get_form('acquia_agent_settings_form', $banner);
+}
+
+function acquia_agent_automatic_setup_form($form, &$form_state) {
+  $form = array(
+    /*'#prefix' =>  acquia_agent_an_info_header(),
+    'form_header' => array(
+      '#markup' => acquia_agent_existing_account_msg(),
+    ),*/
+    'email' => array(
+      '#type' => 'textfield',
+      '#title' => t('Acquia Network e-mail'),
+      '#required' => TRUE,
+    ),
+    'pass' => array(
+      '#type' => 'password',
+      '#title' => t('Acquia.com password'),
+      '#description' => t('Please enter your Acquia.com password here.'),
+      '#size' => 32,
+      '#required' => TRUE,
+    ),
+    'host' => array(
+      '#type' => 'textfield',
+      '#title' => t('Host'),
+      '#default_value' => 'http://d7.dev',
+      '#required' => TRUE,
+    ),
+    'continue' => array(
+      '#type' => 'submit',
+      '#value' => 'Next >',
+    ),
+    'forgot_pass' => array(
+      '#value' => '<br/>' . l(t('I forgot my password'), 'http://acquia.com/user/password', array('attributes' => array('target' => '_blank'))),
+    ),
+  );
+  return $form;
+}
+
+function acquia_agent_automatic_setup_form_validate($form, &$form_state) {
+  // Validate e-mail address.
+  $result = TRUE;//xmlrpc(acquia_agent_network_address(), array('acquia.agent.mail.exists' => array($form_state['values']['email'])));
+
+  /*if ($errno = xmlrpc_errno()) {
+    acquia_agent_report_xmlrpc_error();
+    // Set form error to prevent switching to the next page.
+    form_set_error('email');
+  }
+  else*/if (!$result) {
+    // Email doesn't exist
+    form_set_error('email', t("Email address not found on the Acquia Network"));
+  }
+}
+
+function acquia_agent_automatic_setup_form_submit($form, &$form_state) {
+  // Make hashed password signed request to Acquia Network for subscriptions.
+  $body = array(
+    'email' => $form_state['values']['email'],
+    'host' => $form_state['values']['host'],
+  );
+  $authenticator = _acquia_agent_create_authenticator($body, 'foo');//$form_state['values']['pass']);
+  $data = array('body' => $body, 'authenticator' => $authenticator);
+  $result = xmlrpc(acquia_agent_network_address(), array('acquia.agent.get.credentials' => array($data)));
+  dpm($result);
+  if ($errno = xmlrpc_errno()) {
+    acquia_agent_report_xmlrpc_error();
+    // Set form error to prevent switching to the next page.
+    form_set_error('');
+  }
+  elseif (!$result) {
+    // Email doesn't exist
+    form_set_error('email', t("some error"));
+  }
+  elseif (!isset($result['body']['subscription'])) {
+    form_set_error('host', t('Subscription for host not found.'));
+  }
+  elseif (count($results['body']['subscription']) > 1) {
+    // multistep form for choosing from available subscriptions @todo
+  }
+  else {
+    variable_set('acquia_key', $results['body']['subscription']['key']);
+    variable_set('acquia_identifier', $results['body']['subscription']['identifier']);
+  }
 }
 
 /**
