@@ -6,23 +6,33 @@
  */
 
 /**
- * Helper function. Creates an authenticator for xmlrpc calls
+ * Helper function. Creates an authenticator for XML-RPC calls
+ *
+ * @param array $body array of values being sent to remote server
+ * @param string $pass 
  */
 function _acquia_agent_create_authenticator($body, $pass = NULL) {
-  $a = array();
-  $a['time'] = REQUEST_TIME;
-  $a['nonce'] = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));;
-  // We need an hmac to authenticate to an acquia.com account.
-  // This will fail if acquia.com moves to D7.
+  $auth = array();
+  $auth['time'] = REQUEST_TIME;
+  $auth['nonce'] = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));;
   if (isset($pass)) {
-    $a['hash'] = _acquia_agent_hmac(md5($pass), $a['time'], $a['nonce'], $body);
+    $auth['hash'] = _acquia_agent_hmac($pass, $auth['time'], $auth['nonce'], $body);
   }
   else {
     // rpc.acquia.com XML-RPC interface requires this parameter to be a string.
     // Just pass a dummy value.
-    $a['hash'] = 'x';
+    $auth['hash'] = 'x';
   }
-  return $a;
+  return $auth;
+}
+
+/**
+ * Hash a password according to Drupal's password_crypt and settings from remote.
+ */
+function _acquia_agent_hash_password_crypt($algorithm, $pass, $setting) {
+  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+  $hash = _password_crypt($algorithm, $pass, $setting);
+  return $hash;
 }
 
 /**
@@ -476,6 +486,10 @@ function acquia_agent_settings_form_page($banner = NULL) {
   $key = acquia_agent_settings('acquia_key');
 
   $output =  '';
+  // If id/key are not set begin automatic setup.
+  if (empty($identifier) && empty($key)) {
+    return drupal_get_form('acquia_agent_automatic_setup_form');
+  }
   // Check $_POST so we don't send extra XML-RPC requests during form submission.
   if ($identifier && $key && empty($_POST)) {
     // Check our connection to the Acquia Network and validity of the crenditials.
@@ -488,88 +502,146 @@ function acquia_agent_settings_form_page($banner = NULL) {
       drupal_set_message($error_message, 'error', FALSE);
     }
   }
-  return drupal_get_form('acquia_agent_automatic_setup_form');
   return drupal_get_form('acquia_agent_settings_form', $banner);
 }
 
 function acquia_agent_automatic_setup_form($form, &$form_state) {
+  if (isset($form_state['choose'])) {
+    return _acquia_agent_automatic_setup_form_choose($form_state);
+  }
+  else {
+    return _acquia_agent_automatic_setup_form_start($form_state);
+  }
+}
+
+function _acquia_agent_automatic_setup_form_start(&$form_state) {
+  global $base_url;
   $form = array(
-    /*'#prefix' =>  acquia_agent_an_info_header(),
-    'form_header' => array(
-      '#markup' => acquia_agent_existing_account_msg(),
-    ),*/
+    '#prefix' =>  t('To setup the connection to your Acquia Network account enter your Acquia.com account email address and password.'),
     'email' => array(
       '#type' => 'textfield',
-      '#title' => t('Acquia Network e-mail'),
+      '#title' => t('Acquia Network email'),
+      '#description' => t('Your Acquia.com email address. The value will not be stored locally.'),
       '#required' => TRUE,
     ),
     'pass' => array(
       '#type' => 'password',
       '#title' => t('Acquia.com password'),
-      '#description' => t('Please enter your Acquia.com password here.'),
+      '#description' => t('Your Acquia.com account password. The value will not be stored locally and will be sent securely to acquia.com. <a href="!url" target="_blank">Forgot password?</a>', array('!url' => url('http://acquia.com/user/password'))),
       '#size' => 32,
-      '#required' => TRUE,
-    ),
-    'host' => array(
-      '#type' => 'textfield',
-      '#title' => t('Host'),
-      '#default_value' => 'http://d7.dev',
       '#required' => TRUE,
     ),
     'continue' => array(
       '#type' => 'submit',
-      '#value' => 'Next >',
+      '#value' => t('Next'),
     ),
-    'forgot_pass' => array(
-      '#value' => '<br/>' . l(t('I forgot my password'), 'http://acquia.com/user/password', array('attributes' => array('target' => '_blank'))),
+  );
+  return $form;
+}
+
+function _acquia_agent_automatic_setup_form_choose(&$form_state) {
+  $options = array();
+  foreach ($form_state['subscriptions'] as $credentials) {
+    $options[] = $credentials['name'];
+  }
+  $form = array(
+    '#prefix' =>  t('You have multiple subscriptions available. Please choose the subscription you would like to finish connecting.'),
+    'subscription' => array(
+      '#type' => 'select',
+      '#title' => t('Available subscriptions'),
+      '#options' => $options,
+      '#description' => t('Choose from your available descriptions.'),
+      '#required' => TRUE,
+    ),
+    'continue' => array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
     ),
   );
   return $form;
 }
 
 function acquia_agent_automatic_setup_form_validate($form, &$form_state) {
-  // Validate e-mail address.
-  $result = TRUE;//xmlrpc(acquia_agent_network_address(), array('acquia.agent.mail.exists' => array($form_state['values']['email'])));
+  if (!isset($form_state['choose'])) {
+    // Validate e-mail address and get account hash settings.
+    $data = array(
+      'email' => $form_state['values']['email'],
+    );
+    $result = xmlrpc(acquia_agent_network_address(), array('acquia.agent.communication.settings' => array($data)));
 
-  /*if ($errno = xmlrpc_errno()) {
-    acquia_agent_report_xmlrpc_error();
-    // Set form error to prevent switching to the next page.
-    form_set_error('email');
+    if ($errno = xmlrpc_errno()) {
+      acquia_agent_report_xmlrpc_error();
+      // Set form error to prevent switching to the next page.
+      form_set_error(''); // @todo message
+    }
+    elseif (!$result) {
+      // Email doesn't exist
+      form_set_error('email', t("Email address not found on the Acquia Network."));
+    }
+    else {
+      // Build hashed password from account password settings for further 
+      // XML-RPC communications with acquia.com.
+      $pass = _acquia_agent_hash_password_crypt($result['algorithm'], $form_state['values']['pass'], $result['hash_setting']);
+      $form_state['pass'] = $pass;
+    }
   }
-  else*/if (!$result) {
-    // Email doesn't exist
-    form_set_error('email', t("Email address not found on the Acquia Network"));
+  else {
+    // Test credentials and error if so @todo
+    $sub = $form_state['subscriptions'][$form_state['values']['subscription']];
   }
 }
 
 function acquia_agent_automatic_setup_form_submit($form, &$form_state) {
+  if (isset($form_state['choose']) && isset($form_state['subscriptions'][$form_state['values']['subscription']])) {
+    $sub = $form_state['subscriptions'][$form_state['values']['subscription']];
+    variable_set('acquia_key', $sub['key']);
+    variable_set('acquia_identifier', $sub['identifier']);
+  }
+  else {
+    _acquia_agent_automatic_start_submit($form_state);
+  }
+}
+
+function _acquia_agent_automatic_start_submit(&$form_state) {
   // Make hashed password signed request to Acquia Network for subscriptions.
   $body = array(
     'email' => $form_state['values']['email'],
-    'host' => $form_state['values']['host'],
   );
-  $authenticator = _acquia_agent_create_authenticator($body, 'foo');//$form_state['values']['pass']);
+  // acquia.com authenticator uses hash of client-supplied password hashed with
+  // remote settings so that the hash can match. pass was hashed in
+  // _acquia_agent_setup_form_validate().
+  $authenticator = _acquia_agent_create_authenticator($body, $form_state['pass']);
+
   $data = array('body' => $body, 'authenticator' => $authenticator);
   $result = xmlrpc(acquia_agent_network_address(), array('acquia.agent.get.credentials' => array($data)));
-  dpm($result);
+
   if ($errno = xmlrpc_errno()) {
     acquia_agent_report_xmlrpc_error();
     // Set form error to prevent switching to the next page.
-    form_set_error('');
+    form_set_error(''); // @todo
   }
   elseif (!$result) {
     // Email doesn't exist
-    form_set_error('email', t("some error"));
+    form_set_error('email', t("some error")); // @todo
+  }
+  elseif ($result['is_error']) {
+    form_set_error('email', t("some error from server side")); // @todo
   }
   elseif (!isset($result['body']['subscription'])) {
-    form_set_error('host', t('Subscription for host not found.'));
+    form_set_error('host', t('No subscriptions were found.'));
   }
-  elseif (count($results['body']['subscription']) > 1) {
-    // multistep form for choosing from available subscriptions @todo
+  elseif (count($result['body']['subscription']) > 1) {
+    // Multistep form for choosing from available subscriptions.
+    $form_state['choose'] = TRUE;
+    $form_state['subscriptions'] = $result['body']['subscription'];
+    $form_state['rebuild'] = TRUE; // Force rebuild with next step.
   }
   else {
-    variable_set('acquia_key', $results['body']['subscription']['key']);
-    variable_set('acquia_identifier', $results['body']['subscription']['identifier']);
+    // One subscription so set id/key pair.
+    $sub = $result['body']['subscription'][0];
+    variable_set('acquia_key', $sub['key']);
+    variable_set('acquia_identifier', $sub['identifier']);
+    // @todo Test credentials.
   }
 }
 
