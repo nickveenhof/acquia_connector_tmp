@@ -91,7 +91,7 @@ function acquia_agent_init() {
       user_access('administer site configuration') &&
       (!acquia_agent_has_credentials())) {
     $text = 'Get a <a href="!acquia-free">free 30-day trial</a> of the Acquia Network which includes a <a href="!library" target="_blank">library</a> of expert knowledge, <a href="!services" target="_blank">tools and services</a> to make your site awesome, and <a href="!support" target="_blank">Drupal support</a> when you need it.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network <a href="!admin-modules">modules</a>.';
-    $message = t($text, array('!acquia-free' => url('admin/config/system/acquia-agent'), '!library' => url('http://library.acquia.com'), '!settings' => url('admin/config/system/acquia-agent/connection'), '!support' => url('http://www.acquia.com/drupal-support'), '!services' => url('http://www.acquia.com/products-services/acquia-network/cloud-services'), '!admin-modules' => url('admin/modules')));
+    $message = t($text, array('!acquia-free' => url('admin/config/system/acquia-agent'), '!library' => url('http://library.acquia.com'), '!settings' => url('admin/config/system/acquia-agent/setup'), '!support' => url('http://www.acquia.com/drupal-support'), '!services' => url('http://www.acquia.com/products-services/acquia-network/cloud-services'), '!admin-modules' => url('admin/modules')));
     drupal_set_message($message, 'warning', FALSE);
   }
 }
