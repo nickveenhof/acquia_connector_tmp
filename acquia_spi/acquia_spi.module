@@ -421,15 +421,21 @@ function acquia_spi_get_version_info() {
       $ver['pr']['version'] = trim(file_get_contents($press_version_file));
     }
   }
-
-  // Determine if we are looking at Open Atrium
-  if (is_dir($install_root.'/profiles/openatrium')) {
+  // Determine if this is Open Atrium
+  elseif (is_dir($install_root . '/profiles/openatrium')) {
     $ver['distribution']  = 'Open Atrium';
+    $version_file = $install_root . 'profiles/openatrium/VERSION.txt';
+    if (is_file($version_file)) {
+      $ver['oa']['version'] = trim(file_get_contents($version_file));
+    }
   }
-
-  // Determine if we are looking at Drupal Commons
-  if (is_dir($install_root.'/profiles/commons')) {
-    $ver['distribution']  = 'Drupal Commons';
+  // Determine if this is Commons
+  elseif (is_dir($install_root . '/profiles/commons')) {
+    $ver['distribution']  = 'Commons';
+  }
+  // Determine if this is COD.
+  elseif (is_dir($install_root . '/profiles/cod')) {
+    $ver['distribution']  = 'COD';
   }
 
   return $ver;

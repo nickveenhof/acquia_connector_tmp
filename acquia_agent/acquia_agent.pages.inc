@@ -124,7 +124,7 @@ function acquia_agent_an_trial_form_submit($form, &$form_state) {
   }
   elseif (acquia_agent_has_credentials()) {
     // The proces is complete.
-    drupal_set_message(t('The site "!site" is now connected to the Acquia network. A welcome email has been sent to the email address you provided', array('!site' => $form_state['values']['subscription_name'])));
+    drupal_set_message(t('The site "@site" is now connected to the Acquia network. A welcome email has been sent to the email address you provided', array('@site' => $form_state['values']['subscription_name'])));
     unset($form_state['storage']);
     $form_state['redirect'] = 'admin/config/system/acquia-agent';
   }

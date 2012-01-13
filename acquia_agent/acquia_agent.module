@@ -63,7 +63,7 @@ function acquia_agent_toolbar_add_links($toolbar) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
       $icon = '<img src="'. base_path() . 'misc/message-16-ok.png" alt="ok" style="vertical-align: middle;" />';
-      $link['title'] = t("!icon Subscription active (expires !date)", array('!icon' => $icon, '!date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
+      $link['title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
       $link['attributes']['class'][] = "acquia-active-subscription";
       $link['attributes']['title'] = $subscription['product']['view'];
       $link['href'] = $subscription['href'];
