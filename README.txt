@@ -34,25 +34,8 @@ hosted search service. Requires Apache Solr Search Integration module.
 Installation
 --------------------------------------------------------------------------------
 
-If you just start using Drupal, we suggest you consider starting with Acquia
-Drupal, which includes these modules and provides an easier start up experience
-with the Acquia Network.
+Consult the online documentation at https://network.acquia.com/documentation/network/gs-connect for installation instructions.
 
-If you choose to install the Acquia Network Connector modules to an existing
-Drupal 7.x site, please do the following:
-
- 1. Copy the acquia_connector directory to sites/all/modules or one of
-    the other places where Drupal finds modules.
- 2. Go to the Administer >> Modules page, and enable both
-    submodules.
- 3. You will be prompted to enter your Acquia Network connection details.
-    If you did not set up an Acquia Network subscription yet, go to
-    http://acquia.com/ and choose an appropriate option.
- 4. Ready. Enjoy using your Acquia Network subscription at
-    http://network.acquia.com/.
-    
-Read more in Acquia's Getting Started Guide at
-http://network.acquia.com/documentation/getting-started/introduction
 
 Maintainers
 --------------------------------------------------------------------------------
