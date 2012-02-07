@@ -369,6 +369,18 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
     '#value' => t('Save configuration'),
     '#submit' => array('acquia_agent_settings_submit'),
   );
+  if (!empty($identifier) && !empty($key)) {
+    $form['migrate'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Migrate'),
+      '#collapsible' => FALSE,
+    );
+    $form['migrate']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Migrate'),
+      '#submit' => array('acquia_agent_migrate_submit'),
+    );
+  }
 
   $form['banner'] = array('#markup' => $banner);
   $form['#theme'] = 'acquia_agent_banner_form';
@@ -382,6 +394,32 @@ function acquia_agent_settings_submit($form, &$form_state) {
   variable_set('acquia_agent_verify_peer', $form_state['values']['acquia_agent_verify_peer']);
   variable_set('acquia_dynamic_banner', $form_state['values']['acquia_dynamic_banner']);
   drupal_set_message(t('The configuration options have been saved.'));
+}
+
+/**
+ * Submit handler for Acquia Cloud migrate button.
+ */
+function acquia_agent_migrate_submit($form, &$form_state) {
+  module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
+  // Prepare for migration
+  $migration = acquia_migration_prepare();
+  if (isset($migration['error']) && $migration['error'] == TRUE) {
+    // @todo
+    drupal_set_message('error');
+  }
+  else {
+    $batch = array(
+      'title' => t('Acquia Cloud Migration'),
+      'operations' => array(
+        //array('acquia_migrate_batch_db', array($migration)),
+        //array('acquia_migrate_batch_tar', array($migration)),
+        array('acquia_migrate_batch_transmit', array($migration)),
+      ),
+      'finished' => 'acquia_migrate_batch_finished',
+      'file' => drupal_get_path('module', 'acquia_agent') . '/acquia_agent.migrate.inc',
+    );
+    batch_set($batch);
+  }
 }
 
 /**
