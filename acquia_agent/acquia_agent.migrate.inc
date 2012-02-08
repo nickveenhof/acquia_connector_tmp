@@ -25,20 +25,29 @@
 
 function acquia_migration_prepare() {
   // Detect if a prior migration is unfinished @todo
-  // $migration = variable_get();
-  // return $migration
+  $last_migration = variable_get('acquia_agent_cloud_migration', array());
+  /*if (!empty($last_migration) && _acquia_migrate_unfinished($last_migration)) {
+    // @todo complete
+  }*/
 
   timer_start('acquia_migrate');
   //register_shutdown_function('backup_migrate_shutdown', $settings);
 
   // Internal migration store is an array because objects cannot be stored
   // by Drupal's Batch API.
-  $date = gmdate('Ymd_his');
+  $time = REQUEST_TIME;
+  $date = gmdate('Ymd_his', $time);
   $migration = array(
     'error' => FALSE,
     'id' => uniqid() . '_' . $date,
     'date' => $date,
+    'time' => $time,
     'compression_ext' => 'gz', //@todo determine available libs
+    // Parameters used in transmission request.
+    'request_params' => array(
+      'r' => url('admin/config/system/acquia-agent', array('absolute' => TRUE)), // Return URL on this site.
+      'y' => 'sar', // not changed
+    ),
   );
   // Authorize migration process with Acquia Cloud. @todo
   _acquia_migrate_authorize($migration);
@@ -48,11 +57,11 @@ function acquia_migration_prepare() {
 
   // Validate final destination file is a file that does not exist in a
   // writeable directory.
-  _acquia_migrate_destination($migration);
+  //_acquia_migrate_destination($migration);
   if ($migration['error'] === TRUE) {
     return $migration;
   }
-//$migration['tar_file'] = '/tmp/d6.sql.tgz';
+$migration['tar_file'] = '/tmp/d6.sql.tgz';
   return $migration;
 }
 
@@ -76,6 +85,13 @@ function _acquia_migrate_destination(&$migration) {
   $migration['file'] = $tmp_dir . '/archive-' . $migration['date'];
 }
 
+/**
+ * Returns TRUE if a past migration is unfinished and can be restarted.
+ */
+function _acquia_migrate_unfinished($migration) {
+  
+}
+
 function _acquia_migrate_authorize(&$migration) {
   $identifier = acquia_agent_settings('acquia_identifier');
   $key = acquia_agent_settings('acquia_key');
@@ -88,6 +104,9 @@ function _acquia_migrate_authorize(&$migration) {
     'key' => $key,
   );
   $result = xmlrpc(acquia_agent_network_address(), array('acquia.agent.cloud.migration.authorize' => array($data)));
+  // @todo setup $site['stage'] e.g. 'dev', 'test', or 'prod'
+  // $migration['request_params'][$site['stage']] = acquia_hosting_get_token($now, $return_url, $secret);
+  // $migration['request_params']['stage'] => $site['stage'];
   if ($errno = xmlrpc_errno()) {
     acquia_agent_report_xmlrpc_error();
     $migration['error'] = TRUE;
@@ -110,18 +129,20 @@ function acquia_migrate_process() {
     return FALSE;
   }
 
+  // @todo Figure out which environment is being installed.
+
   // Setup each environment for each process.
   _acquia_migrate_process_setup();
 
   // Dump database.
   // @todo match drush archive dump? whats the db called?
-  _acquia_migrate_backup_db_to_file_mysql($migration);
+  //_acquia_migrate_backup_db_to_file_mysql($migration);
   if (isset($migration['error']) && $migration['error'] == TRUE) {
     return FALSE;
   }
 
   // Archive installation with db file.
-  _acquia_migrate_archive_site($migration);
+  //_acquia_migrate_archive_site($migration);
   // Validate archive file. @todo
   if (isset($migration['error']) && $migration['error'] == TRUE) {
     return FALSE;
@@ -135,7 +156,7 @@ function acquia_migrate_process() {
 
   // Final cleanup.
   // Remove tar file and destination directory. @todo
-  _acquia_migration_cleanup($migration);
+  //_acquia_migration_cleanup($migration);
 
   acquia_migration_complete();
 
@@ -147,6 +168,11 @@ function acquia_migrate_batch_db($migration, &$context) {
   // Latest migration might be in $context.
   if (!empty($context['results']['migration'])) {
     $migration = $context['results']['migration'];
+  }
+  // Check for error and hault.
+  if (empty($migration) || $migration['error'] == TRUE) {
+    $context['message'] = t('Encountered error, haulting');
+    return;
   }
 
   _acquia_migrate_backup_db_to_file_mysql($migration);
@@ -163,6 +189,11 @@ function acquia_migrate_batch_tar($migration, &$context) {
   if (!empty($context['results']['migration'])) {
     $migration = $context['results']['migration'];
   }
+  // Check for error and hault.
+  if (empty($migration) || $migration['error'] == TRUE) {
+    $context['message'] = t('Encountered error, haulting');
+    return;
+  }
 
   _acquia_migrate_archive_site($migration);
   $context['results']['debug'][] = print_r($migration, TRUE);
@@ -178,6 +209,12 @@ function acquia_migrate_batch_transmit($migration, &$context) {
   if (!empty($context['results']['migration'])) {
     $migration = $context['results']['migration'];
   }
+  // Check for error and hault.
+  if (empty($migration) || $migration['error'] == TRUE) {
+    $context['message'] = t('Encountered error, haulting');
+    return;
+  }
+
   $length = 32768;
   if (empty($context['sandbox'])) {
     $context['sandbox']['position'] = 0;
@@ -202,19 +239,22 @@ function acquia_migrate_batch_transmit($migration, &$context) {
 }
 
 function acquia_migrate_batch_finished($success, $results, $operations) {
-  if ($success) {
-    $migration = $context['results']['migration'];
-    _acquia_migration_cleanup($migration);
+  $migration = isset($results['migration']) ? $results['migration'] : FALSE;
+  if ($success && $migration && $migration['error'] == FALSE) {
+    $migration = $results['migration'];
+    dpm($results);
     // @todo store migration completion time
     // @todo request info from Acquia Cloud about migration
     $message = t('Migration success.');
+    // Cleanup migration.
+    _acquia_migration_cleanup($migration);
   }
   else {
     // @todo store migration failure
-    $migration = $context['results']['migration'];
-
+    variable_set('acquia_agent_cloud_migration', $migration);
     $message = t('Finished with an error.');
   }
+
   drupal_set_message($message);
 }
 
@@ -229,7 +269,7 @@ function _acquia_migrate_archive_site(&$migration) {
   $exclude = acquia_migrate_exclude();
   $files = acquia_migrate_files_to_backup(DRUPAL_ROOT, $exclude);
 
-  if ($files && isset($migration['file'])) {
+  if (!empty($files) && isset($migration['file'])) {
     // @todo open up file permissions?
     $dest_file = $migration['file'] . '.tar';
     if (!empty($migration['compression_ext'])) {
@@ -244,29 +284,46 @@ function _acquia_migrate_archive_site(&$migration) {
     }
     $migration['tar_file'] = $dest_file;
   }
+  else {
+    $migration['error'] = TRUE;
+  }
 }
 
 function _acquia_migrate_transmit_process(&$migration) {
+  if (!isset($migration['tar_file'])) {
+    $migration['error'] = TRUE;
+    return;
+  }
   $size = filesize($migration['tar_file']);
   $position = 0;
   $length = 32768;
   $chunk = ($size / $length) > 1 ? TRUE : FALSE;
-  while ($position = _acquia_migrate_transmit_chunk($migration['tar_file'], $position, $length, $chunk)) {
+
+  // Prepare parameters for transmit request.
+  $nonce = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
+  $time = time();
+  $migration['request_params']['t'] = $time;
+  $migration['request_params']['nonce'] = $nonce;
+  $migration['request_params']['file_size'] = $size;
+  $migration['request_params']['file_name'] = basename($migration['tar_file']);
+  // Read in file and transmit.
+  while ($position = _acquia_migrate_transmit_chunk($migration, $position, $length, $chunk)) {
     // @todo Check for halt.
   }
 }
 
-function _acquia_migrate_transmit_chunk($file, $position = 0, $length, $chunk) {
-  $handle = fopen($file, "r");
+function _acquia_migrate_transmit_chunk(&$migration, $position = 0, $length, $chunk) {
+  $handle = fopen($migration['tar_file'], "r");
   // Move to position in file.
   if ($position) {
     fseek($handle, $position);
   }
   $contents = fread($handle, $length);
   // Transmit contents.
-  _acquia_migrate_transmit($contents, $chunk);
+  $result = _acquia_migrate_transmit($contents, $migration, $chunk);
 
-  if (feof($handle)) {
+  // Set position to FALSE if the whole file has been read or if transmit failed.
+  if (feof($handle) || $result === FALSE) {
     $position = FALSE;
   }
   else {
@@ -277,53 +334,63 @@ function _acquia_migrate_transmit_chunk($file, $position = 0, $length, $chunk) {
   return $position;
 }
 
-function _acquia_migrate_transmit($content, $chunk) {
+function _acquia_migrate_transmit($content, &$migration, $chunk) {
+  $params = $migration['request_params'];
+  $params['chunk'] = $chunk;
   $data = '';
-  $boundary = '---------------------------'. substr(md5(rand(0,32000)),0,10);
+  $boundary = _acquia_migrate_multipart_boundary();
 
-  /*foreach ((array)$ticket['params'] as $key => $value) {
-    $data .="--$boundary\r\n";
-    $data .= "Content-Disposition: form-data; name=\"".$key."\"\r\n";
-    $data .= "\r\n".$value."\r\n";
-    $data .="--$boundary\r\n";
-  }*/
-
-  // Add the file to the post payload.
-  $data .="--$boundary\r\n";
-  $data .= "Content-Disposition: form-data; name=\"file\"; filename=\"foofile\"\r\n";
-  $data .= "Content-Type: application/octet-stream;\r\n";
-  $data .= "\r\n".$content."\r\n";
-  $data .="--$boundary--\r\n";
+  $data = _acquia_migrate_multipart_encode_params($boundary, $params, $params['file_name'], $content);
 
   $headers = array(
     'Content-type' => "multipart/form-data, boundary=$boundary",
-    'User-Agent' => 'Acquia Migrate Client/1.x (Drupal '. VERSION .';)', // @todo
+    'User-Agent' => 'Acquia Migrate Client/1.x (Drupal '. VERSION .';)',
   );
 
-  /*$url = $ticket['url'];
+  $url = 'http://nspi.acquia.dev/acquia-cloud';
+  $return = drupal_http_request($url, array('headers' => $headers, 'method' => 'POST', 'data' => $data));
 
-  // If the ticket requires authentication add our username/password to the url.
-  if (!empty($ticket['auth']) && $ticket['auth'] = 'basic') {
-    $parts = parse_url($ticket['url']);
-    list($parts['user'], $parts['pass']) = $this->get_user_pass();
-    $url = $this->glue_url($parts, FALSE);
-  }*/
+  if ($return->code == 200) {
+    $output = drupal_json_decode($response->data);
 
-  $url = 'http://nspi.acquia.dev/acquia-cloud?' . drupal_http_build_query(array('chunk' => $chunk, 'name' => 'foo'));
-  $out = drupal_http_request($url, array('headers' => $headers, 'method' => 'POST', 'data' => $data));
+    // Validate signature
+    $response_signature = $output['sig'];
+    unset($output['sig']);
+    $sig = '';
+    foreach ($output as $value) {
+      $sig .= $value;
+    }
+    // @todo Call rpc?
+    $signature = hash_hmac('sha256', $sig, $secret);
 
-  if ($out->code == 200) {
-    // Confirm the upload.
-    /*$confirm = $this->_xmlrpc('backups.confirmUpload', array($destination, $filename, $filesize));
-
-    if ($confirm['success']) {
-      return $file;
-    }*/
-    
+    // Check if response is correct, if yes proceed
+    if ($signature == $response_signature) {
+      // Update tokend and refresh time in request
+      $now = time();
+      $migration['request_params']['t'] = $now;
+      $migration['request_params'][$migration['stage']] = acquia_hosting_get_token($now, $migration['request_params']['return_url'], $migration['secret']);
+    }
+    else {
+      $error = 'Singature from server is wrong.';
+      return FALSE;
+    }
   }
   else {
     watchdog('tst', 'transmit error');
+    return FALSE;
   }
+}
+
+/**
+ * Get upload security token
+ *
+ * @param $now
+ * @param $return
+ * @param $stage
+ */
+function acquia_hosting_get_token($now, $return, $secret) {
+  // @todo use _acquia_agent_hmac() instead?
+  return hash_hmac('sha256', $now . $return, $secret);
 }
 
 function acquia_migrate_files_to_backup($directory, $exclude) {
@@ -359,7 +426,7 @@ function acquia_migrate_files_to_backup($directory, $exclude) {
 
 function _acquia_migration_cleanup_db(&$migration) {
   if (isset($migration['db_file'])) {
-    unlink($migration['db_file']);
+    drupal_unlink($migration['db_file']);
     unset($migration['db_file']);
   }
 }
@@ -369,10 +436,10 @@ function _acquia_migration_cleanup(&$migration) {
     _acquia_migration_cleanup_db($migration);
   }
   if (isset($migration['tar_file'])) {
-    unlink($migration['tar_file']);
+    drupal_unlink($migration['tar_file']);
     unset($migration['tar_file']);
   }
-  if (is_dir($migration['dir'])) {
+  if (isset($migration['dir']) && is_dir($migration['dir'])) {
     rmdir($migration['dir']);
     unset($migration['dir']);
   }
@@ -386,6 +453,11 @@ function _acquia_migration_cleanup(&$migration) {
  * Dump the database to the specified file.
  */
 function _acquia_migrate_backup_db_to_file_mysql(&$migration) {
+  // Check migration file at first to avoid dumping db to a hidden file.
+  if (!isset($migration['file'])) {
+    $migration['error'] = TRUE;
+    return;
+  }
   $file = $migration['file'] . '.sql';
   $handle = fopen($file, 'w');
   $lines = 0;
@@ -516,4 +588,55 @@ function _acquia_migrate_get_table_names_mysql() {
     $out[$key] = $table->name;
   }
   return $out;
+}
+
+/**
+ * Create multipart boundary
+ * 
+ * @return
+ *   Boundary
+ */
+function _acquia_migrate_multipart_boundary() {
+  return '---------------------------'. substr(md5(rand(0,32000)),0,10);
+}
+
+/**
+ * Encode params array as multipart/form-data string
+ *
+ * @param $boundary
+ *   Boundary to delimit parameters
+ * @param $params
+ *   Form data array
+ * @return
+ *   Encoded string for drupal_http_request
+ */
+function _acquia_migrate_multipart_encode_params($boundary, $params, $filename, $content){
+  $output = "";
+  foreach ($params as $key => $value) {
+    $output .= "--$boundary\r\n";
+    $output .= _acquia_migrate_multipart_enc_text($key, $value);
+  }
+  $output .= "--$boundary\r\n";
+  $output .= _acquia_migrate_multipart_enc_file($key, $filename, $content);
+  $output .= "--$boundary--";
+  return $output;
+}
+
+/**
+ * Encode simple param
+ * @param type $name
+ * @param type $value
+ * @return type
+ */
+function _acquia_migrate_multipart_enc_text($name,  $value){
+  return "Content-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n";
+}
+
+function _acquia_migrate_multipart_enc_file($name, $filename, $file_content){
+  $mimetype = "application/octet-stream";
+  $data = "Content-Disposition: form-data; name=\"$name\"; filename=\"$filename\"\r\n";
+  $data .= "Content-Transfer-Encoding: binary\r\n";
+  $data .= "Content-Type: $mimetype\r\n\r\n";
+  $data .= $file_content . "\r\n";
+  return $data;
 }

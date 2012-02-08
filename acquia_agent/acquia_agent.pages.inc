@@ -372,12 +372,18 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
   if (!empty($identifier) && !empty($key)) {
     $form['migrate'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Migrate'),
+      '#title' => t('Migrate to Acquia Cloud'),
       '#collapsible' => FALSE,
     );
+    $last_migration = variable_get('acquia_agent_cloud_migration', array());
+    if (!empty($last_migration)) {
+      $form['migrate']['last'] = array(
+        '#markup' => _acquia_agent_migration_last_info($last_migration),
+      );
+    }
     $form['migrate']['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Migrate'),
+      '#value' => t('Begin migration'),
       '#submit' => array('acquia_agent_migrate_submit'),
     );
   }
@@ -401,8 +407,10 @@ function acquia_agent_settings_submit($form, &$form_state) {
  */
 function acquia_agent_migrate_submit($form, &$form_state) {
   module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
-  // Prepare for migration
+  // Prepare for migration.
   $migration = acquia_migration_prepare();
+  // @todo Figure out environment being setup.
+
   if (isset($migration['error']) && $migration['error'] == TRUE) {
     // @todo
     drupal_set_message('error');
@@ -420,6 +428,18 @@ function acquia_agent_migrate_submit($form, &$form_state) {
     );
     batch_set($batch);
   }
+}
+
+function _acquia_agent_migration_last_info($migration) {
+  $output = '';
+  $ago = format_interval(time() - $migration['time']);
+  if ($migration['error'] == TRUE) {
+    $output .= '<div class="messages error">' . t('Last migration attempt did not complete.') . '</div>';
+  }
+  else {
+    $output .= '<p>' . t('Migrated !time ago.', array('!time' => $ago)) . '</p>';
+  }
+  return $output;
 }
 
 /**
