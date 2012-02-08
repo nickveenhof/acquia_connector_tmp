@@ -221,6 +221,12 @@ function acquia_migrate_batch_transmit($migration, &$context) {
     $size = filesize($migration['tar_file']);
     $context['sandbox']['size'] = $size;
     $context['sandbox']['chunk'] = ($size / $length) > 1 ? TRUE : FALSE;
+    $nonce = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
+    $time = time();
+    $migration['request_params']['t'] = $time;
+    $migration['request_params']['nonce'] = $nonce;
+    $migration['request_params']['file_size'] = $size;
+    $migration['request_params']['file_name'] = basename($migration['tar_file']);
   }
   // @todo maybe send more each time rather than looping?
   for ($i = 0; $i < 3 && $context['sandbox']['position'] !== FALSE; $i++) {
@@ -228,6 +234,7 @@ function acquia_migrate_batch_transmit($migration, &$context) {
     $context['sandbox']['position'] = $position;
   }
 
+  // Store migration in results so it can be used by next operation.
   $context['results']['migration'] = $migration;
   if ($context['sandbox']['position'] !== FALSE) {
     $context['message'] = t('Transmitted !pos of !size', array('!pos' => $context['sandbox']['position'], '!size' => $context['sandbox']['size']));
