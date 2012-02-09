@@ -6,27 +6,6 @@
  */
 
 /**
- * Helper function. Creates an authenticator for XML-RPC calls
- *
- * @param array $body array of values being sent to remote server
- * @param string $pass 
- */
-function _acquia_agent_create_authenticator($body, $pass = NULL) {
-  $auth = array();
-  $auth['time'] = REQUEST_TIME;
-  $auth['nonce'] = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));;
-  if (isset($pass)) {
-    $auth['hash'] = _acquia_agent_hmac($pass, $auth['time'], $auth['nonce'], $body);
-  }
-  else {
-    // rpc.acquia.com XML-RPC interface requires this parameter to be a string.
-    // Just pass a dummy value.
-    $auth['hash'] = 'x';
-  }
-  return $auth;
-}
-
-/**
  * Hash a password according to Drupal's password_crypt and settings from remote.
  */
 function _acquia_agent_hash_password_crypt($algorithm, $pass, $setting, $extra_md5 = FALSE) {
@@ -83,6 +62,95 @@ function _acquia_agent_call_provision_freetrial($body, $authenticator, $pass) {
     cache_clear_all();
   }
   return $result;
+}
+
+/**
+ * Migrate site to Acquia Cloud
+ */
+function acquia_agent_migrate_page() {
+  $identifier = acquia_agent_settings('acquia_identifier');
+  $key = acquia_agent_settings('acquia_key');
+  if ($identifier && $key) {
+    $acquia_network_address = acquia_agent_settings('acquia_network_address');
+    if (acquia_agent_valid_credentials($identifier, $key, $acquia_network_address)) {
+      return drupal_get_form('acquia_agent_migrate_form');
+    }
+    else {
+      $error = acquia_agent_connection_error_message();
+    }
+  }
+  else {
+    $error = t('Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key');
+  }
+
+  // If there was some error
+  if (isset($error)) {
+    drupal_set_message($error, 'error');
+  }
+  drupal_goto('admin/config/system/acquia-agent');
+}
+
+/**
+ * Migration start form
+ */
+function acquia_agent_migrate_form($form, &$form_state) {
+  $body = array('identifier' => acquia_agent_settings('acquia_identifier'));
+  $authenticator = _acquia_agent_create_authenticator($body, acquia_agent_settings('acquia_key'));
+  $data = array('body' => $body, 'authenticator' => $authenticator);
+  $result = xmlrpc(acquia_agent_network_address(), array('acquia.agent.cloud.migration.environments' => array($data)));
+
+  $error = NULL;
+  if ($errno = xmlrpc_errno()) {
+    acquia_agent_report_xmlrpc_error();
+    drupal_goto('admin/config/system/acquia-agent');
+  }
+  elseif (!$result) {
+    $error = t("Server error, please submit again.");
+  }
+  elseif (!empty($result['is_error'])) {
+    $error = t("Server error, please submit again.");
+  }
+  elseif (isset($result['body']['error'])) {
+    $error = $result['body']['error'];
+  }
+
+  if ($error) {
+    drupal_set_message($error, 'error');
+    drupal_goto('admin/config/system/acquia-agent');
+  }
+
+  if (!empty($result['body']['environments'])) {
+    foreach ($result['body']['environments'] as $stage => $env) {
+      $result['body']['environments'][$stage]['secret'] = base64_decode($env['secret']);
+    }
+
+    $form['envs'] = array(
+      '#type' => 'value',
+      '#value' => $result['body']['environments']
+    );
+
+    $envs = array();
+    foreach (array_keys($result['body']['environments']) as $env) {
+      $envs[$env] = drupal_ucfirst($env);
+    }
+
+    $form['environment'] = array(
+      '#type' => 'select',
+      '#title' => t('Select environment for migration'),
+      '#options' => $envs,
+      '#description' => t('Select which environment your site should be migrated to.
+        Please note that only environments that are running trunk or branch can
+        be overwritten by migration. Environments running a tag are not included.')
+    );
+
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Begin migration'),
+      '#submit' => array('acquia_agent_migrate_submit'),
+    );
+
+    return $form;
+  }
 }
 
 /**
@@ -371,10 +439,10 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
   );
   if (!empty($identifier) && !empty($key)) {
     $form['migrate'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Migrate to Acquia Cloud'),
-      '#collapsible' => FALSE,
+      '#type' => 'markup',
+      '#markup' => l(t('Migrate to Acquia Cloud'), 'admin/config/system/acquia-agent/migrate'),
     );
+    /*
     $last_migration = variable_get('acquia_agent_cloud_migration', array());
     if (!empty($last_migration)) {
       $form['migrate']['last'] = array(
@@ -386,6 +454,7 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
       '#value' => t('Begin migration'),
       '#submit' => array('acquia_agent_migrate_submit'),
     );
+    */
   }
 
   $form['banner'] = array('#markup' => $banner);
@@ -407,11 +476,15 @@ function acquia_agent_settings_submit($form, &$form_state) {
  */
 function acquia_agent_migrate_submit($form, &$form_state) {
   module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
-  // Prepare for migration.
-  $migration = acquia_migration_prepare();
-  // @todo Figure out environment being setup.
 
-  if (isset($migration['error']) && $migration['error'] == TRUE) {
+  // Use selected environment
+  $env = $form_state['values']['envs'][$form_state['values']['environment']];
+  
+  // Prepare for migration.
+  $migration = acquia_migration_prepare($env);
+  $migration['site_name'] = $form_state['values']['environment'];
+
+  if (isset($migration['error']) && $migration['error'] !== FALSE) {
     // @todo
     drupal_set_message('error');
   }
@@ -419,8 +492,8 @@ function acquia_agent_migrate_submit($form, &$form_state) {
     $batch = array(
       'title' => t('Acquia Cloud Migration'),
       'operations' => array(
-        //array('acquia_migrate_batch_db', array($migration)),
-        //array('acquia_migrate_batch_tar', array($migration)),
+        array('acquia_migrate_batch_db', array($migration)),
+        array('acquia_migrate_batch_tar', array($migration)),
         array('acquia_migrate_batch_transmit', array($migration)),
       ),
       'finished' => 'acquia_migrate_batch_finished',

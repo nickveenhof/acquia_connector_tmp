@@ -18,5 +18,9 @@ function drush_acquia_migrate() {
   $filepath = $tmpdir . '/' . uniqid('acquia_archive') . '.sql';
   //acquia_migrate_backup_db_to_file_mysql($filepath);*/
   //_acquia_migrate_tst('/tmp/acquia-test');
-  acquia_migrate_process();
+  $env = array('secret' => 'secret', 'nonce' => 'nonce', 'stage' => 'stage', 'url' => 'url');
+  //acquia_migrate_process($env);
+  $exclude = acquia_migrate_exclude();
+  $files = acquia_migrate_files_to_backup(DRUPAL_ROOT, $exclude);
+  print_r($files);
 }

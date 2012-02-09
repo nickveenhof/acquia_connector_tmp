@@ -35,6 +35,13 @@ function acquia_agent_menu() {
     'file' => 'acquia_agent.pages.inc',
     'access arguments' => array('administer site configuration'),
   );
+  $items['admin/config/system/acquia-agent/migrate'] = array(
+    'title' => 'Acquia Network migrate',
+    'description' => 'Migrate your site to Acquia Cloud.',
+    'page callback' => 'acquia_agent_migrate_page',
+    'file' => 'acquia_agent.pages.inc',
+    'access arguments' => array('administer site configuration'),
+  );
   $items['admin/config/system/acquia-agent/refresh-status'] = array(
     'title' => 'Manual update check',
     'page callback' => 'acquia_agent_refresh_status',
@@ -609,4 +616,25 @@ function _acquia_agent_hmac($key, $time, $nonce, $params) {
     $string = $time .':'. $nonce;
     return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
+}
+
+/**
+ * Helper function. Creates an authenticator for XML-RPC calls
+ *
+ * @param array $body array of values being sent to remote server
+ * @param string $pass
+ */
+function _acquia_agent_create_authenticator($body, $pass = NULL) {
+  $auth = array();
+  $auth['time'] = REQUEST_TIME;
+  $auth['nonce'] = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
+  if (isset($pass)) {
+    $auth['hash'] = _acquia_agent_hmac($pass, $auth['time'], $auth['nonce'], $body);
+  }
+  else {
+    // rpc.acquia.com XML-RPC interface requires this parameter to be a string.
+    // Just pass a dummy value.
+    $auth['hash'] = 'x';
+  }
+  return $auth;
 }
