@@ -143,10 +143,16 @@ function acquia_agent_migrate_form($form, &$form_state) {
         be overwritten by migration. Environments running a tag are not included.')
     );
 
-    $form['submit'] = array(
+    $form['actions'] = array('#type' => 'actions');
+    $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Begin migration'),
       '#submit' => array('acquia_agent_migrate_submit'),
+    );
+    $form['actions']['cancel'] = array(
+      '#type' => 'submit',
+      '#value' => t('Cancel'),
+      '#submit' => array('acquia_agent_migrate_cancel_submit'),
     );
 
     return $form;
@@ -439,8 +445,15 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
   );
   if (!empty($identifier) && !empty($key)) {
     $form['migrate'] = array(
-      '#type' => 'markup',
-      '#markup' => l(t('Migrate to Acquia Cloud'), 'admin/config/system/acquia-agent/migrate'),
+      '#type' => 'fieldset',
+      '#title' => t('Acquia Cloud Migrate'),
+      '#description' => t('Migrate this site to Acquia Cloud. Migration may take several minutes.'),
+      '#collapsible' => FALSE,
+    );
+    $form['migrate']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Migrate'),//l(t('Migrate to Acquia Cloud'), 'admin/config/system/acquia-agent/migrate'),
+      '#submit' => array('acquia_agent_migrate_go_submit'),
     );
     /*
     $last_migration = variable_get('acquia_agent_cloud_migration', array());
@@ -469,6 +482,20 @@ function acquia_agent_settings_submit($form, &$form_state) {
   variable_set('acquia_agent_verify_peer', $form_state['values']['acquia_agent_verify_peer']);
   variable_set('acquia_dynamic_banner', $form_state['values']['acquia_dynamic_banner']);
   drupal_set_message(t('The configuration options have been saved.'));
+}
+
+/**
+ * Submit handler for Migrate button on settings form.
+ */
+function acquia_agent_migrate_go_submit($form, &$form_state) {
+  $form_state['redirect'] = array('admin/config/system/acquia-agent/migrate');
+}
+
+/**
+ * Submit handler for Cancel button on migrate form.
+ */
+function acquia_agent_migrate_cancel_submit($form, &$form_state) {
+  $form_state['redirect'] = array('admin/config/system/acquia-agent');
 }
 
 /**

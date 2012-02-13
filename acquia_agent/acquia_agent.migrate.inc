@@ -23,6 +23,11 @@
  * POST file to Acquia.com
  */
 
+function acquia_agent_migrate_check() {
+  // @todo check environment?
+  drupal_json_output(array(TRUE));
+}
+
 function acquia_migration_prepare($environment) {
   // Detect if a prior migration is unfinished @todo
   $last_migration = variable_get('acquia_agent_cloud_migration', array());

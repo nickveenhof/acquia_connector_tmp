@@ -42,6 +42,13 @@ function acquia_agent_menu() {
     'file' => 'acquia_agent.pages.inc',
     'access arguments' => array('administer site configuration'),
   );
+  $items['system/acquia-migrate-check'] = array(
+    'title' => 'Migrate capable',
+    'description' => 'Check for Acquia Cloud migrate capabilities',
+    'page callback' => 'acquia_agent_migrate_check',
+    'file' => 'acquia_agent.migrate.inc',
+    'access arguments' => array('access content'),
+  );
   $items['admin/config/system/acquia-agent/refresh-status'] = array(
     'title' => 'Manual update check',
     'page callback' => 'acquia_agent_refresh_status',
