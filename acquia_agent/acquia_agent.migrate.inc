@@ -23,11 +23,49 @@
  * POST file to Acquia.com
  */
 
+/**
+ * Menu callback for checking client upload.
+ *
+ */
 function acquia_agent_migrate_check() {
-  // @todo check environment?
-  drupal_json_output(array(TRUE));
+  $return = array('compatible' => TRUE);
+  $env = _acquia_migrate_check_env();
+  if (empty($env) || $env['error'] !== FALSE) {
+    $return['compatible'] = FALSE;
+    $return['message'] = $env['error'];
+  }
+  drupal_json_output($return);
 }
 
+/**
+ * Check server for migration capabilities.
+ *
+ * @return Array of environment capabilities or 'error' is set.
+ */
+function _acquia_migrate_check_env() {
+  $env = array('error' => FALSE);
+  // Check available compression libs.
+  if (function_exists('gzopen')) {
+    $env['compression_ext'] = 'gz';
+  }
+  elseif (function_exists('bzopen')) {
+    $env['compression_ext'] = 'bz2';
+  }
+  elseif (class_exists('ZipArchive')) {
+    $env['compression_ext'] = 'zip';
+  }
+  else {
+    $env['error'] = t('No compression libraries available');
+  }
+  return $env;
+}
+
+/**
+ * Setup archive directory and internal migrate data struct.
+ *
+ * @param array $environment
+ *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
+ */
 function acquia_migration_prepare($environment) {
   // Detect if a prior migration is unfinished @todo
   $last_migration = variable_get('acquia_agent_cloud_migration', array());
@@ -40,6 +78,10 @@ function acquia_migration_prepare($environment) {
 
   // Internal migration store is an array because objects cannot be stored
   // by Drupal's Batch API.
+  $local_env = _acquia_migrate_check_env();
+  if ($local_env['error'] !== FALSE) {
+    return $local_env;
+  }
   $time = REQUEST_TIME;
   $date = gmdate('Ymd_his', $time);
   $migration = array(
@@ -47,27 +89,26 @@ function acquia_migration_prepare($environment) {
     'id' => uniqid() . '_' . $date,
     'date' => $date,
     'time' => $time,
-    'compression_ext' => 'gz', //@todo determine available libs
+    'compression_ext' => $local_env['compression_ext'],
     // Parameters used in transmission request.
     'request_params' => array(
       'r' => url('admin/config/system/acquia-agent', array('absolute' => TRUE)), // Return URL on this site.
-      'y' => 'sar', // not changed
+      'y' => 'sar', // For Acquia Hosting
       'stage' => $environment['stage'],
       'nonce' => $environment['nonce'],
     ),
     'env' => $environment,
   );
 
-  // Validate final destination file is a file that does not exist in a
-  // writeable directory.
+  // Set up local storage of archive.
   _acquia_migrate_destination($migration);
-  if ($migration['error'] !== FALSE) {
-    return $migration;
-  }
 
   return $migration;
 }
 
+/**
+ * Ensure this response can work through migration.
+ */
 function _acquia_migrate_process_setup() {
   // If not in 'safe mode', increase the maximum execution time:
   if (!ini_get('safe_mode') && strpos(ini_get('disable_functions'), 'set_time_limit') === FALSE && ini_get('max_execution_time') < 1200) {
@@ -75,38 +116,51 @@ function _acquia_migrate_process_setup() {
   }
 }
 
+/**
+ * Create temporary directory and setup file for migration.
+ */
+function _acquia_migrate_destination(&$migration) {
+  $tmp_dir = realpath(file_directory_temp()) . '/acquia_migrate' . $migration['id'];
+  if (!mkdir($tmp_dir) || !is_writable($tmp_dir)) {
+    $migration['error'] = t('Cannot create temporary directory to store site archive.');
+    return;
+  }
+  $migration['dir'] = $tmp_dir;
+  $migration['file'] = $tmp_dir . '/archive-' . $migration['date'];
+}
+
+/**
+ * Complete migration tasks.
+ */
 function _acquia_migrate_complete(&$migration) {
   //$time = timer_stop('acquia_migrate');
-  
+  $identifier = acquia_agent_settings('acquia_identifier');
+  $key = acquia_agent_settings('acquia_key');
   $body = array('identifier' => acquia_agent_settings('acquia_identifier'));
   if (isset($migration['redirect']) && is_array($migration['redirect']['data'])) {
     $body += $migration['redirect']['data'];
   }
-  $authenticator = _acquia_agent_create_authenticator($body, acquia_agent_settings('acquia_key'));
-  $data = array('body' => $body, 'authenticator' => $authenticator);
-  $result = xmlrpc(acquia_agent_network_address(), array('acquia.agent.cloud.migration.complete' => array($data)));
+  $data = acquia_agent_call('acquia.agent.cloud.migration.complete', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
 
   if ($errno = xmlrpc_errno()) {
     acquia_agent_report_xmlrpc_error();
     $migration['error'] = TRUE;
     return;
   }
-  elseif (!$result) {
+  elseif (!$data || !isset($data['result'])) {
     $migration['error'] = t("Server error, please submit again.");
+    return;
   }
-  elseif ($result['success']) {
+
+  // Response is in $data['result'].
+  $result = $data['result'];
+  if ($result['success']) {
     $migration['network_url'] = $result['network_url'];
   }
-  return $migration;
-}
-
-function _acquia_migrate_destination(&$migration) {
-  $tmp_dir = realpath(file_directory_temp()) . '/acquia_migrate' . $migration['id'];
-  if (!mkdir($tmp_dir) || !is_writable($tmp_dir)) {
-    $migration['error'] = TRUE;
+  else {
+    $migration['error'] = $result['error'];
   }
-  $migration['dir'] = $tmp_dir;
-  $migration['file'] = $tmp_dir . '/archive-' . $migration['date'];
+  return $migration;
 }
 
 /**
@@ -114,49 +168,6 @@ function _acquia_migrate_destination(&$migration) {
  */
 function _acquia_migrate_unfinished($migration) {
   
-}
-
-/**
- * Entire process callback, used by drush.
- */
-function acquia_migrate_process($environment) {
-  // This file is for CLI testing and will be removed for prod. @todo
-  $migration = acquia_migration_prepare($environment);
-  if (isset($migration['error']) && $migration['error'] !== FALSE) {
-    return FALSE;
-  }
-
-  // Setup environment for each process.
-  _acquia_migrate_process_setup();
-
-  // Dump database.
-  _acquia_migrate_backup_db_to_file_mysql($migration);
-  if (isset($migration['error']) && $migration['error'] !== FALSE) {
-    return FALSE;
-  }
-
-  // Archive installation with db file.
-  _acquia_migrate_archive_site($migration);
-  if (isset($migration['error']) && $migration['error'] !== FALSE) {
-    return FALSE;
-  }
-
-  // Remove db file.
-  _acquia_migration_cleanup_db($migration);
-
-  // Send file to Acquia Cloud.
-  //_acquia_migrate_transmit_process($migration);
-  if (isset($migration['error']) && $migration['error'] !== FALSE) {
-    return FALSE;
-  }
-
-  acquia_migration_complete($migration);
-
-  // Final cleanup.
-  // Remove tar file and destination directory.
-  _acquia_migration_cleanup($migration);
-
-  return TRUE;
 }
 
 function acquia_migrate_batch_db($migration, &$context) {
@@ -172,10 +183,11 @@ function acquia_migrate_batch_db($migration, &$context) {
   }
 
   _acquia_migrate_backup_db_to_file_mysql($migration);
-  $context['results']['debug'][] = print_r($migration, TRUE);
+  $context['results']['debug'][] = print_r($migration, TRUE); //@todo remove
 
   // Store migration in results so it can be used by next operation.
   $context['results']['migration'] = $migration;
+  $context['finished'] = 1;
   $context['message'] = t('Exported database');
 }
 
@@ -192,10 +204,11 @@ function acquia_migrate_batch_tar($migration, &$context) {
   }
 
   _acquia_migrate_archive_site($migration);
-  $context['results']['debug'][] = print_r($migration, TRUE);
+  $context['results']['debug'][] = print_r($migration, TRUE); //@todo remove
 
   // Store migration in results so it can be used by next operation.
   $context['results']['migration'] = $migration;
+  $context['finished'] = 1;
   $context['message'] = t('Archived site and database');
 }
 
@@ -208,9 +221,9 @@ function acquia_migrate_batch_transmit($migration, &$context) {
   // Check for error and hault.
   if (empty($migration) || $migration['error'] !== FALSE) {
     $context['message'] = t('Encountered error, haulting');
+    $context['finished'] = 1;
     return;
   }
-
   // First call.
   if (empty($context['sandbox'])) {
     $context['sandbox']['position'] = 0;
@@ -221,7 +234,7 @@ function acquia_migrate_batch_transmit($migration, &$context) {
     $migration['file_name'] = basename($migration['tar_file']);
   }
 
-  // Set to 0.5 MB
+  // Set to 0.5 MB.
   $length = 1024 * 1024 / 2;
   $position = _acquia_migrate_transmit_chunk($migration, $context['sandbox']['position'], $length);
   $context['sandbox']['position'] = $position;
@@ -238,44 +251,49 @@ function acquia_migrate_batch_transmit($migration, &$context) {
 }
 
 function acquia_migrate_batch_finished($success, $results, $operations) {
-  $migration = isset($results['migration']) ? $results['migration'] : FALSE;
+  dpm($results);
+  $migration = !empty($results['migration']) ? $results['migration'] : FALSE;
   if ($success && $migration && $migration['error'] == FALSE) {
-    $migration = $results['migration'];
-
-    $message = t('Migration success. Visit the !network for more information', array(
-      '!network' => l(t('Acquia Network'), 'https://network.acquia.com/'),
-    ));
     // @todo store migration completion time
+    // Inform Acquia Cloud of migration completion.
     _acquia_migrate_complete($migration);
-    if ($migration['error'] == FALSE) {
-      $message = t('Migration success. You can see import progress on the !network.', array(
-        '!network' => l(t('Acquia Network'), $migration['network_url']),
+    if ($migration['error'] != FALSE) {
+      $message = t('There was an error checking upload completion. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => l('Network dashboard', 'https://network.acquia.com/')));
+      drupal_set_message($message);
+    }
+    else {
+      $message = t('Upload success. You can see import progress on the !network.', array(
+        '!network' => l(t('Acquia Network'), $migration['network_url'], array('external' => TRUE)),
       ));
+      drupal_set_message($message);
     }
     // Cleanup migration.
-    _acquia_migration_cleanup($migration);
+    _acquia_migrate_cleanup($migration);
   }
   else {
     // @todo store migration failure
     variable_set('acquia_agent_cloud_migration', $migration);
-    $message = t('Finished with an error.');
-    if ($migration['error']) {
+    $message = t('There was an error during upload.');
+    if ($migration && is_string($migration['error'])) {
       $message .= ' ' . $migration['error'];
     }
+    drupal_set_message($message, 'error');
   }
 
-  drupal_set_message($message);
+  drupal_goto('admin/config/system/acquia-agent');
 }
 
-function acquia_migrate_exclude() {
+function acquia_migrate_exclude($migration) {
   $exclude = array('.', '..', '.git', '.svn', 'CVS');
   $exclude[] = realpath('.') . '/' . str_replace(realpath('.') . '/', '', realpath(variable_get('file_public_path', conf_path() . '/files') ));
+  // Exclude the migration directory in case it's under the webroot.
+  $exclude[] = $migration['dir'];
   // @todo exclude multisite files dirs.
   return $exclude;
 }
 
 function _acquia_migrate_archive_site(&$migration) {
-  $exclude = acquia_migrate_exclude();
+  $exclude = acquia_migrate_exclude($migration);
   $files = acquia_migrate_files_to_backup(DRUPAL_ROOT, $exclude);
 
   if (!empty($files) && isset($migration['file'])) {
@@ -293,30 +311,6 @@ function _acquia_migrate_archive_site(&$migration) {
   }
   else {
     $migration['error'] = TRUE;
-  }
-}
-
-function _acquia_migrate_transmit_process(&$migration) {
-  // This file is for CLI testing and will be removed for prod. @todo
-  if (!isset($migration['tar_file'])) {
-    $migration['error'] = TRUE;
-    return;
-  }
-  $size = filesize($migration['tar_file']);
-  $position = 0;
-  $length = 32768;
-  $chunk = ($size / $length) > 1 ? TRUE : FALSE;
-
-  // Prepare parameters for transmit request.
-  $nonce = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
-  $time = time();
-  $migration['request_params']['t'] = $time;
-  $migration['request_params']['nonce'] = $nonce;
-  $migration['request_params']['file_size'] = $size;
-  $migration['request_params']['file_name'] = basename($migration['tar_file']);
-  // Read in file and transmit.
-  while ($position = _acquia_migrate_transmit_chunk($migration, $position, $length, $chunk)) {
-    // @todo Check for halt.
   }
 }
 
@@ -345,6 +339,9 @@ function _acquia_migrate_transmit_chunk(&$migration, $position, $length) {
   return $position;
 }
 
+/**
+ * Perform POST of archive chunk to Acquia hosting environment URL.
+ */
 function _acquia_migrate_transmit(&$migration, $content) {
   $params = $migration['request_params'];
   $params['nonce'] = $migration['env']['nonce'];
@@ -433,6 +430,9 @@ function acquia_migrate_get_token($now, $return, $secret) {
   return hash_hmac('sha256', $now . $return, $secret);
 }
 
+/**
+ * Recursive function to find files to archive.
+ */
 function acquia_migrate_files_to_backup($directory, $exclude) {
   $array_items = array();
   if ($handle = opendir($directory)) {
@@ -454,16 +454,22 @@ function acquia_migrate_files_to_backup($directory, $exclude) {
   return $array_items;
 }
 
-function _acquia_migration_cleanup_db(&$migration) {
+/**
+ * Remove database file created for migration.
+ */
+function _acquia_migrate_cleanup_db(&$migration) {
   if (isset($migration['db_file'])) {
     drupal_unlink($migration['db_file']);
     unset($migration['db_file']);
   }
 }
 
-function _acquia_migration_cleanup(&$migration) {
+/**
+ * Remove files and directory created for migration.
+ */
+function _acquia_migrate_cleanup(&$migration) {
   if (isset($migration['db_file'])) {
-    _acquia_migration_cleanup_db($migration);
+    _acquia_migrate_cleanup_db($migration);
   }
   if (isset($migration['tar_file'])) {
     drupal_unlink($migration['tar_file']);
@@ -603,7 +609,6 @@ function _acquia_migrate_get_tables_mysql() {
   }
   return $out;
 }
-
 
 /**
  * Get the list of table names.
