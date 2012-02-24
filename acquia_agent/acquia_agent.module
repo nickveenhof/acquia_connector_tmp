@@ -438,9 +438,6 @@ function acquia_agent_call($method, $params, $identifier = NULL, $key = NULL, $a
     'body' => $params,
   );
   $data['result'] = _acquia_agent_request($acquia_network_address, $method, $data);
-  if ($method != 'acquia.agent.validate') {
-  dpm($data);
-  }
   return $data;
 }
 

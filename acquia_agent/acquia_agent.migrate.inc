@@ -67,6 +67,7 @@ function _acquia_migrate_check_env() {
  *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
  */
 function acquia_migration_prepare($environment) {
+  cache_clear_all();
   // Detect if a prior migration is unfinished @todo
   $last_migration = variable_get('acquia_agent_cloud_migration', array());
   /*if (!empty($last_migration) && _acquia_migrate_unfinished($last_migration)) {
@@ -251,10 +252,10 @@ function acquia_migrate_batch_transmit($migration, &$context) {
 }
 
 function acquia_migrate_batch_finished($success, $results, $operations) {
-  dpm($results);
   $migration = !empty($results['migration']) ? $results['migration'] : FALSE;
   if ($success && $migration && $migration['error'] == FALSE) {
-    // @todo store migration completion time
+    // @todo store migration failure
+    variable_set('acquia_agent_cloud_migration', $migration);
     // Inform Acquia Cloud of migration completion.
     _acquia_migrate_complete($migration);
     if ($migration['error'] != FALSE) {
@@ -273,6 +274,8 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
   else {
     // @todo store migration failure
     variable_set('acquia_agent_cloud_migration', $migration);
+    // Cleanup anything left of migration. @todo remove if restart
+    _acquia_migrate_cleanup($migration);
     $message = t('There was an error during upload.');
     if ($migration && is_string($migration['error'])) {
       $message .= ' ' . $migration['error'];
@@ -285,10 +288,10 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
 
 function acquia_migrate_exclude($migration) {
   $exclude = array('.', '..', '.git', '.svn', 'CVS');
-  $exclude[] = realpath('.') . '/' . str_replace(realpath('.') . '/', '', realpath(variable_get('file_public_path', conf_path() . '/files') ));
   // Exclude the migration directory in case it's under the webroot.
   $exclude[] = $migration['dir'];
-  // @todo exclude multisite files dirs.
+  // @todo exclude files (and multisite files) dirs?
+  //$exclude[] = realpath('.') . '/' . str_replace(realpath('.') . '/', '', realpath(variable_get('file_public_path', conf_path() . '/files') ));
   return $exclude;
 }
 
@@ -302,11 +305,11 @@ function _acquia_migrate_archive_site(&$migration) {
       $dest_file .= '.' . $migration['compression_ext'];
     }
     $gz = new Archive_Tar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
-    $gz->addModify($files, '', DRUPAL_ROOT);
     if (!empty($migration['db_file'])) {
       // Add db file.
-      $gz->addModify(array($migration['db_file']), '', $migration['dir']);
+      $ret = $gz->addModify($migration['db_file'], '', $migration['dir']);
     }
+    $ret = $gz->addModify($files, 'docroot', DRUPAL_ROOT);
     $migration['tar_file'] = $dest_file;
   }
   else {
@@ -436,12 +439,10 @@ function acquia_migrate_get_token($now, $return, $secret) {
 function acquia_migrate_files_to_backup($directory, $exclude) {
   $array_items = array();
   if ($handle = opendir($directory)) {
-    while (false !== ($file = readdir($handle))) {
+    while (FALSE !== ($file = readdir($handle))) {
       if (!is_link($file) && !in_array($file, $exclude) && !in_array($directory. "/" . $file, $exclude)) {
         if (is_dir($directory. "/" . $file)) {
           $array_items = array_merge($array_items, acquia_migrate_files_to_backup($directory. "/" . $file, $exclude));
-          $file = $directory . "/" . $file;
-          $array_items[] = preg_replace("/\/\//si", "/", $file);
         }
         else {
           $file = $directory . "/" . $file;

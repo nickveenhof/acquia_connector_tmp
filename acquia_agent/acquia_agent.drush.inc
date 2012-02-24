@@ -19,10 +19,11 @@ function drush_acquia_migrate() {
   //acquia_migrate_backup_db_to_file_mysql($filepath);*/
   //_acquia_migrate_tst('/tmp/acquia-test');
   $env = array('secret' => 'secret', 'nonce' => 'nonce', 'stage' => 'stage', 'url' => 'url');
-  //acquia_migrate_process($env);
-  $exclude = acquia_migrate_exclude();
-  $files = acquia_migrate_files_to_backup(DRUPAL_ROOT, $exclude);
-  print_r($files);
+  acquia_migrate_process($env);
+  //$exclude = acquia_migrate_exclude();
+  //print_r($exclude);
+  /*$files = acquia_migrate_files_to_backup(DRUPAL_ROOT, $exclude);
+  print_r($files);*/
 }
 
 /**
@@ -36,7 +37,7 @@ function acquia_migrate_process($environment) {
   }
 
   // Setup environment for each process.
-  _acquia_migrate_process_setup();
+  //_acquia_migrate_process_setup();
 
   // Dump database.
   _acquia_migrate_backup_db_to_file_mysql($migration);
@@ -51,7 +52,7 @@ function acquia_migrate_process($environment) {
   }
 
   // Remove db file.
-  _acquia_migrate_cleanup_db($migration);
+  //_acquia_migrate_cleanup_db($migration);
 
   // Send file to Acquia Cloud.
   //_acquia_migrate_transmit_process($migration);
@@ -59,11 +60,11 @@ function acquia_migrate_process($environment) {
     return FALSE;
   }
 
-  acquia_migration_complete($migration);
+  //acquia_migration_complete($migration);
 
   // Final cleanup.
   // Remove tar file and destination directory.
-  _acquia_migrate_cleanup($migration);
+  //_acquia_migrate_cleanup($migration);
 
   return TRUE;
 }
