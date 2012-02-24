@@ -184,7 +184,6 @@ function acquia_migrate_batch_db($migration, &$context) {
   }
 
   _acquia_migrate_backup_db_to_file_mysql($migration);
-  $context['results']['debug'][] = print_r($migration, TRUE); //@todo remove
 
   // Store migration in results so it can be used by next operation.
   $context['results']['migration'] = $migration;
@@ -205,7 +204,6 @@ function acquia_migrate_batch_tar($migration, &$context) {
   }
 
   _acquia_migrate_archive_site($migration);
-  $context['results']['debug'][] = print_r($migration, TRUE); //@todo remove
 
   // Store migration in results so it can be used by next operation.
   $context['results']['migration'] = $migration;
@@ -259,6 +257,7 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
     // Inform Acquia Cloud of migration completion.
     _acquia_migrate_complete($migration);
     if ($migration['error'] != FALSE) {
+      watchdog('acquia-cloud', 'completion error @migration', array('@migration' => var_export($migration, TRUE)), WATCHDOG_DEBUG);
       $message = t('There was an error checking upload completion. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => l('Network dashboard', 'https://network.acquia.com/')));
       drupal_set_message($message);
     }
@@ -272,6 +271,7 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
     _acquia_migrate_cleanup($migration);
   }
   else {
+    watchdog('acquia-cloud', 'finished error @migration', array('@migration' => var_export($migration, TRUE)), WATCHDOG_DEBUG);
     // @todo store migration failure
     variable_set('acquia_agent_cloud_migration', $migration);
     // Cleanup anything left of migration. @todo remove if restart
@@ -291,7 +291,9 @@ function acquia_migrate_exclude($migration) {
   // Exclude the migration directory in case it's under the webroot.
   $exclude[] = $migration['dir'];
   // @todo exclude files (and multisite files) dirs?
-  //$exclude[] = realpath('.') . '/' . str_replace(realpath('.') . '/', '', realpath(variable_get('file_public_path', conf_path() . '/files') ));
+  if (!variable_get('acquia_migrate_files', 1)) { // @todo remove this after testing
+    $exclude[] = realpath('.') . '/' . str_replace(realpath('.') . '/', '', realpath(variable_get('file_public_path', conf_path() . '/files') ));
+  }
   return $exclude;
 }
 

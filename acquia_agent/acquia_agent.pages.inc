@@ -56,6 +56,7 @@ function acquia_agent_migrate_page() {
 function acquia_agent_migrate_form($form, &$form_state) {
   $identifier = acquia_agent_settings('acquia_identifier');
   $key = acquia_agent_settings('acquia_key');
+  watchdog('acquia-cloud', 'migration.environments @server', array('@server' => variable_get('acquia_spi_server', 'https://nspi.acquia.com')), WATCHDOG_DEBUG);
   $data = acquia_agent_call('acquia.agent.cloud.migration.environments', array('identifier' => $identifier), $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
 
   $error = NULL;
@@ -248,6 +249,7 @@ function acquia_agent_automatic_setup_form_validate($form, &$form_state) {
     $data = array('body' => $body, 'authenticator' => $authenticator);
     // Does not use acquia_agent_call() because Network identifier and key are not available.
     $server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
+    watchdog('acquia-cloud', 'communication.settings: @server : @data', array('@data' => var_export($data, TRUE), '@server' => $server), WATCHDOG_DEBUG);
     $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.communication.settings' => array($data)));
 
     if ($errno = xmlrpc_errno() !== NULL) {
@@ -302,6 +304,7 @@ function _acquia_agent_automatic_start_submit(&$form_state) {
   $data = array('body' => $body, 'authenticator' => $authenticator);
   // Does not use acquia_agent_call() because Network identifier and key are not available.
   $server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
+  watchdog('acquia-cloud', 'subscription.credentials: @server : @data', array('@data' => var_export($data, TRUE), '@server' => $server), WATCHDOG_DEBUG);
   $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.subscription.credentials' => array($data)));
 
   if ($errno = xmlrpc_errno()) {

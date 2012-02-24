@@ -42,6 +42,7 @@ function acquia_agent_menu() {
     'page arguments' => array('acquia_agent_automatic_setup_form'),
     'file' => 'acquia_agent.pages.inc',
     'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
   );
   $items['admin/config/system/acquia-agent/credentials'] = array(
     'title' => 'Acquia Network credentials',
@@ -50,6 +51,7 @@ function acquia_agent_menu() {
     'page arguments' => array('acquia_agent_settings_credentials'),
     'file' => 'acquia_agent.pages.inc',
     'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
   );
   $items['admin/config/system/acquia-agent/migrate'] = array(
     'title' => 'Acquia Network upload',
@@ -57,6 +59,7 @@ function acquia_agent_menu() {
     'page callback' => 'acquia_agent_migrate_page',
     'file' => 'acquia_agent.pages.inc',
     'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
   );
   $items['system/acquia-migrate-check'] = array(
     'title' => 'Upload capable',
@@ -64,6 +67,7 @@ function acquia_agent_menu() {
     'page callback' => 'acquia_agent_migrate_check',
     'file' => 'acquia_agent.migrate.inc',
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
   );
   $items['admin/config/system/acquia-agent/refresh-status'] = array(
     'title' => 'Manual update check',
