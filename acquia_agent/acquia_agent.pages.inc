@@ -40,12 +40,12 @@ function acquia_agent_migrate_page() {
     }
   }
   else {
-    $error = t('Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key');
+    $error = 'Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key.';
   }
 
-  // If there was some error
+  // If there was an error.
   if (isset($error)) {
-    drupal_set_message($error, 'error');
+    drupal_set_message(t('There was an error in communicating with Acquia.com. @err', array('@err' => $error)), 'error');
   }
   drupal_goto('admin/config/system/acquia-agent');
 }
@@ -56,7 +56,6 @@ function acquia_agent_migrate_page() {
 function acquia_agent_migrate_form($form, &$form_state) {
   $identifier = acquia_agent_settings('acquia_identifier');
   $key = acquia_agent_settings('acquia_key');
-  watchdog('acquia-cloud', 'migration.environments @server', array('@server' => variable_get('acquia_spi_server', 'https://nspi.acquia.com')), WATCHDOG_DEBUG);
   $data = acquia_agent_call('acquia.agent.cloud.migration.environments', array('identifier' => $identifier), $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
 
   $error = NULL;
@@ -67,13 +66,18 @@ function acquia_agent_migrate_form($form, &$form_state) {
   elseif (!$data || !isset($data['result'])) {
     $error = t("Server error, please submit again.");
   }
-  // Response is in $data['result'].
-  $result = $data['result'];
-  if (!empty($result['is_error'])) {
-    $error = t("Server error, please submit again.");
-  }
-  elseif (isset($result['body']['error'])) {
-    $error = $result['body']['error'];
+  else {
+    // Response is in $data['result'].
+    $result = $data['result'];
+    if (!empty($result['is_error'])) {
+      $error = t('Server error, unable to retrieve environments for upload');
+    }
+    elseif (!empty($result['body']['error'])) {
+      $error = $result['body']['error'];
+    }
+    elseif (empty($result['body']['environments'])) {
+      $error = t('Server error, unable to retrieve environments for upload');
+    }
   }
 
   if ($error) {
@@ -81,50 +85,48 @@ function acquia_agent_migrate_form($form, &$form_state) {
     drupal_goto('admin/config/system/acquia-agent');
   }
 
-  if (!empty($result['body']['environments'])) {
-    foreach ($result['body']['environments'] as $stage => $env) {
-      $result['body']['environments'][$stage]['secret'] = base64_decode($env['secret']);
-    }
-
-    $form['envs'] = array(
-      '#type' => 'value',
-      '#value' => $result['body']['environments']
-    );
-
-    $envs = array();
-    foreach (array_keys($result['body']['environments']) as $env) {
-      $envs[$env] = drupal_ucfirst($env);
-    }
-
-    if (count($envs) > 1) {
-      $form['environment'] = array(
-        '#type' => 'select',
-        '#title' => t('Select environment for migration'),
-        '#options' => $envs,
-        '#description' => t('Select which environment your site should be migrated to.
-          Please note that only environments that are running trunk or branch can
-          be overwritten by migration. Environments running a tag are not included.')
-      );
-    }
-    else {
-      $form['environments'] = array(
-        '#markup' => t('Available environment for migration: %env', array('%env' => array_pop($envs))),
-      );
-    }
-
-    $form['actions'] = array('#type' => 'actions');
-    $form['actions']['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Begin migration'),
-    );
-    $form['actions']['cancel'] = array(
-      '#type' => 'submit',
-      '#value' => t('Cancel'),
-      '#submit' => array('acquia_agent_migrate_cancel_submit'),
-    );
-
-    return $form;
+  foreach ($result['body']['environments'] as $stage => $env) {
+    $result['body']['environments'][$stage]['secret'] = base64_decode($env['secret']);
   }
+
+  $form['envs'] = array(
+    '#type' => 'value',
+    '#value' => $result['body']['environments']
+  );
+
+  $envs = array();
+  foreach (array_keys($result['body']['environments']) as $env) {
+    $envs[$env] = drupal_ucfirst($env);
+  }
+
+  if (count($result['body']['environments']) > 1) {
+    $form['environment'] = array(
+      '#type' => 'select',
+      '#title' => t('Select environment for upload'),
+      '#options' => $envs,
+      '#description' => t('Select which environment your site should be uploaded to.
+        Please note that only environments that are running trunk or branch can
+        be overwritten by migration. Environments running a tag are not included.')
+    );
+  }
+  else {
+    $form['environment'] = array(
+      '#markup' => t('Available environment for upload: %env', array('%env' => array_pop($envs))),
+    );
+  }
+
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Upload'),
+  );
+  $form['actions']['cancel'] = array(
+    '#type' => 'submit',
+    '#value' => t('Cancel'),
+    '#submit' => array('acquia_agent_migrate_cancel_submit'),
+  );
+
+  return $form;
 }
 
 /**
@@ -150,8 +152,10 @@ function acquia_agent_settings_page($arg = NULL) {
   $banner = '';
   $identifier = acquia_agent_settings('acquia_identifier');
   $key = acquia_agent_settings('acquia_key');
+  $subscription = acquia_agent_settings('acquia_subscription_name');
   $path = drupal_get_path('module', 'acquia_agent');
   $dynamic_banner = variable_get('acquia_dynamic_banner', FALSE);
+
   if ($dynamic_banner) {
     drupal_add_js(array('acquia_network' => array('id' => $identifier ? $identifier : FALSE)), 'setting');
     drupal_add_js(array('acquia_network' => array('url' => variable_get('acquia_banner_service', 'https://insight.acquia.com/system/acquia-banner'))), 'setting');
@@ -172,6 +176,12 @@ function acquia_agent_settings_page($arg = NULL) {
     return drupal_get_form('acquia_agent_automatic_setup_form');
   }
   else {
+    if (empty($subscription)) {
+      // Subscription name isn't set but key and id are is likely because
+      // user has updated from Acquia Connector 2.1. Need to clear menu cache and
+      // set subscription name.
+      _acquia_agent_setup_subscription_name();
+    }
     return drupal_get_form('acquia_agent_settings_form', $banner);
   }
 }
@@ -222,13 +232,14 @@ function _acquia_agent_automatic_setup_form_choose(&$form_state) {
   foreach ($form_state['subscriptions'] as $credentials) {
     $options[] = $credentials['name'];
   }
+  asort($options);
   $form = array(
-    '#prefix' =>  t('You have multiple subscriptions available. Please choose the subscription you would like to finish connecting.'),
+    '#prefix' =>  t('You have multiple subscriptions available.'),
     'subscription' => array(
       '#type' => 'select',
       '#title' => t('Available subscriptions'),
       '#options' => $options,
-      '#description' => t('Choose from your available descriptions.'),
+      '#description' => t('Choose from your available subscriptions.'),
       '#required' => TRUE,
     ),
     'continue' => array(
@@ -249,7 +260,6 @@ function acquia_agent_automatic_setup_form_validate($form, &$form_state) {
     $data = array('body' => $body, 'authenticator' => $authenticator);
     // Does not use acquia_agent_call() because Network identifier and key are not available.
     $server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
-    watchdog('acquia-cloud', 'communication.settings: @server : @data', array('@data' => var_export($data, TRUE), '@server' => $server), WATCHDOG_DEBUG);
     $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.communication.settings' => array($data)));
 
     if ($errno = xmlrpc_errno() !== NULL) {
@@ -304,7 +314,6 @@ function _acquia_agent_automatic_start_submit(&$form_state) {
   $data = array('body' => $body, 'authenticator' => $authenticator);
   // Does not use acquia_agent_call() because Network identifier and key are not available.
   $server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
-  watchdog('acquia-cloud', 'subscription.credentials: @server : @data', array('@data' => var_export($data, TRUE), '@server' => $server), WATCHDOG_DEBUG);
   $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.subscription.credentials' => array($data)));
 
   if ($errno = xmlrpc_errno()) {
@@ -420,6 +429,44 @@ function acquia_agent_settings_credentials_submit($form, &$form_state) {
 }
 
 /**
+ * Set subscription name and clear cache. Requires key and id to be set.
+ */
+function _acquia_agent_setup_subscription_name() {
+  $identifier = acquia_agent_settings('acquia_identifier');
+  $key = acquia_agent_settings('acquia_key');
+
+  // Get subscription name.
+  $body = array('identifier' => $identifier);
+  $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
+
+  if ($errno = xmlrpc_errno()) {
+    $error = TRUE;
+  }
+  elseif (!$data || !isset($data['result'])) {
+    $error = TRUE;
+  }
+  $result = $data['result'];
+  if (!empty($result['is_error'])) {
+    $error = TRUE;
+  }
+  elseif (isset($result['body']['error'])) {
+    $error = TRUE;
+  }
+  elseif (empty($result['body']['subscription'])) {
+    $error = TRUE;
+  }
+  else {
+    variable_set('acquia_subscription_name', $result['body']['subscription']['site_name']);
+    // Also clear cache since menu paths changed.
+    cache_clear_all();
+  }
+  if (isset($error)) {
+    drupal_set_message(t('Unable to automatically set subscription name, please reconnect to your subscription.'), 'error');
+    drupal_goto('admin/config/system/acquia-agent/setup');
+  }
+}
+
+/**
  * Settings form builder function.
  */
 function acquia_agent_settings_form($form, &$form_state, $banner) {
@@ -432,7 +479,11 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
     $acquia_network_address = acquia_agent_settings('acquia_network_address');
     if (!acquia_agent_valid_credentials($identifier, $key, $acquia_network_address)) {
       $error_message = acquia_agent_connection_error_message();
-      drupal_set_message($error_message, 'error', FALSE);
+      $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && variable_get('acquia_agent_verify_peer', 1);
+      if (empty($error_message) && $ssl_available) {
+        $error_message = 'There was an error in validating your subscription credentials. You may want to try disabling enhanced SSL security.';
+      }
+      drupal_set_message(t($error_message), 'error', FALSE);
     }
   }
 
@@ -453,14 +504,13 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
     '#type' => 'checkbox',
     '#title' => t('Receive updates from Acquia Network'),
     '#default_value' => variable_get('acquia_dynamic_banner', FALSE),
-    //'#description' => t('Receive dynamic updates on this page from Acquia.com about your subscription and new features.'),
   );
   $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
   $form['connection']['acquia_agent_verify_peer'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enhanced SSL security'),
-    '#description' => l('Learn more', 'admin/help/acquia_agent'),
-    '#default_value' => (int) (variable_get('acquia_agent_verify_peer', 0) && $ssl_available),
+    '#description' => l('Learn more.', 'admin/help/acquia_agent'),
+    '#default_value' => (int) (variable_get('acquia_agent_verify_peer', 1) && $ssl_available),
     '#disabled' => !$ssl_available,
   );
 
@@ -475,14 +525,15 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
     '#value' => t('Upload'),
     '#submit' => array('acquia_agent_migrate_go_submit'),
   );
-  /*
   $last_migration = variable_get('acquia_agent_cloud_migration', array());
-  if (!empty($last_migration)) {
-    $form['migrate']['last'] = array(
-      '#markup' => _acquia_agent_migration_last_info($last_migration),
-    );
+  if (!empty($last_migration['db_file']) || !empty($last_migration['tar_file']) || !empty($last_migration['dir'])) {
+    // Replace Upload button with Cleanup.
+    unset($form['migrate']['#description']);
+    $form['migrate']['#prefix'] = '<div class="messages error">' . t('Temporary files were leftover from last upload attempt.') . '</div>';
+    $form['migrate']['submit']['#value'] = t('Cleanup files');
+    $form['migrate']['submit']['#submit'] = array('acquia_agent_migrate_cleanup_submit');
   }
-  */
+
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
@@ -524,6 +575,10 @@ function acquia_agent_migrate_cancel_submit($form, &$form_state) {
 function acquia_agent_migrate_form_submit($form, &$form_state) {
   module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
 
+  if (empty($form_state['values']['environment']) || empty($form_state['values']['envs'])) {
+    return;
+  }
+
   if (count($form_state['values']['envs']) > 1) {
     // Use selected environment.
     $env = $form_state['values']['envs'][$form_state['values']['environment']];
@@ -533,11 +588,11 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
   }
 
   // Prepare for migration.
-  $migration = acquia_migration_prepare($env);
+  $migration = acquia_migrate_prepare($env);
   $migration['site_name'] = $form_state['values']['environment'];
 
   if (isset($migration['error']) && $migration['error'] !== FALSE) {
-    drupal_set_message(t('Unable to begin upload. ') . $migration['error'], 'error');
+    drupal_set_message(t('Unable to begin upload. @error', array('@error' => $migration['error'])), 'error');
     $form_state['redirect'] = array('admin/config/system/acquia-agent');
   }
   else {
@@ -548,7 +603,8 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
         array('acquia_migrate_batch_tar', array($migration)),
         array('acquia_migrate_batch_transmit', array($migration)),
       ),
-      'init_message' => t('Preparing for upload.'),
+      'init_message' => t('Preparing for upload'),
+      'progress_message' => t('Completed @current of @total steps for upload.'),
       'finished' => 'acquia_migrate_batch_finished',
       'file' => drupal_get_path('module', 'acquia_agent') . '/acquia_agent.migrate.inc',
     );
@@ -556,16 +612,12 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
   }
 }
 
-function _acquia_agent_migration_last_info($migration) {
-  $output = '';
-  $ago = format_interval(time() - $migration['time']);
-  if ($migration['error'] == TRUE) {
-    $output .= '<div class="messages error">' . t('Last upload attempt did not complete.') . '</div>';
-  }
-  else {
-    $output .= '<p>' . t('Uploaded !time ago.', array('!time' => $ago)) . '</p>';
-  }
-  return $output;
+function acquia_agent_migrate_cleanup_submit($form, &$form_state) {
+  module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
+  $migration = variable_get('acquia_agent_cloud_migration', array());
+  _acquia_migrate_cleanup($migration);
+  drupal_set_message(t('Temporary upload files removed'));
+  $form_state['redirect'] = array('admin/config/system/acquia-agent');
 }
 
 function theme_acquia_agent_banner_form($variables) {

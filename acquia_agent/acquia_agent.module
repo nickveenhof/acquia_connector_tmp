@@ -54,7 +54,7 @@ function acquia_agent_menu() {
     'type' => MENU_CALLBACK,
   );
   $items['admin/config/system/acquia-agent/migrate'] = array(
-    'title' => 'Acquia Network upload',
+    'title' => 'Acquia Cloud Upload',
     'description' => 'Upload your site to Acquia Cloud.',
     'page callback' => 'acquia_agent_migrate_page',
     'file' => 'acquia_agent.pages.inc',
@@ -201,6 +201,7 @@ function acquia_agent_check_subscription($params = array()) {
 function acquia_agent_report_xmlrpc_error() {
   drupal_set_message(t('Error: @message (@errno)', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno())), 'error');
 }
+
 /**
  * Implementation of hook_update_status_alter().
  *
@@ -365,6 +366,9 @@ function acquia_agent_watchdog($log_entry) {
   return $links;
 }
 
+/**
+ * Implements hook_help().
+ */
 function acquia_agent_help($path, $arg) {
   switch ($path) {
     case 'admin/help#acquia_agent':
@@ -398,7 +402,6 @@ function acquia_agent_help($path, $arg) {
       $output .= '</dl>';
       return $output;
   }
-  
 }
 
 /**
@@ -584,7 +587,7 @@ function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
 function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {
   $opts = array();
   $uri = parse_url($url);
-  $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && variable_get('acquia_agent_verify_peer', 0);
+  $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && variable_get('acquia_agent_verify_peer', 1);
   if (isset($uri['scheme']) && ($uri['scheme'] == 'https') && $ssl_available) {
     // Look for a local certificate to validate the server identity.
     $pem_file = drupal_get_path('module', $module) . '/' . $uri['host'] . '.pem';

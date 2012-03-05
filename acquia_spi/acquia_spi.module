@@ -167,26 +167,22 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
     '#type' => 'checkbox',
     '#title' => t('Admin privileges'),
     '#default_value' => variable_get('acquia_spi_admin_priv', 1),
-    //'#description' => 'Enabling this setting will allow the Acquia site profile information system to examine your admin accounts and alert you if you have weakened admin settings.',
   );
   $form['connection']['spi']['send_node_user'] = array(
     '#type' => 'checkbox',
     '#title' => t('Nodes and users'),
     '#default_value' => variable_get('acquia_spi_send_node_user', 1),
-    //'#description' => 'Enabling this setting will allow the Acquia site profile information system to send the latest node information (titles, types and creation time) as well as latest user information (account names, emails and creation times) to the network. This information is used in presenting you with dashboards showing your site activity.',
   );
   $form['connection']['spi']['send_watchdog'] = array(
     '#type' => 'checkbox',
     '#title' => t('Watchdog logs'),
     '#default_value' => variable_get('acquia_spi_send_watchdog', 1),
-    //'#description' => 'Enabling this setting will allow the Acquia site profile information system to send critical watchdog alerts, failed logins, and 404s to the Acquia Network. This information is used in generating dashboards for your review as well as optionally sending you alerts if certain thresholds are crossed.',
   );
   $form['connection']['spi']['module_diff_data'] = array(
     '#type' => 'checkbox',
     '#title' => t('Source code'),
     '#default_value' => (int) variable_get('acquia_spi_module_diff_data', 1) && $ssl_available,
-    '#description' => t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="">Learn more.</a>', array('!url' => url('admin/help/acquia_agent'))),
-    //'#description' => 'The Acquia site profile information system can detect if your Drupal source code (core or contrib) has been altered at all. If you select \'Yes\' then it will also create a diff and patch file of the changes for you to review. Requires enhanced SSL security and that your site is is publicly available.',
+    '#description' => t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="!url">Learn more.</a>', array('!url' => url('admin/help/acquia_agent'))),
     '#disabled' => !$ssl_available,
   );
   $use_cron = variable_get('acquia_spi_use_cron', 1);
@@ -194,7 +190,6 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
     '#type' => 'checkbox',
     '#title' => t('Send via Drupal cron'),
     '#default_value' => $use_cron,
-    //'#description' => t('Send SPI data to the Acquia Network during Drupal\'s internal cron system. This is recommended for all sites unless you notice cron run fails.'),
   );
   $key = md5(acquia_agent_settings('acquia_key') . '-spi-send-' . drupal_get_private_key());
   $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));

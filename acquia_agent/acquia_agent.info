@@ -7,3 +7,4 @@ files[] = acquia_agent.install
 files[] = acquia_agent.pages.inc
 files[] = acquia_agent_drupal_version.inc
 files[] = acquia_agent_streams.inc
+php = 5.2

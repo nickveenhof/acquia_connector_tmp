@@ -26,6 +26,7 @@ function acquia_agent_uninstall() {
   variable_del('acquia_key');
   variable_del('acquia_network_address');
   variable_del('acquia_subscription_data');
+  variable_del('acquia_subscription_name');
 }
 
 /**
@@ -158,4 +159,3 @@ function acquia_agent_requirements($phase) {
 
   return $requirements;
 }
-
