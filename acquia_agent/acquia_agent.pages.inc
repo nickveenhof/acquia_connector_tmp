@@ -159,7 +159,7 @@ function acquia_agent_settings_page($arg = NULL) {
   if ($dynamic_banner) {
     drupal_add_js(array('acquia_network' => array('id' => $identifier ? $identifier : FALSE)), 'setting');
     drupal_add_js(array('acquia_network' => array('url' => variable_get('acquia_banner_service', 'https://insight.acquia.com/system/acquia-banner'))), 'setting');
-    $src = variable_get('acquia_banner_serve', 'http://www.acquia.com/acquia_banner.js');
+    $src = variable_get('acquia_banner_serve', 'https://insight.acquia.com/acquia_banner.js');
     $banner = "<script type='text/javascript' src='" . htmlentities($src) . "'></script>";
   }
   elseif (empty($key) && empty($identifier)) {
@@ -457,8 +457,8 @@ function _acquia_agent_setup_subscription_name() {
   }
   else {
     variable_set('acquia_subscription_name', $result['body']['subscription']['site_name']);
-    // Also clear cache since menu paths changed.
-    cache_clear_all();
+    // Rebuild menu since there are new callbacks.
+    menu_rebuild();
   }
   if (isset($error)) {
     drupal_set_message(t('Unable to automatically set subscription name, please reconnect to your subscription.'), 'error');

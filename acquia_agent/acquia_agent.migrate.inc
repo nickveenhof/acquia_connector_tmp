@@ -57,6 +57,16 @@ function acquia_migrate_prepare($environment) {
   if ($local_env['error'] !== FALSE) {
     return $local_env;
   }
+  // Modify environment URL if SSL is available for use.
+  if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+    $uri = parse_url($environment['url']);
+    if (isset($uri['host'])) {
+      $environment['url'] = $uri['host'];
+    }
+    $environment['url'] .= isset($uri['port']) ? ':' . $uri['port'] : '';
+    $environment['url'] .= (isset($uri['path']) && isset($uri['host'])) ? $uri['path'] : '';
+    $environment['url'] = 'https://' . $environment['url'];
+  }
   $time = REQUEST_TIME;
   $date = gmdate('Ymd_his', $time);
   $migration = array(
@@ -104,7 +114,7 @@ function _acquia_migrate_process_setup() {
 function _acquia_migrate_destination(&$migration) {
   $tmp_dir = realpath(variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR . 'files')) . DIRECTORY_SEPARATOR . 'acquia_migrate' . $migration['id'];
   if (!mkdir($tmp_dir) || !is_writable($tmp_dir)) {
-    $migration['error'] = t('Cannot create temporary directory to store site archive.');
+    $migration['error'] = t('Cannot create temporary directory !dir to store site archive.', array('!dir' => $tmp_dir));
     return;
   }
   $migration['dir'] = $tmp_dir;
@@ -256,8 +266,8 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
 
 function acquia_migrate_exclude($migration) {
   $exclude = array('.', '..', '.git', '.svn', 'CVS', '.bzr');
-  // Exclude the migration directory in case it's under the webroot.
-  $exclude[] = $migration['dir'];
+  // Exclude the migration directory.
+  $exclude[] = basename($migration['dir']);
   if (!variable_get('acquia_migrate_files', 1)) {
     $exclude[] = realpath('.') . DIRECTORY_SEPARATOR . str_replace(realpath('.') . DIRECTORY_SEPARATOR, '', realpath(variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR .'files') ));
   }
