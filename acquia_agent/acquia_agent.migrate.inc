@@ -460,19 +460,21 @@ function _acquia_migrate_cleanup(&$migration) {
     drupal_unlink($migration['tar_file']);
     unset($migration['tar_file']);
   }
-  if (isset($migration['dir']) && is_dir($migration['dir'])) {
-    if (!@rmdir($migration['dir'])) {
-      // Files leftover in directory, reconstruct names and remove.
-      $db_file = $migration['file'] . '.sql';
-      if (file_exists($db_file)) {
-        drupal_unlink($db_file);
+  if (isset($migration['dir'])) {
+    if (is_dir($migration['dir'])) {
+      if (!@rmdir($migration['dir'])) {
+        // Files leftover in directory, reconstruct names and remove.
+        $db_file = $migration['file'] . '.sql';
+        if (file_exists($db_file)) {
+          drupal_unlink($db_file);
+        }
+        $tar_file = $migration['file'] . '.tar';
+        $tar_file .= !empty($migration['compression_ext']) ? '.' . $migration['compression_ext'] : '';
+        if (file_exists($tar_file)) {
+          drupal_unlink($tar_file);
+        }
+        rmdir($migration['dir']);
       }
-      $tar_file = $migration['file'] . '.tar';
-      $tar_file .= !empty($migration['compression_ext']) ? '.' . $migration['compression_ext'] : '';
-      if (file_exists($tar_file)) {
-        drupal_unlink($tar_file);
-      }
-      rmdir($migration['dir']);
     }
     unset($migration['dir']);
   }
