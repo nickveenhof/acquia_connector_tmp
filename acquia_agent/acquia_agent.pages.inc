@@ -70,13 +70,13 @@ function acquia_agent_migrate_form($form, &$form_state) {
     // Response is in $data['result'].
     $result = $data['result'];
     if (!empty($result['is_error'])) {
-      $error = t('Server error, unable to retrieve environments for upload');
+      $error = t('Server error, unable to retrieve environments for migration');
     }
     elseif (!empty($result['body']['error'])) {
       $error = $result['body']['error'];
     }
     elseif (empty($result['body']['environments'])) {
-      $error = t('Server error, unable to retrieve environments for upload');
+      $error = t('Server error, unable to retrieve environments for migration');
     }
   }
 
@@ -102,23 +102,32 @@ function acquia_agent_migrate_form($form, &$form_state) {
   if (count($result['body']['environments']) > 1) {
     $form['environment'] = array(
       '#type' => 'select',
-      '#title' => t('Select environment for upload'),
+      '#title' => t('Select environment for migration'),
       '#options' => $envs,
-      '#description' => t('Select which environment your site should be uploaded to.
+      '#description' => t('Select which environment your site should be migrated to.
         Please note that only environments that are running trunk or branch can
         be overwritten by migration. Environments running a tag are not included.')
     );
   }
   else {
     $form['environment'] = array(
-      '#markup' => t('Available environment for upload: %env', array('%env' => array_pop($envs))),
+      '#markup' => t('Available environment for migration: %env', array('%env' => array_pop($envs))),
+    );
+  }
+  $last_migration = variable_get('acquia_agent_cloud_migration', array());
+  if (!empty($last_migration)) {
+    $form['migrate_files'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Migrate files directory'),
+      '#description' => t('Include files directory and all files in migration. If you are experiencing migration errors it is recommended you do not send the files directory.'),
+      '#default_value' => variable_get('acquia_migrate_files', 1),
     );
   }
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Upload'),
+    '#value' => t('Migrate'),
   );
   $form['actions']['cancel'] = array(
     '#type' => 'submit',
@@ -516,20 +525,20 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
 
   $form['migrate'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Acquia Cloud Upload'),
-    '#description' => t('Upload your site to Acquia Cloud hosting service.'),
+    '#title' => t('Acquia Cloud Migrate'),
+    '#description' => t('Migrate your site to Acquia Cloud hosting service.'),
     '#collapsible' => FALSE,
   );
   $form['migrate']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Upload'),
+    '#value' => t('Migrate'),
     '#submit' => array('acquia_agent_migrate_go_submit'),
   );
   $last_migration = variable_get('acquia_agent_cloud_migration', array());
   if (!empty($last_migration['db_file']) || !empty($last_migration['tar_file']) || !empty($last_migration['dir'])) {
     // Replace Upload button with Cleanup.
     unset($form['migrate']['#description']);
-    $form['migrate']['#prefix'] = '<div class="messages error">' . t('Temporary files were leftover from last upload attempt.') . '</div>';
+    $form['migrate']['#prefix'] = '<div class="messages error">' . t('Temporary files were leftover from last migration attempt.') . '</div>';
     $form['migrate']['submit']['#value'] = t('Cleanup files');
     $form['migrate']['submit']['#submit'] = array('acquia_agent_migrate_cleanup_submit');
   }
@@ -579,6 +588,7 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
     return;
   }
 
+  variable_set('acquia_migrate_files', $form_state['values']['migrate_files']);
   if (count($form_state['values']['envs']) > 1) {
     // Use selected environment.
     $env = $form_state['values']['envs'][$form_state['values']['environment']];
@@ -592,19 +602,19 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
   $migration['site_name'] = $form_state['values']['environment'];
 
   if (isset($migration['error']) && $migration['error'] !== FALSE) {
-    drupal_set_message(t('Unable to begin upload. @error', array('@error' => $migration['error'])), 'error');
+    drupal_set_message(t('Unable to begin migration. @error', array('@error' => $migration['error'])), 'error');
     $form_state['redirect'] = array('admin/config/system/acquia-agent');
   }
   else {
     $batch = array(
-      'title' => t('Acquia Cloud Upload'),
+      'title' => t('Acquia Cloud Migrate'),
       'operations' => array(
         array('acquia_migrate_batch_db', array($migration)),
         array('acquia_migrate_batch_tar', array($migration)),
         array('acquia_migrate_batch_transmit', array($migration)),
       ),
-      'init_message' => t('Preparing for upload'),
-      'progress_message' => t('Completed @current of @total steps for upload.'),
+      'init_message' => t('Preparing for migration'),
+      'progress_message' => t('Completed @current of @total steps.'),
       'finished' => 'acquia_migrate_batch_finished',
       'file' => drupal_get_path('module', 'acquia_agent') . '/acquia_agent.migrate.inc',
     );
@@ -616,7 +626,7 @@ function acquia_agent_migrate_cleanup_submit($form, &$form_state) {
   module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
   $migration = variable_get('acquia_agent_cloud_migration', array());
   _acquia_migrate_cleanup($migration);
-  drupal_set_message(t('Temporary upload files removed'));
+  drupal_set_message(t('Temporary files removed'));
   $form_state['redirect'] = array('admin/config/system/acquia-agent');
 }
 

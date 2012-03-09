@@ -239,11 +239,11 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
     // Inform Acquia Cloud of migration completion.
     _acquia_migrate_complete($migration);
     if ($migration['error'] != FALSE) {
-      $message = t('There was an error checking upload completion. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => l('Network dashboard', 'https://network.acquia.com/')));
+      $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => l('Network dashboard', 'https://network.acquia.com/')));
       drupal_set_message($message);
     }
     else {
-      $message = t('Upload success. You can see import progress on the !network.', array(
+      $message = t('Migrate success. You can see import progress on the !network.', array(
         '!network' => l(t('Acquia Network'), $migration['network_url'], array('external' => TRUE)),
       ));
       drupal_set_message($message);
@@ -252,7 +252,7 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
     _acquia_migrate_cleanup($migration);
   }
   else {
-    $message = t('There was an error during upload.');
+    $message = t('There was an error during migration.');
     if ($migration && is_string($migration['error'])) {
       $message .= ' ' . $migration['error'];
     }
@@ -269,7 +269,7 @@ function acquia_migrate_exclude($migration) {
   // Exclude the migration directory.
   $exclude[] = basename($migration['dir']);
   if (!variable_get('acquia_migrate_files', 1)) {
-    $exclude[] = realpath('.') . DIRECTORY_SEPARATOR . str_replace(realpath('.') . DIRECTORY_SEPARATOR, '', realpath(variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR .'files') ));
+    $exclude[] = realpath(variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR .'files'));
   }
   return $exclude;
 }
