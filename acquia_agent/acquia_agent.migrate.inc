@@ -226,10 +226,29 @@ function acquia_migrate_batch_transmit($migration, &$context) {
   $context['results']['migration'] = $migration;
   if ($context['sandbox']['position'] !== FALSE) {
     $context['message'] = t('Uploading archive. Transferred !pos of !size bytes.', array('!pos' => $context['sandbox']['position'], '!size' => $context['sandbox']['size']));
-    $context['finished'] = $context['sandbox']['position'] / $context['sandbox']['size'];
+    $finished = $context['sandbox']['position'] / $context['sandbox']['size'];
+    if ($finished !== 1  && _acquia_migrate_broken_rounding() && $finished > 0.98) {
+      // In case this version of Drupal 7 is lower than 7.4
+      // force finished to 98% for remaining chunks due to rounding error
+      // in Batch API. http://drupal.org/node/1089472
+      $finished = 0.98;
+    }
+    $context['finished'] = $finished;
   }
   else {
     $context['finished'] = 1;
+  }
+}
+
+/**
+ * If this version of Drupal is less than 7.4 it suffers from Batch API bug.
+ */
+function _acquia_migrate_broken_rounding() {
+  if (in_array(VERSION, array('7.0', '7.1', '7.2', '7.3'))) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
   }
 }
 
@@ -252,6 +271,7 @@ function acquia_migrate_batch_finished($success, $results, $operations) {
     _acquia_migrate_cleanup($migration);
   }
   else {
+    watchdog('acquia-migrate', 'Migration error @m', array('@m' => print_r($migration, TRUE)), WATCHDOG_ERROR);
     $message = t('There was an error during migration.');
     if ($migration && is_string($migration['error'])) {
       $message .= ' ' . $migration['error'];
@@ -350,28 +370,35 @@ function _acquia_migrate_transmit(&$migration, $content) {
   if ($return->code == 200) {
     $output = drupal_json_decode($return->data);
 
-    // Validate signature.
-    $response_signature = $output['sig'];
-    unset($output['sig']);
-    $sig = '';
-    foreach ($output as $value) {
-      $sig .= $value;
-    }
-    $signature = hash_hmac('sha256', $sig, $migration['env']['secret']);
-
-    // Check if response is correct, if not stop migration.
-    if ($signature != $response_signature) {
-      $migration['error'] = t('Signature from server is wrong');
+    if (!empty($output['err'])) {
+      $migration['error'] = $output['err'];
       return FALSE;
+    }
+    else {
+      // Validate signature.
+      $response_signature = $output['sig'];
+      unset($output['sig']);
+      $sig = '';
+      foreach ($output as $value) {
+        $sig .= $value;
+      }
+      $signature = hash_hmac('sha256', $sig, $migration['env']['secret']);
+
+      // Check if response is correct, if not stop migration.
+      if ($signature != $response_signature) {
+        $migration['error'] = t('Signature from server is wrong');
+        return FALSE;
+      }
     }
   }
   elseif ($return->code == 302) {
-    // Final chunk!
+    // Final chunk, signature and any error is in Location URL.
     $redirect_url = $return->redirect_url;
     $parsed = parse_url($redirect_url);
     parse_str($parsed['query'], $query);
     if (!empty($query['err'])) {
       $migration['error'] = $query['err'];
+      return FALSE;
     }
     else {
       $query_sig = $query['sig'];
