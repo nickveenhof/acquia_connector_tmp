@@ -375,7 +375,7 @@ function acquia_spi_run_security_review() {
  */
 function _acquia_spi_security_review_compatible() {
   if (module_exists('security_review')) {
-    if (file_exists(drupal_get_path('module', 'security_review'). 'security_review.inc')) {
+    if (file_exists(drupal_get_path('module', 'security_review') . DIRECTORY_SEPARATOR . 'security_review.inc')) {
       // Versions with the separate .inc file are compatible.
       return TRUE;
     }

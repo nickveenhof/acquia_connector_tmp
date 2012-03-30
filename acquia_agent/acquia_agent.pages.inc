@@ -431,6 +431,9 @@ function acquia_agent_settings_credentials_submit($form, &$form_state) {
   variable_set('acquia_key', $form_state['values']['acquia_key']);
   variable_set('acquia_identifier', $form_state['values']['acquia_identifier']);
   variable_set('acquia_subscription_name', $form_state['sub']['site_name']);
+  // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
+  // Our status gets updated locally via the return data.
+  $active = acquia_agent_check_subscription();
   drupal_set_message(t('The Acquia configuration options have been saved.'));
   // Redirect to the path without the suffix.
   $form_state['redirect'] = array('admin/config/system/acquia-agent');
