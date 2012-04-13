@@ -288,6 +288,7 @@ function acquia_spi_get() {
     'base_version'   => $drupal_version['base_version'],
     'build_data'     => $drupal_version,
     'roles'          => drupal_json_encode(user_roles()),
+    'uid_0_present'  => acquia_spi_uid_0_present(),
   );
 
   $scheme = parse_url(variable_get('acquia_spi_server', 'https://nspi.acquia.com'), PHP_URL_SCHEME);
@@ -979,6 +980,17 @@ function acquia_spi_get_quantum() {
   }
 
   return $quantum;
+}
+
+/**
+ * Check the presence of UID 0 in the users table.
+ *
+ * @return bool Whether UID 0 is present.
+ *
+ */
+function acquia_spi_uid_0_present() {
+  $count = db_query("SELECT uid FROM {users} WHERE uid = 0")->rowCount();
+  return $count == 1 ? TRUE : FALSE;
 }
 
 /**
