@@ -526,11 +526,16 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
     '#disabled' => !$ssl_available,
   );
 
+  $collapsed = FALSE;
+  if (isset($_SERVER['AH_SITE_GROUP'])) { // Collapse migrate if Acquia hosting.
+    $collapsed = TRUE;
+  }
   $form['migrate'] = array(
     '#type' => 'fieldset',
     '#title' => t('Acquia Cloud Migrate'),
     '#description' => t('Migrate your site to Acquia Cloud hosting service.'),
-    '#collapsible' => FALSE,
+    '#collapsible' => TRUE,
+    '#collapsed' => $collapsed,
   );
   $form['migrate']['submit'] = array(
     '#type' => 'submit',
