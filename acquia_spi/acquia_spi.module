@@ -26,18 +26,17 @@ function acquia_spi_help($path, $arg) {
  * Implementation of hook_cron().
  */
 function acquia_spi_cron() {
-  
   // Get the last time we processed data.
   $last = variable_get('acquia_spi_cron_last', 0);
-  
+
   // 30 minute interval for sending site profile.
   $interval = variable_get('acquia_spi_cron_interval', 30);
-  
+
   // Allow an override. 
   if (variable_get('acquia_spi_cron_interval_override', FALSE)) {
     $interval = variable_get('acquia_spi_cron_interval_override', 30);
   }
-  
+
   // Determine if the required interval has passed.
   $now = REQUEST_TIME;
   if (variable_get('acquia_spi_use_cron', 1) && $now - $last > ($interval * 60)) {
@@ -57,6 +56,27 @@ function acquia_spi_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Implements hook_boot().
+ */
+function acquia_spi_boot() {
+  // Store server information for SPI incase data is being sent from PHP CLI.
+  if (drupal_is_cli()) {
+    return;
+  }
+
+  // Get the last time we processed data.
+  $last = variable_get('acquia_spi_boot_last', 0);
+  // 60 minute interval for storing the global variable.
+  $interval = variable_get('acquia_spi_cron_interval', 60);
+  // Determine if the required interval has passed.
+  $now = REQUEST_TIME;
+  if ((($now - $last) > ($interval * 60))) {
+    cache_set('acquia_spi_server', $_SERVER);
+    variable_set('acquia_spi_boot_last', $now);
+  }
 }
 
 /**
@@ -396,11 +416,11 @@ function _acquia_spi_security_review_compatible() {
  *    An array containing some detail about the version
  */
 function acquia_spi_get_version_info() {
-
+  $server = acquia_spi_get_server();
   $ver = array();
 
   $ver['base_version'] = VERSION;
-  $install_root = $_SERVER['DOCUMENT_ROOT'] . base_path();
+  $install_root = $server['DOCUMENT_ROOT'] . base_path();
   $ver['distribution']  = '';
 
   // Determine if this puppy is Acquia Drupal
@@ -501,13 +521,14 @@ function acquia_spi_get_settings_permissions() {
  *   True if they are removed, false if they aren't
  */
 function acquia_spi_check_files_present() {
+  $server = acquia_spi_get_server();
   $files_exist = FALSE;
   $url = url(NULL, array('absolute' => TRUE));
   $files_to_remove = array('CHANGELOG.txt', 'COPYRIGHT.txt', 'INSTALL.mysql.txt', 'INSTALL.pgsql.txt', 'INSTALL.txt', 'LICENSE.txt',
     'MAINTAINERS.txt', 'README.txt', 'UPGRADE.txt', 'PRESSFLOW.txt', 'install.php');
 
   foreach ($files_to_remove as $file) {
-    $path = $_SERVER['DOCUMENT_ROOT'] . base_path() . $file;
+    $path = $server['DOCUMENT_ROOT'] . base_path() . $file;
     if (file_exists($path))
       $files_exist = TRUE;
   }
@@ -754,14 +775,15 @@ function acquia_spi_get_admin_count() {
  *   An associative array keyed by a platform information type.
  */
 function acquia_spi_get_platform() {
+  $server = acquia_spi_get_server();
   // Database detection depends on the structure starting with the database
   $db_class = 'DatabaseTasks_' . Database::getConnection()->driver();
   $db_tasks = new $db_class();
   // Webserver detection is based on name being before the slash, and
   // version being after the slash.
-  preg_match('!^([^/]+)(/.+)?$!', $_SERVER['SERVER_SOFTWARE'], $webserver);
+  preg_match('!^([^/]+)(/.+)?$!', $server['SERVER_SOFTWARE'], $webserver);
 
-  if (stristr($webserver[1],'Apache') && function_exists('apache_get_version')) {
+  if (stristr($webserver[1], 'Apache') && function_exists('apache_get_version')) {
     $webserver[2] = apache_get_version();
     $apache_modules = apache_get_modules();
   }
@@ -783,7 +805,7 @@ function acquia_spi_get_platform() {
     'session.cookie_domain'   => ini_get('session.cookie_domain'),
     'session.cookie_lifetime' => ini_get('session.cookie_lifetime'),
     'newrelic.appname'        => ini_get('newrelic.appname'),
-    'SERVER'                  => $_SERVER,
+    'SERVER'                  => $server,
     'sapi'                    => php_sapi_name(),
   );
 
@@ -1109,4 +1131,14 @@ function acquia_spi_hash_path($path = '') {
     }
   }
   return $hash;
+}
+
+/**
+ * Extract the $_SERVER variable from cache.
+ * @return
+ *   The global server variable from an earlier pageload.
+ */
+function acquia_spi_get_server() {
+  $cache = cache_get('acquia_spi_server');
+  return !empty($cache->data) ? $cache->data : $_SERVER;
 }
