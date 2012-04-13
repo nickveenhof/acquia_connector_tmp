@@ -287,6 +287,7 @@ function acquia_spi_get() {
     'distribution'   => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
     'base_version'   => $drupal_version['base_version'],
     'build_data'     => $drupal_version,
+    'roles'          => drupal_json_encode(user_roles()),
   );
 
   $scheme = parse_url(variable_get('acquia_spi_server', 'https://nspi.acquia.com'), PHP_URL_SCHEME);
