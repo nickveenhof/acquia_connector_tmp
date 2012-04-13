@@ -1029,6 +1029,16 @@ function acquia_spi_file_hashes($exclude_dirs = array()) {
   // will be recursed into.  Thus, we avoid sending hashes for any others.
   list($hashes, $fileinfo) = _acquia_spi_generate_hashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'includes', 'misc', 'scripts'));
   ksort($hashes);
+  // Add .htaccess file.
+  $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
+  if (is_file($htaccess)) {
+    $owner = fileowner($htaccess);
+    if (function_exists('posix_getpwuid')) {
+      $userinfo = posix_getpwuid($owner);
+      $owner = $userinfo['name'];
+    }
+    $fileinfo['.htaccess'] = 'mt:'. filemtime($htaccess) .'$p:'. substr(sprintf('%o', fileperms($htaccess)), -4) . '$o:'. $owner .'$s:'. filesize($htaccess);
+  }
   return array($hashes, $fileinfo);
 }
 
