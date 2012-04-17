@@ -97,9 +97,15 @@ function _acquia_spi_send_access() {
  * Callback for sending SPI data.
  */
 function _acquia_spi_send() {
-  acquia_spi_send_profile_info();
+  $ret = acquia_spi_send_profile_info();
+
   if (isset($_GET['destination'])) {
-    drupal_set_message(t('SPI data sent.'));
+    if ($ret) {
+      drupal_set_message(t('SPI data sent.'));
+    }
+    else {
+      drupal_set_message(t('There was an error sending SPI data. Check the logs for error messages or contact Acquia Support.'), 'error');
+    }
     drupal_goto();
   }
   // If destination was not sent the call is via cron so close request and exit.
@@ -265,8 +271,9 @@ function acquia_spi_send_profile_info() {
     // Specify version 3 of the RPC, which ommits request parameters in the HMAC.
     // @todo move to version 4, JSON over XML-RPC.
     $spi['rpc_version'] = 3;
+    $result = acquia_agent_call('acquia.nspi.update', $spi, NULL, NULL, $nspi_server);
     variable_set('acquia_spi_cron_last', REQUEST_TIME);
-    return acquia_agent_call('acquia.nspi.update', $spi, NULL, NULL, $nspi_server);
+    return $result['result'];
   }
 }
 

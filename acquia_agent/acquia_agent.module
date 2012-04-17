@@ -639,6 +639,7 @@ function _acquia_agent_request($url, $method, $data) {
   }
   if ($errno = xmlrpc_errno()) {
     watchdog('acquia agent', '@message (@errno): %server - %method - <pre>@data</pre>', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method, '@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
+    $result = FALSE;
   }
   return $result;
 }
