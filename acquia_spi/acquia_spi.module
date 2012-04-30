@@ -324,10 +324,22 @@ function acquia_spi_get() {
     $via_ssl = TRUE;
   }
 
+  $additional_data = array();
   $security_review_results = acquia_spi_run_security_review();
   if (!empty($security_review_results)) {
+    $additional_data['security_review'] = $security_review_results['security_review'];
+  }
+  $spi_data = module_invoke_all('acquia_spi_get');
+  if (!empty($spi_data)) {
+    foreach ($spi_data as $name => $data) {
+      if (is_string($name) && is_array($data)) {
+        $additional_data[$name] = $data;
+      }
+    }
+  }
+  if (!empty($additional_data)) {
     // JSON encode this additional data.
-    $spi['additional_data'] = drupal_json_encode($security_review_results);
+    $spi['additional_data'] = drupal_json_encode($additional_data);
   }
 
   if (!$via_ssl) {
