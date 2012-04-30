@@ -999,15 +999,6 @@ function acquia_spi_get_quantum() {
     $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute()->fetchField();
   }
 
-  // Get some data about caches
-  $result = db_query("SELECT cid, created, expire FROM {cache} WHERE 1");
-  foreach ($result as $record) {
-    $cdata[] = (array) $record;
-  }
-  if (isset($cdata)) {
-    $quantum['cache'] = $cdata;
-  }
-
   return $quantum;
 }
 
