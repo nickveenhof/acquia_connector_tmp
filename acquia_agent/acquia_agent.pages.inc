@@ -600,7 +600,8 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
     return;
   }
 
-  variable_set('acquia_migrate_files', $form_state['values']['migrate_files']);
+  $migrate_files = !empty($form_state['values']['migrate_files']) ? $form_state['values']['migrate_files'] : 1;
+  variable_set('acquia_migrate_files', $migrate_files);
   if (count($form_state['values']['envs']) > 1) {
     // Use selected environment.
     $env = $form_state['values']['envs'][$form_state['values']['environment']];
