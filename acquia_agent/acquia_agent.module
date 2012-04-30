@@ -96,7 +96,7 @@ function acquia_agent_toolbar_add_links($toolbar) {
       $subscription = acquia_agent_settings('acquia_subscription_data');
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
-      $icon = '<img src="'. base_path() . 'misc/message-16-ok.png" alt="ok" style="vertical-align: middle;" />';
+      $icon = '<img src="' . base_path() . 'misc/message-16-ok.png" alt="ok" style="vertical-align: middle;" />';
       $link['title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
       $link['attributes']['class'][] = "acquia-active-subscription";
       $link['attributes']['title'] = $subscription['product']['view'];
@@ -105,7 +105,7 @@ function acquia_agent_toolbar_add_links($toolbar) {
     else {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
-      $icon = '<img src="'. base_path() . 'misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
+      $icon = '<img src="' . base_path() . 'misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
       $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
       $link['attributes']['class'][] = "acquia-inactive-subscription";
       $link['href'] = 'http://acquia.com/network';
@@ -392,10 +392,10 @@ function acquia_agent_help($path, $arg) {
       $output .= '<dd>' . t('The Acquia Connector will attempt to verify Acquia server identities before sending data if SSL is avaliable. May cause communication to fail, however, depending on your local configuration.');
       $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
       if ($ssl_available) {
-        $output .= ' <div class="messages ok">'. t('PHP has SSL support and may support this feature.') .'</div></dd>';
+        $output .= ' <div class="messages ok">' . t('PHP has SSL support and may support this feature.') . '</div></dd>';
       }
       else {
-        $output .= ' <div class="messages error">'. t('Your installation of PHP does not have SSL support. Please enable the SSL extension or compile PHP with SSL to use this feature, see: <a href="http://php.net/manual/en/book.openssl.php" target="_blank">http://php.net/manual/en/book.openssl.php</a>.') .'</div></dd>';
+        $output .= ' <div class="messages error">' . t('Your installation of PHP does not have SSL support. Please enable the SSL extension or compile PHP with SSL to use this feature, see: <a href="http://php.net/manual/en/book.openssl.php" target="_blank">http://php.net/manual/en/book.openssl.php</a>.') . '</div></dd>';
       }
       $output .= '<dt>' . t('Receive updates from Acquia Network') . '</dt>';
       $output .= '<dd>' . t('Receive dynamic updates on the Network Settings page from Acquia.com about your subscription and new features.') . '</dd>';
@@ -670,7 +670,7 @@ function _acquia_agent_authenticator($params = array(), $identifier = NULL, $key
 function _acquia_agent_hmac($key, $time, $nonce, $params) {
   if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
     $encoded_params = serialize($params);
-    $string = $time .':'. $nonce .':'. $key .':'. $encoded_params;
+    $string = $time . ':' . $nonce . ':' . $key . ':' . $encoded_params;
 
     return base64_encode(
       pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) .
@@ -679,11 +679,11 @@ function _acquia_agent_hmac($key, $time, $nonce, $params) {
   }
   elseif ($params['rpc_version'] == 2) {
     $encoded_params = json_encode($params);
-    $string = $time .':'. $nonce .':'. $encoded_params;
+    $string = $time . ':' . $nonce . ':' . $encoded_params;
     return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
   else {
-    $string = $time .':'. $nonce;
+    $string = $time . ':' . $nonce;
     return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
 }

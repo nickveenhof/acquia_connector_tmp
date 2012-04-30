@@ -198,7 +198,7 @@ function security_review_check_file_perms() {
     fclose($file_create);
   }
   // Try to append to our IGNOREME file.
-  $file = './'. $directory . '/IGNOREME.txt';
+  $file = './' . $directory . '/IGNOREME.txt';
   if ($file_append = fopen($file, 'a')) {
     $append_status = fwrite($file_append, date('Ymdhis') . "\n");
     fclose($file_append);

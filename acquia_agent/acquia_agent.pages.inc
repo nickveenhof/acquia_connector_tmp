@@ -525,7 +525,7 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
   $form['connection']['acquia_agent_verify_peer'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enhanced SSL security'),
-    '#description' => l('Learn more.', 'admin/help/acquia_agent'),
+    '#description' => l(t('Learn more.'), 'admin/help/acquia_agent'),
     '#default_value' => (int) (variable_get('acquia_agent_verify_peer', 1) && $ssl_available),
     '#disabled' => !$ssl_available,
   );

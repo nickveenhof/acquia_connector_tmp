@@ -14,10 +14,10 @@ function acquia_spi_help($path, $arg) {
     // Only provide help text if the welcome message is avalailable.
     if ($nid = db_query('SELECT nid FROM {node} where nid = :nid', array(':nid' => $welcome_nid))->fetchField()) {
       $txt = 'The !acquia_welcome provides information about how to '
-      .'quickly get your site up and running.  Also there are instructions for '
-      .'setting the site theme as well as many other configuration tasks.';
+      . 'quickly get your site up and running.  Also there are instructions for '
+      . 'setting the site theme as well as many other configuration tasks.';
       $link = l('Acquia Drupal welcome page', 'node/' . $nid);
-      return '<p>'. t($txt, array('!acquia_welcome' => $link)). '<p>';
+      return '<p>' . t($txt, array('!acquia_welcome' => $link)) . '<p>';
     }
   }
 }
@@ -132,7 +132,7 @@ function acquia_spi_valid_request($data, $message) {
   if (!isset($data['authenticator']) || !isset($data['authenticator']['time']) || !isset($data['authenticator']['nonce'])) {
     return FALSE;
   }
-  $string = $data['authenticator']['time'] .':'. $data['authenticator']['nonce'] .':' . $message;
+  $string = $data['authenticator']['time'] . ':' . $data['authenticator']['nonce'] . ':' . $message;
   $hash = sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   if ($hash == $data['authenticator']['hash']) {
     return TRUE;
@@ -299,12 +299,12 @@ function acquia_spi_get() {
     'platform'       => acquia_spi_get_platform(),
     'quantum'        => acquia_spi_get_quantum(),
     'system_status'  => acquia_spi_get_system_status(),
-    'failed_logins'  => variable_get('acquia_spi_send_watchdog',1) ? acquia_spi_get_failed_logins() : array(),
-    '404s'           => variable_get('acquia_spi_send_watchdog',1) ? acquai_spi_get_404s() : array(),
+    'failed_logins'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_failed_logins() : array(),
+    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
     'watchdog_size'  => acquai_spi_get_watchdog_size(),
-    'watchdog_data'  => variable_get('acquia_spi_send_watchdog',1) ? acquia_spi_get_watchdog_data() : array(),
-    'last_nodes'     => variable_get('acquia_spi_send_node_user',1) ? acquai_spi_get_last_nodes() : array(),
-    'last_users'     => variable_get('acquia_spi_send_node_user',1) ? acquai_spi_get_last_users() : array(),
+    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
+    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
+    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
     'extra_files'    => acquia_spi_check_files_present(),
     'ssl_login'      => acquia_spi_check_login(),
     'file_hashes'    => $hashes,
@@ -339,8 +339,8 @@ function acquia_spi_get() {
     $spi_ssl = array(
       'system_vars'  => acquia_spi_get_variables_data(),
       'settings_ra'  => acquia_spi_get_settings_permissions(),
-      'admin_count'  => variable_get('acquia_spi_admin_priv',1) ? acquia_spi_get_admin_count() : '',
-      'admin_name'   => variable_get('acquia_spi_admin_priv',1) ? acquia_spi_get_super_name() : '',
+      'admin_count'  => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_admin_count() : '',
+      'admin_name'   => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_super_name() : '',
     );
 
     return array_merge($spi, $spi_ssl);
@@ -505,18 +505,17 @@ function acquia_spi_check_login() {
 function acquia_spi_get_settings_permissions() {
   $settings_permissions_read_only = TRUE;
   $writes = array('2', '3', '6', '7'); // http://en.wikipedia.org/wiki/File_system_permissions
-  $settings_file = './'. conf_path(FALSE, TRUE) . '/settings.php';
+  $settings_file = './' . conf_path(FALSE, TRUE) . '/settings.php';
   $permissions = drupal_substr(sprintf('%o', fileperms($settings_file)), -4);  
-  
+
   foreach ($writes as $bit) {
     if (strpos($permissions, $bit)) {
-      $settings_permissions_read_only = FALSE;      
+      $settings_permissions_read_only = FALSE;
       break;
     }
   }
-  
+
   return $settings_permissions_read_only;
-  
 }
 
 /**
@@ -553,7 +552,7 @@ function acquia_spi_check_files_present() {
 function acquai_spi_get_last_users() {
   $last_five_users = array();
   $result = db_select('users', 'u')
-    ->fields('u', array('uid','name','mail','created'))
+    ->fields('u', array('uid', 'name', 'mail', 'created'))
     ->condition('u.created', REQUEST_TIME - 3600, '>')
     ->orderBy('created', 'DESC')
     ->range(0, 15)
@@ -582,7 +581,7 @@ function acquai_spi_get_last_users() {
 function acquai_spi_get_last_nodes() {
   $last_five_nodes = array();
   $result = db_select('node', 'n')
-    ->fields('n', array('title','type','nid','created'))
+    ->fields('n', array('title', 'type', 'nid', 'created'))
     ->condition('n.created', REQUEST_TIME - 3600, '>')
     ->orderBy('n.created', 'DESC')
     ->range(0, 15)
@@ -628,7 +627,7 @@ function acquia_spi_get_watchdog_data() {
   $wd = array();
   if (module_exists('dblog')) {
     $result = db_select('watchdog', 'w')
-      ->fields('w', array('wid','severity', 'type', 'message', 'timestamp'))
+      ->fields('w', array('wid', 'severity', 'type', 'message', 'timestamp'))
       ->condition('w.severity', array(WATCHDOG_EMERGENCY, WATCHDOG_CRITICAL), 'IN')
       ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
       ->execute();
@@ -827,7 +826,7 @@ function acquia_spi_get_platform() {
     'database_version'  => Database::getConnection()->version(),
     'system_type'       => php_uname('s'),
     // php_uname() only accepts one character, so we need to concatenate ourselves.
-    'system_version'    => php_uname('r') .' '. php_uname('v') .' '. php_uname('m') .' '. php_uname('n'),
+    'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
     'mysql'             => (Database::getConnection()->driver() == 'mysql') ? acquia_spi_get_platform_mysql_data() : array(),
     'server'            => '',
     'apache'            => '',
@@ -936,7 +935,8 @@ function acquia_spi_get_modules() {
   if ($last_build < time() - 86400) {
     $modules = system_rebuild_module_data();
     variable_set('acquia_spi_module_rebuild', REQUEST_TIME);
-  } else {
+  }
+  else {
     $result = db_query("SELECT filename, name, type, status, schema_version, info FROM {system} WHERE type = 'module'");
     foreach ($result as $file) {
       $file->info = unserialize($file->info);
@@ -961,7 +961,7 @@ function acquia_spi_get_modules() {
     // We really only care about this module if it is in 'sites' folder.
     // Otherwise it is covered by the hash of the distro's modules
     if ($module_path[0]=='sites') {
-      $contrib_path = implode('/',$module_path);
+      $contrib_path = implode('/', $module_path);
       
       // Get a hash for this module's files. If we nest into another module, we'll return
       // and that other module will be covered by it's entry in the system table.
@@ -969,7 +969,7 @@ function acquia_spi_get_modules() {
       // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
       // too hard to tell an individual module appart from a project
       //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
-      list($info['module_data']['hashes'],$info['module_data']['fileinfo']) = _acquia_spi_generate_hashes($contrib_path);
+      list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = _acquia_spi_generate_hashes($contrib_path);
     }
     else {
       $info['module_data']['hashes'] = array();
@@ -1035,7 +1035,7 @@ function acquia_spi_file_hashes($exclude_dirs = array()) {
       $userinfo = posix_getpwuid($owner);
       $owner = $userinfo['name'];
     }
-    $fileinfo['.htaccess'] = 'mt:'. filemtime($htaccess) .'$p:'. substr(sprintf('%o', fileperms($htaccess)), -4) . '$o:'. $owner .'$s:'. filesize($htaccess);
+    $fileinfo['.htaccess'] = 'mt:' . filemtime($htaccess) . '$p:' . substr(sprintf('%o', fileperms($htaccess)), -4) . '$o:' . $owner . '$s:' . filesize($htaccess);
   }
   return array($hashes, $fileinfo);
 }
@@ -1079,13 +1079,13 @@ function _acquia_spi_generate_hashes($dir, $exclude_dirs = array(), $limit_dirs 
             $userinfo = posix_getpwuid($owner);
             $owner = $userinfo['name'];
           }
-          $fileinfo[$path] = 'mt:'. filemtime($path) .'$p:'. substr(sprintf('%o', fileperms($path)), -4) . '$o:'. $owner .'$s:'. filesize($path);
+          $fileinfo[$path] = 'mt:' . filemtime($path) . '$p:' . substr(sprintf('%o', fileperms($path)), -4) . '$o:' . $owner . '$s:' . filesize($path);
         }
       }
     }
     closedir($handle);
   }
-  //return array('hashes'=>$hashes, 'fileinfo'=>$fileinfo);
+
   return array($hashes, $fileinfo);
 }
 
@@ -1094,24 +1094,24 @@ function _acquia_spi_generate_hashes($dir, $exclude_dirs = array(), $limit_dirs 
  */
 function acquia_spi_is_manifest_type($path) {
   $extensions = array(
-    'php'=> 1,
+    'php' => 1,
     'php4' => 1,
     'php5' => 1,
-    'module'=> 1,
-    'inc'=> 1,
-    'install'=> 1,
-    'test'=> 1,
-    'theme'=> 1,
-    'engine'=> 1,
-    'profile'=> 1,
-    'css'=> 1,
-    'js'=> 1,
-    'info'=> 1,
-    'sh'=> 1,
+    'module' => 1,
+    'inc' => 1,
+    'install' => 1,
+    'test' => 1,
+    'theme' => 1,
+    'engine' => 1,
+    'profile' => 1,
+    'css' => 1,
+    'js' => 1,
+    'info' => 1,
+    'sh' => 1,
     // SSL certificates
     'pem' => 1,
-    'pl'=> 1,
-    'pm'=> 1,
+    'pl' => 1,
+    'pm' => 1,
   );
   $pathinfo = pathinfo($path);
   return isset($pathinfo['extension']) && isset($extensions[$pathinfo['extension']]);
@@ -1133,9 +1133,9 @@ function acquia_spi_hash_path($path = '') {
       // Remove trailing whitespace
       $string = rtrim($string);
       // Replace all line endings and CVS/svn Id tags
-      $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$'.'Id$', $string);
+      $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$' . 'Id$', $string);
       $string = preg_replace('/\r\n|\n|\r/', ' ', $string);
-      $hash =  base64_encode(pack("H*",sha1($string)));
+      $hash =  base64_encode(pack("H*", sha1($string)));
     }
   }
   return $hash;
