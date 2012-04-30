@@ -638,7 +638,13 @@ function _acquia_agent_request($url, $method, $data) {
     $result = xmlrpc($url, array($method => array($data)), array('context' => $ctx));
   }
   if ($errno = xmlrpc_errno()) {
-    watchdog('acquia agent', '@message (@errno): %server - %method - <pre>@data</pre>', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method, '@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
+    $acquia_debug = variable_get('acquia_agent_debug', FALSE);
+    if ($acquia_debug) {
+      watchdog('acquia agent', '@message (@errno): %server - %method - <pre>@data</pre>', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method, '@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
+    }
+    else {
+      watchdog('acquia agent', '@message (@errno): %server - %method', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method), WATCHDOG_ERROR);
+    }
     $result = FALSE;
   }
   return $result;
