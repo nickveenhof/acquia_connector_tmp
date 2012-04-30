@@ -157,7 +157,7 @@ function acquia_agent_check_subscription($params = array()) {
   }
   else {
     // There is an identifier and key, so attempt communication.
-
+    $subscription = array();
     // Include version number information.
     acquia_agent_load_versions();
     if (IS_ACQUIA_DRUPAL) {
