@@ -247,7 +247,7 @@ function acquia_agent_update_status_alter(&$projects) {
       unset($projects[$project]['extra']);
     }
     elseif ($project_info['datestamp'] == 'acquia drupal') {
-      $projects['drupal']['includes'][$project] = $project_info['title'];
+      $projects['drupal']['includes'][$project] = !empty($project_info['title']) ? $project_info['title'] : '';
       unset($projects[$project]);
     }
   }
