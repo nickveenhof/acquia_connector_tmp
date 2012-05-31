@@ -853,11 +853,21 @@ function acquia_spi_get_platform() {
   return $platform;
 }
 
-
 function acquia_spi_get_platform_mysql_data() {
-  $result = db_query("SHOW GLOBAL STATUS");
+  $connection = Database::getConnection('default');
+  // Backup and restore PDO::ATTR_CASE. Prior to Drupal 7.14 this is
+  // PDO::CASE_LOWER. Afterwards it is PDO::CASE_NATURAL.
+  $orig = $connection->getAttribute(PDO::ATTR_CASE);
+  $connection->setAttribute(PDO::ATTR_CASE, PDO::CASE_LOWER);
+  $result = $connection->query("SHOW GLOBAL STATUS", array(), array());
+  // Restore the attribute.
+  $connection->setAttribute(PDO::ATTR_CASE, $orig);
+
   // what happens if we run this on mssql or postgres
   $ret = array();
+  if (empty($result)) {
+    return $ret;
+  }
   foreach ($result as $record) {
 
     switch ($record->variable_name) {
