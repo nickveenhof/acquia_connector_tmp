@@ -150,7 +150,7 @@ function acquia_agent_theme() {
  */
 function acquia_agent_check_subscription($params = array()) {
   // Default return value is FALSE.
-  $subscription = FALSE;
+  $subscription = $response_error = FALSE;
   if (!acquia_agent_has_credentials()) {
     // If there is not an identifier or key, delete any old subscription data.
     variable_del('acquia_subscription_data');
@@ -183,6 +183,7 @@ function acquia_agent_check_subscription($params = array()) {
           variable_del('acquia_subscription_data');
           break;
       }
+      $response_error = TRUE;
     }
     elseif (acquia_agent_valid_response($data)) {
       $subscription += $data['result']['body'];
@@ -190,10 +191,20 @@ function acquia_agent_check_subscription($params = array()) {
     }
     else {
       watchdog('acquia agent', 'HMAC validation error: <pre>@data</pre>', array('@data' => print_r($data, TRUE)), WATCHDOG_ERROR);
+      $response_error = TRUE;
     }
   }
 
-  module_invoke_all('acquia_subscription_status', acquia_agent_subscription_is_active());
+  // Only call acquia_agent_subscription_is_active() if there was no error to
+  // causing an infinite loop.
+  if (!$response_error) {
+    $active = acquia_agent_subscription_is_active();
+  }
+  else {
+    $active = FALSE;
+  }
+
+  module_invoke_all('acquia_subscription_status', $active);
 
   return $subscription;
 }
