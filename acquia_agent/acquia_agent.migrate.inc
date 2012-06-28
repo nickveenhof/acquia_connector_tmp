@@ -638,8 +638,15 @@ function _acquia_migrate_get_sql_file_footer_mysql() {
  */
 function _acquia_migrate_get_tables_mysql() {
   $out = array();
+  $connection = Database::getConnection('default');
+  // Backup and restore PDO::ATTR_CASE. Prior to Drupal 7.14 this is
+  // PDO::CASE_LOWER. Afterwards it is PDO::CASE_NATURAL.
+  $orig = $connection->getAttribute(PDO::ATTR_CASE);
+  $connection->setAttribute(PDO::ATTR_CASE, PDO::CASE_LOWER);
   // get auto_increment values and names of all tables
-  $tables = db_query("show table status");
+  $tables = $connection->query("SHOW TABLE STATUS", array(), array());
+  // Restore the attribute.
+  $connection->setAttribute(PDO::ATTR_CASE, $orig);
   foreach ($tables as $table) {
     $out[$table->name] = $table;
   }
