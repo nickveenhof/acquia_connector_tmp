@@ -299,6 +299,11 @@ function _acquia_migrate_archive_site(&$migration) {
   $files = acquia_migrate_files_to_backup(DRUPAL_ROOT, $exclude);
 
   if (!empty($files) && isset($migration['file'])) {
+    _acquia_migrate_validate_archive_files($migration, $files);
+    if ($migration['error'] != FALSE) {
+      return;
+    }
+
     $dest_file = $migration['file'] . '.tar';
     if (!empty($migration['compression_ext'])) {
       $dest_file .= '.' . $migration['compression_ext'];
@@ -313,6 +318,41 @@ function _acquia_migrate_archive_site(&$migration) {
   }
   else {
     $migration['error'] = TRUE;
+  }
+}
+
+/**
+ * Run Acquia's site-uploader.php validation checks.
+ */
+function _acquia_migrate_validate_archive_files(&$migration, $files) {
+  $output = implode("\n", $files);
+  $docroot = preg_quote(DRUPAL_ROOT . '/');
+
+  // Count the number of sites dirs with settings.php files and files
+  // directories.
+  $count_settingsphp = preg_match_all('@^' . $docroot . 'sites/[^/\n]+/settings.php$@m', $output, $settings_phps);
+  $count_filesdirs = preg_match_all('@^' . $docroot . 'sites/[^/\n]+/files/$@m', $output, $filesdirs);
+
+  // Count the number of sql dumps in the root, plus in the docroot but
+  // only if the docroot is a sub-dir (not empty or ./). Record all SQL
+  // dumps into $sqls[0].
+  $count_sqls = preg_match_all('@^' . $docroot . '[^/\n.][^/\n]*\.sql$@m', $output, $sqls);
+  if (strlen($docroot) > 2) {
+    $count_sqls += preg_match_all('@^(?:\./)?[^/\n.][^/\n]*\.sql$@m', $output, $docroot_sqls);
+    $sqls[0] = array_merge($sqls[0], $docroot_sqls[0]);
+  }
+
+  if (!in_array(DRUPAL_ROOT . '/index.php', $files)) {
+    $migration['error'] = "The archive file will not be in the correct format: no index.php found in root or top-level directory.";
+  }
+  elseif ($count_settingsphp > 1) {
+    $migration['error'] = "The archive file will not be in the correct format: it must have at most one sites directory containing settings.php, but the install has $count_settingsphp: " . implode(', ', $settings_phps[0]) . ". Remove unnecessary settings.php files and try again.";
+  }
+  elseif ($count_settingsphp == 0 && $count_filesdirs > 1) {
+    $migration['error'] = "The archive file will not be in the correct format: no settings.php file and the install has more than one sites directory containing a files directory. Remove unnecessary files directories or consolidate and try again.";
+  }
+  elseif ($count_sqls > 0) {
+    $migration['error'] = "The archive file will not be in the correct format: it contains $count_sqls extra SQL files: " . implode(', ', $sqls[0]) . ". Remove extra .sql files and try again.";
   }
 }
 
