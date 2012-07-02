@@ -694,8 +694,9 @@ function acquai_spi_get_404s() {
  *
  */
 function acquia_spi_get_variables_data() {
+  global $conf;
   $data = array();
-  $variables = array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country');
+  $variables = array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country');
   // Add comment settings for node types.
   $types = node_type_get_types();
   if (!empty($types)) {
@@ -704,15 +705,9 @@ function acquia_spi_get_variables_data() {
     }
   }
 
-  $result = db_select('variable', 'v')
-    ->fields('v', array('name', 'value'))
-    ->condition('name', $variables, 'IN')
-    ->orderBy('name')
-    ->execute();
-
-  foreach ($result as $record) {
-    if ($record && isset($record->value)) {
-      $data[$record->name] = unserialize($record->value);
+  foreach ($variables as $name) {
+    if (isset($conf[$name])) {
+      $data[$name] = $conf[$name];
     }
   }
   if (module_exists('globalredirect') && function_exists('_globalredirect_get_settings')) {
