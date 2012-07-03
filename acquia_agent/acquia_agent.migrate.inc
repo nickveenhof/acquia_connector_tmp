@@ -581,11 +581,11 @@ function _acquia_migrate_backup_db_to_file_mysql(&$migration) {
     fwrite($handle, $data);
     $alltables = _acquia_migrate_get_tables_mysql();
     foreach ($alltables as $table) {
-      if ($table->name && !isset($exclude[$table->name])) {
+      if ($table['name'] && !isset($exclude[$table['name']])) {
         $data = _acquia_migrate_get_table_structure_sql_mysql($table);
         fwrite($handle, $data);
         $lines++;
-        if (!in_array($table->name, $nodata)) {
+        if (!in_array($table['name'], $nodata)) {
           $lines += _acquia_migrate_dump_table_data_sql_to_file($handle, $table);
         }
       }
@@ -608,13 +608,16 @@ function _acquia_migrate_backup_db_to_file_mysql(&$migration) {
  */
 function _acquia_migrate_get_table_structure_sql_mysql($table) {
   $out = "";
-
-  $result = db_query("SHOW CREATE TABLE `" . $table->name . "`");
-  if ($record = $result->fetchAssoc()) {
-    $out .= "DROP TABLE IF EXISTS `" . $table->name . "`;\n";
-    $out .= strtr($record['create table'], array("\n" => " ", '"' => '`'));
-    if ($table->auto_increment) {
-      $out .= " AUTO_INCREMENT=" . $table->auto_increment;
+  $result = db_query("SHOW CREATE TABLE `". $table['name'] ."`", array(), array('fetch' => PDO::FETCH_ASSOC));
+  foreach ($result as $create) {
+    // Lowercase the keys because between Drupal 7.12 and 7.13/14 the default query behavior was changed.
+    // See: http://drupal.org/node/1171866
+    $create = array_change_key_case($create);
+    $out .= "DROP TABLE IF EXISTS `". $table['name'] ."`;\n";
+    // Remove newlines and convert " to ` because PDO seems to convert those for some reason.
+    $out .= strtr($create['create table'], array("\n" => ' ', '"' => '`'));
+    if ($table['auto_increment']) {
+      $out .= " AUTO_INCREMENT=". $table['auto_increment'];
     }
     $out .= ";\n";
   }
@@ -626,19 +629,35 @@ function _acquia_migrate_get_table_structure_sql_mysql($table) {
  */
 function _acquia_migrate_dump_table_data_sql_to_file($handle, $table) {
   $lines = 0;
-  $result = db_query("SELECT * FROM `" . $table->name . "`");
-  while ($row = $result->fetchAssoc()) {
+  // Escape backslashes, PHP code, special chars
+  $search = array('\\', "'", "\x00", "\x0a", "\x0d", "\x1a");
+  $replace = array('\\\\', "''", '\0', '\n', '\r', '\Z');
+  $result = db_query("SELECT * FROM `" . $table['name'] . "`", array(), array('fetch' => PDO::FETCH_ASSOC));
+  foreach ($result as $row) {
     $items = array();
     foreach ($row as $key => $value) {
-      $items[] = is_null($value) ? "null" : "'" . mysql_escape_string($value) . "'";
+      $items[] = is_null($value) ? "null" : "'" . str_replace($search, $replace, $value) . "'";
     }
     if ($items) {
-      $data = "INSERT INTO `" . $table->name . "` VALUES (" . implode(",", $items) . ");\n";
+      $data = "INSERT INTO `" . $table['name'] . "` VALUES (" . implode(",", $items) . ");\n";
       fwrite($handle, $data);
       $lines++;
     }
   }
   return $lines;
+}
+
+/**
+ * Get a list of tables in the db.
+ */
+function _acquia_migrate_get_tables_mysql() {
+  $out = array();
+  $tables = db_query("SHOW TABLE STATUS", array(), array('fetch' => PDO::FETCH_ASSOC));
+  foreach ($tables as $table) {
+    $table = array_change_key_case($table);
+    $out[$table['name']] = $table;
+  }
+  return $out;
 }
 
 /**
@@ -671,37 +690,6 @@ function _acquia_migrate_get_sql_file_footer_mysql() {
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 ";
-}
-
-/**
- * Get a list of tables in the db.
- */
-function _acquia_migrate_get_tables_mysql() {
-  $out = array();
-  $connection = Database::getConnection('default');
-  // Backup and restore PDO::ATTR_CASE. Prior to Drupal 7.14 this is
-  // PDO::CASE_LOWER. Afterwards it is PDO::CASE_NATURAL.
-  $orig = $connection->getAttribute(PDO::ATTR_CASE);
-  $connection->setAttribute(PDO::ATTR_CASE, PDO::CASE_LOWER);
-  // get auto_increment values and names of all tables
-  $tables = $connection->query("SHOW TABLE STATUS", array(), array());
-  // Restore the attribute.
-  $connection->setAttribute(PDO::ATTR_CASE, $orig);
-  foreach ($tables as $table) {
-    $out[$table->name] = $table;
-  }
-  return $out;
-}
-
-/**
- * Get the list of table names.
- */
-function _acquia_migrate_get_table_names_mysql() {
-  $out = array();
-  foreach (_acquia_migrate_get_tables_mysql() as $key => $table) {
-    $out[$key] = $table->name;
-  }
-  return $out;
 }
 
 /**
