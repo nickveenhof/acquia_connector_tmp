@@ -311,14 +311,14 @@ function _acquia_migrate_archive_site(&$migration) {
     $gz = new Archive_Tar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
     if (!empty($migration['db_file'])) {
       // Add db file.
-      $ret = $gz->addModify(array($migration['db_file']), '', $migration['dir'] . '/'); // Purposefully use forward slash.
+      $ret = $gz->addModify(array($migration['db_file']), '', $migration['dir'] . DIRECTORY_SEPARATOR);
     }
     // Remove Drupal root from the file paths, OS dependent.
     if (defined('OS_WINDOWS')) {
       $remove_dir = DRUPAL_ROOT . '\\';
     }
     else {
-      $remove_dir = DRUPAL_ROOT . '/'; // Purposefully use forward slash.
+      $remove_dir = DRUPAL_ROOT . '/';
     }
     $ret = $gz->addModify($files, '', $remove_dir);
     $migration['tar_file'] = $dest_file;
@@ -352,10 +352,12 @@ function _acquia_migrate_validate_archive_files(&$migration, $files) {
     $sqls[0] = array_merge($sqls[0], $docroot_sqls[0]);
   }
   // Allow simpletest SQL files.
-  foreach ($sqls[0] as $key => $sql_file) {
-    if (strpos($sql_file, 'simpletest') !== FALSE) {
-      $count_sqls--;
-      unset($sqls[0][$key]);
+  if (!empty($sqls[0])) {
+    foreach ($sqls[0] as $key => $sql_file) {
+      if (strpos($sql_file, 'simpletest') !== FALSE) {
+        $count_sqls--;
+        unset($sqls[0][$key]);
+      }
     }
   }
 
