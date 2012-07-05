@@ -970,7 +970,7 @@ function acquia_spi_get_system_status() {
     'conf_dir' => $conf_dir,
     'settings' => $settings,
   );
-  $cron_last = variable_get('cron_last');
+  $cron_last = variable_get('cron_last', NULL);
   if (!is_numeric($cron_last)) {
     $cron_last = variable_get('install_time', 0);
   }
