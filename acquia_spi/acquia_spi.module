@@ -931,16 +931,79 @@ function acquia_spi_get_platform_mysql_data() {
  * @return array
  */
 function acquia_spi_get_system_status() {
+  $data = array();
 
-  // Load .install files
-  include_once DRUPAL_ROOT . '/includes/install.inc';
-  drupal_load_updates(); // This is run to load the install files of all modules, which contain the hook_requirements used below
-
-  // Check run-time requirements and status information.
-  $requirements = module_invoke_all('requirements', 'runtime');
-  usort($requirements, '_system_sort_requirements');
-
-  return $requirements;
+  $profile = drupal_get_profile();
+  if ($profile != 'standard') {
+    $info = system_get_info('module', $profile);
+    $data['install_profile'] = array(
+      'title' => 'Install profile',
+      'value' => t('%profile_name (%profile-%version)', array(
+        '%profile_name' => $info['name'],
+        '%profile' => $profile,
+        '%version' => $info['version'],
+      )),
+    );
+  }
+  $data['php'] = array(
+    'title' => 'PHP',
+    'value' => phpversion(),
+  );
+  $conf_dir = TRUE;
+  $settings = TRUE;
+  $dir = conf_path();
+  if (is_writable($dir) || is_writable($dir . '/settings.php')) {
+    $value = 'Not protected';
+    if (is_writable($dir)) {
+      $conf_dir = FALSE;
+    }
+    elseif (is_writable($dir . '/settings.php')) {
+      $settings = FALSE;
+    }
+  }
+  else {
+    $value = 'Protected';
+  }
+  $data['settings.php'] = array(
+    'title' => 'Configuration file',
+    'value' => $value,
+    'conf_dir' => $conf_dir,
+    'settings' => $settings,
+  );
+  $cron_last = variable_get('cron_last');
+  if (!is_numeric($cron_last)) {
+    $cron_last = variable_get('install_time', 0);
+  }
+  $data['cron'] = array(
+    'title' => 'Cron maintenance tasks',
+    'value' => t('Last run !time ago', array('!time' => format_interval(REQUEST_TIME - $cron_last))),
+    'cron_last' => $cron_last,
+  );
+  if (!empty($GLOBALS['update_free_access'])) {
+    $data['update access'] = array(
+      'value' => 'Not protected',
+      'protected' => FALSE,
+    );
+  }
+  else {
+    $data['update access'] = array(
+      'value' => 'Protected',
+      'protected' => TRUE,
+    );
+  }
+  $data['update access']['title'] = 'Access to update.php';
+  if (!module_exists('update')) {
+    $data['update status'] = array(
+      'value' => 'Not enabled',
+    );
+  }
+  else {
+    $data['update status'] = array(
+      'value' => 'Enabled',
+    );
+  }
+  $data['update status']['title'] = 'Update notifications';
+  return $data;
 }
 
 /**
