@@ -10,14 +10,20 @@ define('ACQUIA_SEARCH_ENVIRONMENT_ID', 'acquia_search_server_1');
 /**
  * Predefined Acquia Search network environment
  */
-function acquia_search_get_environment() {
-  return array(
-    'env_id' => ACQUIA_SEARCH_ENVIRONMENT_ID,
-    'name' => t('Acquia Search'),
+function acquia_search_get_environment($conf = array()) {
+  if (!empty($conf['acquia_subscription_id'])) {
+    $identifier = $conf['acquia_subscription_id'];
+  }
+  else {
+    $identifier = acquia_agent_settings('acquia_identifier');
+  }
+  $environment = array(
     // @todo - server URL may depend on region info.
-    'url' => variable_get('acquia_search_url', 'http://search.acquia.com/solr/'. acquia_agent_settings('acquia_identifier')),
+    'url' => variable_get('acquia_search_url', 'http://search.acquia.com/solr/'. $identifier),
     'service_class' => 'AcquiaSearchService',
   );
+
+  return $environment;
 }
 
 /**
@@ -32,16 +38,18 @@ function acquia_search_enable() {
 }
 
 /**
- * Implementation of hook_init().
+ * Implementation of hook_help().
  */
-function acquia_search_init() {
-  if (arg(0) == 'admin' && arg(1) == 'config' && arg(2) == 'search' && arg(3) == 'apachesolr'
-      && user_access('administer search')
-      && acquia_agent_subscription_is_active()
-      && variable_get('apachesolr_default_environment') == ACQUIA_SEARCH_ENVIRONMENT_ID
-      && empty($_POST)) {
-    $as_link = l(t('Acquia Search'), 'http://acquia.com/products-services/acquia-search');
-    drupal_set_message(t("Search is being provided by the !as network service.", array('!as' => $as_link)));
+function acquia_search_help($path, $arg) {
+  switch ($path) {
+    case 'admin/config/search/apachesolr':
+      $env_id = $arg[5] ? $arg[5] : variable_get('apachesolr_default_environment');
+      $environment = apachesolr_environment_load($env_id);
+      if (acquia_search_environment_connected($environment) && acquia_agent_subscription_is_active()) {
+        $as_link = l(t('Acquia Search'), 'http://www.acquia.com/products-services/acquia-search');
+        return t("Search is being provided by the !as network service.", array('!as' => $as_link));
+      }
+    break;
   }
 }
 
@@ -49,14 +57,19 @@ function acquia_search_init() {
  * Create a new record pointing to the Acquia apachesolr search server and set it as the default
  */
 function acquia_search_enable_acquia_solr_environment() {
+  // Creates the new environment
   $environment = apachesolr_environment_load(ACQUIA_SEARCH_ENVIRONMENT_ID);
-  if ($environment != acquia_search_get_environment()) {
-    apachesolr_environment_save(acquia_search_get_environment());
-  }
-  // Only set the default if we just createdd the environment.
   if (!$environment) {
+    // Only set the default if we just created the environment.
+    // This will almost always happen, unless the module was disabled via SQL.
     variable_set('apachesolr_default_environment', ACQUIA_SEARCH_ENVIRONMENT_ID);
+    $environment['conf'] = array();
   }
+
+  $environment = array_merge(acquia_search_get_environment(), $environment);
+  $environment['env_id'] = ACQUIA_SEARCH_ENVIRONMENT_ID;
+  $environment['name'] = t('Acquia Search');
+  apachesolr_environment_save($environment);
 }
 
 /**
@@ -65,10 +78,24 @@ function acquia_search_enable_acquia_solr_environment() {
  * Helper function to clear variables we may have set.
  */
 function acquia_search_disable() {
+  // Remove the environment we added.
   apachesolr_environment_delete(ACQUIA_SEARCH_ENVIRONMENT_ID);
-  if (variable_get('apachesolr_default_environment', 'solr') == ACQUIA_SEARCH_ENVIRONMENT_ID) {
-    // Go back to the default.
-    variable_del('apachesolr_default_environment');
+  // Unset all other acquia search environments
+  $environments = apachesolr_load_all_environments();
+  foreach ($environments as $environment) {
+    if (acquia_search_environment_connected($environment)) {
+      // remove traces of acquia_search
+      // unset our acquia url and set it back to default
+      $environment['url'] = 'http://localhost:8983/solr';
+      if (variable_get('apachesolr_default_environment', '') == $environment['env_id']) {
+        // Go back to the default.
+        variable_del('apachesolr_default_environment');
+      }
+      // Emptying the service class, unsetting it would not work, since it would
+      // not overwrite the old value
+      $environment['service_class'] = '';
+      apachesolr_environment_save($environment);
+    }
   }
 }
 
@@ -80,9 +107,12 @@ function acquia_search_menu_alter(&$menu) {
   if (isset($menu[$delete_page])) {
     $menu[$delete_page]['access callback'] = 'acquia_search_environment_delete_access';
     $menu[$delete_page]['access arguments'] = array(4);
-  };
+  }
 }
 
+/**
+ * Implementation of hook_cron().
+ */
 function acquia_search_cron() {
   // Cache the cersion in a variable so we can send it at not extra cost.
   $version = variable_get('acquia_search_version', '7.x');
@@ -95,10 +125,17 @@ function acquia_search_cron() {
 }
 
 /**
+ * Tests whether the environment is connected to Acquia Search.
+ */
+function acquia_search_environment_connected($environment) {
+  return $environment['service_class'] == 'AcquiaSearchService';
+}
+
+/**
  * Delete environment page access.
  */
 function acquia_search_environment_delete_access($environment) {
-  if ($environment['env_id'] == ACQUIA_SEARCH_ENVIRONMENT_ID) {
+  if (strstr($environment['env_id'], ACQUIA_SEARCH_ENVIRONMENT_ID)) {
     return FALSE;
   }
   // Fall back to the original check.
@@ -111,10 +148,11 @@ function acquia_search_environment_delete_access($environment) {
 function acquia_search_form_apachesolr_settings_alter(&$form, $form_state) {
   // Don't alter the form if there is no subscription.
   if (acquia_agent_subscription_is_active()) {
-    // Don't show delete operation for the AS environment
+    // Don't show delete operation for the Default AS environment. This means
+    // that cloned acquia search environments can be deleted
     foreach ($form['apachesolr_host_settings']['table']['#rows'] as &$row) {
-      if (isset($row['data'][2]['data']) && strpos($row['data'][2]['data'], 'search/apachesolr-env/' . ACQUIA_SEARCH_ENVIRONMENT_ID . '/delete') !== FALSE) {
-        $row['data'][2]['data'] = '';
+      if (isset($row['data']['delete']['data']) && strpos($row['data']['delete']['data'], ACQUIA_SEARCH_ENVIRONMENT_ID . '/delete') !== FALSE) {
+        $row['data']['delete']['data'] = '';
         break;
       }
     }
@@ -133,14 +171,19 @@ function acquia_search_form_apachesolr_settings_alter(&$form, $form_state) {
  * Implementation of hook_form_[form_id]_alter().
  */
 function acquia_search_form_apachesolr_environment_edit_form_alter(&$form, $form_state) {
-  // Do not allow editing of Acquia Search environment parameters
-  if (isset($form['env_id']['#default_value']) && $form['env_id']['#default_value'] == ACQUIA_SEARCH_ENVIRONMENT_ID ) {
+  // Gets environment from form, gets connection status to Acquia Search.
+  $env_id = isset($form['env_id']['#default_value']) ? $form['env_id']['#default_value'] : '';
+  $environment = ($env_id) ? apachesolr_environment_load($env_id) : FALSE;
+
+  if ($environment && acquia_search_environment_connected($environment)) {
     $form['url']['#disabled'] = TRUE;
-    $form['name']['#disabled'] = TRUE;
     $form['env_id']['#disabled'] = TRUE;
   }
-
-  $form['actions']['delete']['#access'] = FALSE;
+  // Don't let the user delete the initial environment.
+  if ($env_id == ACQUIA_SEARCH_ENVIRONMENT_ID) {
+    $form['name']['#disabled'] = TRUE;
+    $form['actions']['delete']['#access'] = FALSE;
+  }
   $form['actions']['save']['#validate'][] = 'acquia_search_environment_edit_form_validate';
 }
 
@@ -154,7 +197,6 @@ function acquia_search_environment_edit_form_validate($form, &$form_state) {
 /**
  * Implementation of hook_acquia_subscription_status().
  */
-
 function acquia_search_acquia_subscription_status($active) {
   if ($active) {
     acquia_search_enable_acquia_solr_environment();
@@ -179,7 +221,7 @@ function acquia_search_acquia_subscription_status($active) {
  *  An array containing the string to be added as the content of the
  *  Cookie header to the request and the nonce.
  */
-function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL) {
+function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL, $env_id = NULL) {
   $uri = parse_url($url);
 
   // Add a scheme - should always be https if available.
@@ -199,10 +241,10 @@ function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL) {
   $nonce = base64_encode(drupal_random_bytes(24));
 
   if ($string) {
-    $auth_header = acquia_search_authenticator($string, $nonce, $derived_key);
+    $auth_header = acquia_search_authenticator($string, $nonce, $derived_key, $env_id);
   }
   else {
-    $auth_header = acquia_search_authenticator($path . $query, $nonce, $derived_key);
+    $auth_header = acquia_search_authenticator($path . $query, $nonce, $derived_key, $env_id);
   }
   return array($auth_header, $nonce);
 }
@@ -210,12 +252,27 @@ function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL) {
 /**
  * Derive a key for the solr hmac using the information shared with acquia.com.
  */
-function _acquia_search_derived_key() {
-  static $derived_key;
-  if (!isset($derived_key)) {
-    $key = acquia_agent_settings('acquia_key');
-    $subscription = acquia_agent_settings('acquia_subscription_data');
+function _acquia_search_derived_key($env_id = NULL) {
+  static $derived_key = array();
+  if (empty($env_id)) {
+    $env_id = 0;
+  }
+  if (!isset($derived_key[$env_id])) {
+    // If we set an explicit environment, check if this needs to overridden
+    // Use the default
     $identifier = acquia_agent_settings('acquia_identifier');
+    $key = acquia_agent_settings('acquia_key');
+    // See if we need to overwrite these values
+    if ($env_id) {
+      // Load the explicit environment and a manually set search key.
+      if ($search_key = apachesolr_environment_variable_get($env_id, 'acquia_search_key')) {
+        $derived_key[$env_id] = $search_key;
+      }
+    }
+    // In any case, this is equal for all subscriptions. Also
+    // even if the search sub is different, the main subscription should be
+    // active
+    $subscription = acquia_agent_settings('acquia_subscription_data');
     // We use a salt from acquia.com in key derivation since this is a shared
     // value that we could change on the AN side if needed to force any
     // or all clients to use a new derived key.  We also use a string
@@ -223,23 +280,23 @@ function _acquia_search_derived_key() {
     // derived key to have a separate one.
     if (empty($subscription['active']) || empty($key) || empty($identifier)) {
       // Expired or invalid subscription - don't continue.
-      $derived_key = '';
+      $derived_key[$env_id] = '';
     }
-    else {
+    elseif (!isset($derived_key[$env_id])) {
       $salt = isset($subscription['derived_key_salt']) ? $subscription['derived_key_salt'] : '';
       $derivation_string = $identifier . 'solr' . $salt;
-      $derived_key =  hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
+      $derived_key[$env_id] =  hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
     }
   }
-  return $derived_key;
+  return $derived_key[$env_id];
 }
 
 /**
  * Creates an authenticator based on a data string and HMAC-SHA1.
  */
-function acquia_search_authenticator($string, $nonce, $derived_key = NULL) {
+function acquia_search_authenticator($string, $nonce, $derived_key = NULL, $env_id = NULL) {
   if (empty($derived_key)) {
-    $derived_key = _acquia_search_derived_key();
+    $derived_key = _acquia_search_derived_key($env_id);
   }
   if (empty($derived_key)) {
     // Expired or invalid subscription - don't continue.
@@ -257,9 +314,9 @@ function acquia_search_authenticator($string, $nonce, $derived_key = NULL) {
  * @return
  *  TRUE or FALSE.
  */
-function acquia_search_valid_response($hmac, $nonce, $string, $derived_key = NULL) {
+function acquia_search_valid_response($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
   if (empty($derived_key)) {
-    $derived_key = _acquia_search_derived_key();
+    $derived_key = _acquia_search_derived_key($env_id);
   }
   return $hmac == hash_hmac('sha1', $nonce . $string, $derived_key);
 }
@@ -288,7 +345,7 @@ function acquia_search_extract_hmac($headers) {
  */
 function acquia_search_apachesolr_query_alter($query) {
   // @todo - does it make sense to check $caller too?
-  if ($query->solr('getId') != ACQUIA_SEARCH_ENVIRONMENT_ID || $query->getParam('qt') || $query->getParam('defType')) {
+  if (!acquia_search_environment_connected($query->solr('getId')) || $query->getParam('qt') || $query->getParam('defType')) {
     // This is a 'mlt' query or something else custom.
     return;
   }
