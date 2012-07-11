@@ -8,8 +8,6 @@ dependencies[] = apachesolr
 dependencies[] = apachesolr_search
 dependencies[] = search
 
-files[] = acquia_search.install
-files[] = acquia_search.module
 files[] = Acquia_Search_Service.php
 
 
