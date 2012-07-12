@@ -43,7 +43,7 @@ function acquia_search_enable() {
 function acquia_search_help($path, $arg) {
   switch ($path) {
     case 'admin/config/search/apachesolr':
-      $env_id = $arg[5] ? $arg[5] : variable_get('apachesolr_default_environment');
+      $env_id = isset($arg[5]) ? $arg[5] : apachesolr_default_environment();
       $environment = apachesolr_environment_load($env_id);
       if (acquia_search_environment_connected($environment) && acquia_agent_subscription_is_active()) {
         $as_link = l(t('Acquia Search'), 'http://www.acquia.com/products-services/acquia-search');
@@ -62,7 +62,7 @@ function acquia_search_enable_acquia_solr_environment() {
   if (!$environment) {
     // Only set the default if we just created the environment.
     // This will almost always happen, unless the module was disabled via SQL.
-    variable_set('apachesolr_default_environment', ACQUIA_SEARCH_ENVIRONMENT_ID);
+    apachesolr_default_environment(ACQUIA_SEARCH_ENVIRONMENT_ID);
     $environment['conf'] = array();
   }
 
@@ -87,7 +87,7 @@ function acquia_search_disable() {
       // remove traces of acquia_search
       // unset our acquia url and set it back to default
       $environment['url'] = 'http://localhost:8983/solr';
-      if (variable_get('apachesolr_default_environment', '') == $environment['env_id']) {
+      if (apachesolr_default_environment() == $environment['env_id']) {
         // Go back to the default.
         variable_del('apachesolr_default_environment');
       }
