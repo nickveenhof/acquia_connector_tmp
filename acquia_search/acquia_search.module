@@ -122,13 +122,23 @@ function acquia_search_cron() {
   if ($version != $new_version) {
     variable_set('acquia_search_version', $new_version);
   }
+  // Add the environment if it wasn't added before
+  acquia_search_enable();
+
 }
 
 /**
  * Tests whether the environment is connected to Acquia Search.
  */
 function acquia_search_environment_connected($environment) {
-  return $environment['service_class'] == 'AcquiaSearchService';
+  if ($environment['service_class'] == 'AcquiaSearchService') {
+    return TRUE;
+  }
+  $acquia_search_key = apachesolr_environment_variable_get($environment['env_id'], 'acquia_search_key');
+  if (!empty($acquia_search_key)) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -250,7 +260,7 @@ function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL, $en
 }
 
 /**
- * Derive a key for the solr hmac using the information shared with acquia.com.
+ * Get the derived key for the solr hmac using the information shared with acquia.com.
  */
 function _acquia_search_derived_key($env_id = NULL) {
   static $derived_key = array();
@@ -284,13 +294,20 @@ function _acquia_search_derived_key($env_id = NULL) {
     }
     elseif (!isset($derived_key[$env_id])) {
       $salt = isset($subscription['derived_key_salt']) ? $subscription['derived_key_salt'] : '';
-      $derivation_string = $identifier . 'solr' . $salt;
-      $derived_key[$env_id] =  hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
+      $derived_key[$env_id] = _acquia_search_create_derived_key($salt, $identifier, $key);
     }
   }
   return $derived_key[$env_id];
 }
 
+
+/**
+ * Derive a key for the solr hmac using a salt, id and key.
+ */
+function _acquia_search_create_derived_key($salt, $id, $key) {
+  $derivation_string = $id . 'solr' . $salt;
+  return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
+}
 /**
  * Creates an authenticator based on a data string and HMAC-SHA1.
  */
