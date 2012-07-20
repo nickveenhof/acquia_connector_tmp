@@ -368,44 +368,39 @@ function acquia_spi_run_security_review() {
     // cannot easily be retrieved.
     return array();
   }
-  if (!function_exists('security_review_run')) {
-    module_load_include('inc', 'acquia_spi', 'security_review');
-  }
+  module_load_include('inc', 'acquia_spi', 'security_review');
 
   $checklist_results = array();
-  if (function_exists('security_review_get_checks')) {
-    $skips = array();
-    // Collect the checklist.
-    $checklist = security_review_get_checks();
-    // Run only specific checks.
-    $to_check = array('input_formats', 'admin_permissions', 'untrusted_php', 'private_files', 'upload_extensions');
-    foreach ($checklist as $module => $checks) {
-      foreach ($checks as $check_name => $args) {
-        if (!in_array($check_name, $to_check)) {
-          unset($checklist[$module][$check_name]);
-        }
-      }
-      if (empty($checklist[$module])) {
-        unset($checklist[$module]);
+  $skips = array();
+  // Collect the checklist.
+  $checklist = acquia_spi_security_review_get_checks();
+  // Run only specific checks.
+  $to_check = array('input_formats', 'admin_permissions', 'untrusted_php', 'private_files', 'upload_extensions');
+  foreach ($checklist as $module => $checks) {
+    foreach ($checks as $check_name => $args) {
+      if (!in_array($check_name, $to_check)) {
+        unset($checklist[$module][$check_name]);
       }
     }
-    $checklist_results = security_review_run($checklist);
-    foreach ($checklist_results as $module => $checks) {
-      foreach ($checks as $check_name => $check) {
-        // Unset data that does not need to be sent.
-        if (is_null($check['result'])) {
-          unset($checklist_results[$module][$check_name]);
-          
-        }
-        else {
-          unset($check['success']);
-          unset($check['failure']);
-          $checklist_results[$module][$check_name] = $check;
-        }
+    if (empty($checklist[$module])) {
+      unset($checklist[$module]);
+    }
+  }
+  $checklist_results = acquia_spi_security_review_run($checklist);
+  foreach ($checklist_results as $module => $checks) {
+    foreach ($checks as $check_name => $check) {
+      // Unset data that does not need to be sent.
+      if (is_null($check['result'])) {
+        unset($checklist_results[$module][$check_name]);
       }
-      if (empty($checklist_results[$module])) {
-         unset($checklist_results[$module]);
+      else {
+        unset($check['success']);
+        unset($check['failure']);
+        $checklist_results[$module][$check_name] = $check;
       }
+    }
+    if (empty($checklist_results[$module])) {
+       unset($checklist_results[$module]);
     }
   }
   return $checklist_results;
