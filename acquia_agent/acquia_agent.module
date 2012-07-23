@@ -554,7 +554,7 @@ function acquia_agent_subscription_is_active() {
     $subscription = acquia_agent_settings('acquia_subscription_data');
     // Make sure we have data at least once per day.
     if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
-      $subscription = acquia_agent_check_subscription(array('no_heartbeat' => 1));
+      $subscription = acquia_agent_get_subscription(array('no_heartbeat' => 1));
     }
     $active = !empty($subscription['active']);
   }
