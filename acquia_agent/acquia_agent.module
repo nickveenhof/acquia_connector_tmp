@@ -168,6 +168,8 @@ function acquia_agent_check_subscription($params = array()) {
           break;
       }
     }
+    // Everything checked out fine
+    variable_set('acquia_subscription_data', $subscription);
     // Check if our main subscription is active
     if ($subscription) {
       $active = acquia_agent_subscription_is_active();
