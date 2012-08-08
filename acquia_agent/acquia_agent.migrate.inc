@@ -57,6 +57,16 @@ function acquia_migrate_prepare($environment) {
   if ($local_env['error'] !== FALSE) {
     return $local_env;
   }
+  // Modify environment URL if SSL is available for use.
+  if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+    $uri = parse_url($environment['url']);
+    if (isset($uri['host'])) {
+      $environment['url'] = $uri['host'];
+    }
+    $environment['url'] .= isset($uri['port']) ? ':' . $uri['port'] : '';
+    $environment['url'] .= (isset($uri['path']) && isset($uri['host'])) ? $uri['path'] : '';
+    $environment['url'] = 'https://' . $environment['url'];
+  }
   $time = REQUEST_TIME;
   $date = gmdate('Ymd_his', $time);
   $migration = array(
