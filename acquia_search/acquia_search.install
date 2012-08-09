@@ -151,3 +151,17 @@ function acquia_search_update_7000() {
 function acquia_search_update_7001() {
   variable_del('acquia_search_url');
 }
+
+/**
+ * Remove apachesolr_service_class if it was set to AcquiaSearchService.
+ *
+ * This can be left set incorrectly when upgrading from Drupal 6 to Drupal 7.
+ */
+function acquia_search_update_7002() {
+  // No need to set apachesolr_service_class for Acquia, since each
+  // environment can have a separate class.
+  $class = variable_get('apachesolr_service_class', '');
+  if ($class && strpos($class, 'Acquia') === 0) {
+    variable_del('apachesolr_service_class');
+  }
+}
