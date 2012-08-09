@@ -131,7 +131,8 @@ function _acquia_search_get_default_facets() {
  * Implementation of hook_uninstall().
  */
 function acquia_search_uninstall() {
-  variable_del('acquia_search_url');
+  variable_del('acquia_search_path');
+  variable_del('acquia_search_base_url');
 }
 
 /**
@@ -141,4 +142,12 @@ function acquia_search_update_7000() {
   variable_del('acquia_search_host');
   variable_del('acquia_search_port');
   variable_del('acquia_search_path');
+}
+
+/**
+ * Removing acquia_search_url variable as it has been split up
+ * to acquia_search_base_url and acquia_search_path
+ */
+function acquia_search_update_7001() {
+  variable_del('acquia_search_url');
 }

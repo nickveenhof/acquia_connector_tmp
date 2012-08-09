@@ -13,16 +13,24 @@ define('ACQUIA_SEARCH_ENVIRONMENT_ID', 'acquia_search_server_1');
 function acquia_search_get_environment($conf = array()) {
   if (!empty($conf['acquia_subscription_id'])) {
     $identifier = $conf['acquia_subscription_id'];
+    $subscription = acquia_agent_get_subscription($params = array(), $identifier);
   }
   else {
     $identifier = acquia_agent_settings('acquia_identifier');
+    $subscription = acquia_agent_settings('acquia_subscription_data');
+  }
+  // Adding the subscription specific colony to the heartbeat data
+  if (!empty($subscription['heartbeat_data']['search_service_colony'])) {
+    $search_base_url = 'http://' . $subscription['heartbeat_data']['search_service_colony'];
+  }
+  else {
+    $search_base_url = variable_get('acquia_search_base_url', 'http://search.acquia.com');
   }
   $environment = array(
     // @todo - server URL may depend on region info.
-    'url' => variable_get('acquia_search_url', 'http://search.acquia.com/solr/'. $identifier),
+    'url' => $search_base_url . variable_get('acquia_search_path', '/solr/'. $identifier),
     'service_class' => 'AcquiaSearchService',
   );
-
   return $environment;
 }
 
@@ -65,8 +73,11 @@ function acquia_search_enable_acquia_solr_environment() {
     apachesolr_default_environment(ACQUIA_SEARCH_ENVIRONMENT_ID);
     $environment['conf'] = array();
   }
-
-  $environment = array_merge(acquia_search_get_environment(), $environment);
+  $acquia_environment = acquia_search_get_environment();
+  // Override default values
+  foreach($acquia_environment as $key => $value) {
+    $environment[$key] = $value;
+  }
   $environment['env_id'] = ACQUIA_SEARCH_ENVIRONMENT_ID;
   $environment['name'] = t('Acquia Search');
   apachesolr_environment_save($environment);
