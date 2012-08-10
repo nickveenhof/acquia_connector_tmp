@@ -864,7 +864,9 @@ function acquia_spi_get_platform_mysql_data() {
     return $ret;
   }
   foreach ($result as $record) {
-
+    if (!isset($record->variable_name)) {
+      continue;
+    }
     switch ($record->variable_name) {
       case 'Table_locks_waited':
         $ret['Table_locks_waited'] = $record->value;
