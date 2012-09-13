@@ -175,7 +175,7 @@ function acquia_agent_check_subscription($params = array()) {
       $active = acquia_agent_subscription_is_active();
     }
   }
-  module_invoke_all('acquia_subscription_status', $active);
+  module_invoke_all('acquia_subscription_status', $active, $subscription);
   return $subscription;
 }
 

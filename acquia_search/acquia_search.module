@@ -234,12 +234,19 @@ function acquia_search_environment_edit_form_validate($form, &$form_state) {
 /**
  * Implementation of hook_acquia_subscription_status().
  */
-function acquia_search_acquia_subscription_status($active) {
+function acquia_search_acquia_subscription_status($active, $subscription = FALSE) {
   if ($active) {
     acquia_search_enable_acquia_solr_environment();
   }
   else {
-    acquia_search_disable();
+    if (is_int($subscription)) {
+      switch ($subscription) {
+        case SUBSCRIPTION_NOT_FOUND:
+        case SUBSCRIPTION_EXPIRED:
+          acquia_search_disable();
+          break;
+      }
+    }
   }
 }
 
