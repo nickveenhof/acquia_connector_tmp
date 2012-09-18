@@ -97,9 +97,6 @@ function acquia_search_enable_acquia_solr_environment() {
   $environment['env_id'] = ACQUIA_SEARCH_ENVIRONMENT_ID;
   $environment['name'] = t('Acquia Search');
   apachesolr_environment_save($environment);
-  // Set the derived key and make sure we take it directly from the
-  // subscription data
-  acquia_search_derived_key_salt($refresh = TRUE);
 }
 
 /**
@@ -127,8 +124,6 @@ function acquia_search_disable() {
       apachesolr_environment_save($environment);
     }
   }
-  // Remove the derived key salt.
-  // See acquia_search_enable_acquia_solr_environment() for explanation
   variable_del('acquia_search_derived_key_salt');
 }
 
@@ -240,6 +235,9 @@ function acquia_search_environment_edit_form_validate($form, &$form_state) {
 function acquia_search_acquia_subscription_status($active, $subscription = FALSE) {
   if ($active) {
     acquia_search_enable_acquia_solr_environment();
+    // Refresh the salt with the subscription data returned by the heartbeat
+    // since it can change periodically.
+    variable_set('acquia_search_derived_key_salt', $subscription['derived_key_salt']);
   }
   else {
     if (is_int($subscription)) {
@@ -296,14 +294,30 @@ function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL, $en
   return array($auth_header, $nonce);
 }
 
-function acquia_search_derived_key_salt($refresh = FALSE) {
+/**
+ * Returns the subscription's salt used to generate the derived key.
+ *
+ * The salt is stored in a system variable so that this module can continue
+ * connecting to Acquia Search even when the subscription data is not available.
+ * The most common reason for subscription data being unavailable is a failed
+ * heartbeat connection to rpc.acquia.com.
+ *
+ * Acquia Connector versions <= 7.x-2.7 pulled the derived key salt directly
+ * from the subscription data. In order to allow for seamless upgrades, this
+ * function checks whether the system variable exists and sets it with the data
+ * in the subscription if it doesn't.
+ *
+ * @return string
+ *   The derived key salt.
+ *
+ * @see http://drupal.org/node/1784114
+ */
+function acquia_search_derived_key_salt() {
   $salt = variable_get('acquia_search_derived_key_salt', '');
-  if ($refresh || empty($salt)) {
-    // Store the derived key salt so that we can continue connecting to Acquia
-    // Search even if the subscription data is not available.
-    // @see http://drupal.org/node/1784114
+  if (!$salt) {
+    // If the variable doesn't exist, set it using the subscription data.
     $subscription = acquia_agent_settings('acquia_subscription_data');
-    if ($subscription && isset($subscription['derived_key_salt'])) {
+    if (isset($subscription['derived_key_salt'])) {
       variable_set('acquia_search_derived_key_salt', $subscription['derived_key_salt']);
       $salt = $subscription['derived_key_salt'];
     }
