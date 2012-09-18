@@ -141,10 +141,10 @@ function acquia_search_disable() {
  * Implementation of hook_menu_alter().
  */
 function acquia_search_menu_alter(&$menu) {
-  $delete_page = 'admin/config/search/apachesolr-env/%apachesolr_environment/delete';
+  $delete_page = 'admin/config/search/apachesolr/settings/%apachesolr_environment/delete';
   if (isset($menu[$delete_page])) {
     $menu[$delete_page]['access callback'] = 'acquia_search_environment_delete_access';
-    $menu[$delete_page]['access arguments'] = array(4);
+    $menu[$delete_page]['access arguments'] = array(5);
   }
 }
 
