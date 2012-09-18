@@ -20,6 +20,7 @@ class AcquiaSearchTest extends DrupalTestCase {
   function testHMAC() {
     $this->DrupalVariableSet('acquia_identifier', 'valid_identifier');
     $this->DrupalVariableSet('acquia_key', 'valid_key');
+    $this->DrupalVariableSet('acquia_search_derived_key_salt', 'valid_salt');
     $this->DrupalVariableSet('acquia_subscription_data', array('active' => TRUE));
 
     $key = $this->randomName();

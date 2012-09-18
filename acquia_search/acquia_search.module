@@ -54,11 +54,11 @@ function acquia_search_get_environment($conf = array()) {
  * Implementation of hook_enable().
  */
 function acquia_search_enable() {
-  if (acquia_agent_subscription_is_active()) {
-    acquia_search_enable_acquia_solr_environment();
-    // Send a heartbeat so the Acquia Network knows the module is enabled.
-    acquia_agent_check_subscription();
-  }
+  // Send a heartbeat so the Acquia Network knows the module is enabled.
+  // This causes an invocation of hook_acquia_subscription_status() which is
+  // implemented in this module to set up the environment.
+  _acquia_search_set_version();
+  acquia_agent_check_subscription();
 }
 
 /**
@@ -97,6 +97,9 @@ function acquia_search_enable_acquia_solr_environment() {
   $environment['env_id'] = ACQUIA_SEARCH_ENVIRONMENT_ID;
   $environment['name'] = t('Acquia Search');
   apachesolr_environment_save($environment);
+  // Set the derived key and make sure we take it directly from the
+  // subscription data
+  acquia_search_derived_key_salt($refresh = TRUE);
 }
 
 /**
@@ -124,6 +127,9 @@ function acquia_search_disable() {
       apachesolr_environment_save($environment);
     }
   }
+  // Remove the derived key salt.
+  // See acquia_search_enable_acquia_solr_environment() for explanation
+  variable_del('acquia_search_derived_key_salt');
 }
 
 /**
@@ -138,10 +144,10 @@ function acquia_search_menu_alter(&$menu) {
 }
 
 /**
- * Implementation of hook_cron().
+ * Helper function to cache the Acquia Search version.
  */
-function acquia_search_cron() {
-  // Cache the cersion in a variable so we can send it at not extra cost.
+function _acquia_search_set_version() {
+  // Cache the version in a variable so we can send it at not extra cost.
   $version = variable_get('acquia_search_version', '7.x');
   $info = system_get_info('module', 'acquia_search');
   // Send the version, or at least the core compatibility as a fallback.
@@ -149,9 +155,6 @@ function acquia_search_cron() {
   if ($version != $new_version) {
     variable_set('acquia_search_version', $new_version);
   }
-  // Add the environment if it wasn't added before
-  acquia_search_enable();
-
 }
 
 /**
@@ -293,6 +296,21 @@ function acquia_search_auth_cookie(&$url, $string = '', $derived_key = NULL, $en
   return array($auth_header, $nonce);
 }
 
+function acquia_search_derived_key_salt($refresh = FALSE) {
+  $salt = variable_get('acquia_search_derived_key_salt', '');
+  if ($refresh || empty($salt)) {
+    // Store the derived key salt so that we can continue connecting to Acquia
+    // Search even if the subscription data is not available.
+    // @see http://drupal.org/node/1784114
+    $subscription = acquia_agent_settings('acquia_subscription_data');
+    if ($subscription && isset($subscription['derived_key_salt'])) {
+      variable_set('acquia_search_derived_key_salt', $subscription['derived_key_salt']);
+      $salt = $subscription['derived_key_salt'];
+    }
+  }
+  return $salt;
+}
+
 /**
  * Get the derived key for the solr hmac using the information shared with acquia.com.
  */
@@ -316,19 +334,18 @@ function _acquia_search_derived_key($env_id = NULL) {
     // In any case, this is equal for all subscriptions. Also
     // even if the search sub is different, the main subscription should be
     // active
-    $subscription = acquia_agent_settings('acquia_subscription_data');
+    $derived_key_salt = acquia_search_derived_key_salt();
     // We use a salt from acquia.com in key derivation since this is a shared
     // value that we could change on the AN side if needed to force any
     // or all clients to use a new derived key.  We also use a string
     // ('solr') specific to the service, since we want each service using a
     // derived key to have a separate one.
-    if (empty($subscription['active']) || empty($key) || empty($identifier)) {
+    if (empty($derived_key_salt) || empty($key) || empty($identifier)) {
       // Expired or invalid subscription - don't continue.
       $derived_key[$env_id] = '';
     }
     elseif (!isset($derived_key[$env_id])) {
-      $salt = isset($subscription['derived_key_salt']) ? $subscription['derived_key_salt'] : '';
-      $derived_key[$env_id] = _acquia_search_create_derived_key($salt, $identifier, $key);
+      $derived_key[$env_id] = _acquia_search_create_derived_key($derived_key_salt, $identifier, $key);
     }
   }
   return $derived_key[$env_id];
