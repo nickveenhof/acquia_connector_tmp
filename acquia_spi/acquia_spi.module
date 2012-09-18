@@ -5,6 +5,8 @@
  *   Send site profile information (NSPI) and system data to Acquia Network.
  */
 
+define('ACQUIA_SPI_DATA_VERSION', '2.0');
+
 /**
  * Implementation of hook_help()
  */
@@ -294,7 +296,8 @@ function acquia_spi_get() {
 
   // Default values return
   $spi = array(
-    'drupal_key'     => drupal_get_private_key(),
+    'spi_data_version' => ACQUIA_SPI_DATA_VERSION,
+    'site_key'        => sha1(drupal_get_private_key()),
     'modules'        => acquia_spi_get_modules(),
     'platform'       => acquia_spi_get_platform(),
     'quantum'        => acquia_spi_get_quantum(),
