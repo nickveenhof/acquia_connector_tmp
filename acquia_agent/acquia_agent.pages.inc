@@ -497,7 +497,7 @@ function acquia_agent_settings_form($form, &$form_state, $banner) {
   $subscription = acquia_agent_settings('acquia_subscription_name');
 
   if (empty($_POST)) {
-    // Check our connection to the Acquia Network and validity of the crenditials.
+    // Check our connection to the Acquia Network and validity of the credentials.
     $acquia_network_address = acquia_agent_settings('acquia_network_address');
     if (!acquia_agent_valid_credentials($identifier, $key, $acquia_network_address)) {
       $error_message = acquia_agent_connection_error_message();

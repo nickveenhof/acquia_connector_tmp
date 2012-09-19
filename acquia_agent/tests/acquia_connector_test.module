@@ -81,7 +81,12 @@ function acquia_connector_test_xmlrpc() {
 }
 
 function acquia_connector_test_validate($data) {
-  // return bool
+  $result = acquia_connector_test_validate_authenticator($data);
+  if (empty($result->is_error)) {
+    return TRUE;
+  }
+  unset($result->secret);
+  xmlrpc_server_error($result);
 }
 
 function acquia_connector_test_subscription($data) {
@@ -189,7 +194,7 @@ function acquia_connector_test_subscription_name($data) {
     $result = array();
     $result['is_error'] = FALSE;
     $result['body']['subscription'] = array(
-      'site_name' => $data['body']['identifer'],
+      'site_name' => $data['body']['identifier'],
     );
     return $result;
   }
@@ -288,6 +293,7 @@ function acquia_connector_test_validate_authenticator($data) {
     return $result;
   }
 
+  $key = $data['authenticator']['identifier'] == ACQTEST_ID ? ACQTEST_KEY : ACQTEST_ERROR_KEY;
   $hash = _acquia_agent_hmac($key, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
   $hash_simple = _acquia_agent_hmac($key, $data['authenticator']['time'], $data['authenticator']['nonce'], array());
 
@@ -298,25 +304,24 @@ function acquia_connector_test_validate_authenticator($data) {
     return $result;
   }
   
-  if (empty($result->is_error)) {
-    $result->is_error = FALSE;
-    $result->body['active'] = 1;
-    $result->body['href'] = 'TEST';
-    $result->body['expiration_date']['value'] = '2023-10-08T06:30:00';
-    $result->body['product'] = '';
-    $result->body['derived_key_salt'] = 'ACQTEST';
-    $result->body['update_service'] = 1;
-    $result->body['search_service_enabled'] = 1;
-    if (isset($data['body']['rpc_version'])) {
-      $result->body['rpc_version'] = $data['body']['rpc_version'];
-    }
-    $result->secret['data'] = $data;
-    $result->secret['nid'] = '91990';
-    $result->secret['node'] = 'ACQTESTSECRET';
-    $result->secret['key'] = 'ACQTESTKEY';
-    $result->authenticator = $data['authenticator'];
-    $result->authenticator['hash'] = '';
-    $result->authenticator['time'] += 1;
+  $result->is_error = FALSE;
+  $result->body['active'] = 1;
+  $result->body['href'] = 'TEST';
+  $result->body['expiration_date']['value'] = '2023-10-08T06:30:00';
+  $result->body['product'] = '';
+  $result->body['derived_key_salt'] = $data['authenticator']['identifier'] . '_KEY_SALT';
+  $result->body['update_service'] = 1;
+  $result->body['search_service_enabled'] = 1;
+  if (isset($data['body']['rpc_version'])) {
+    $result->body['rpc_version'] = $data['body']['rpc_version'];
   }
+  $result->secret['data'] = $data;
+  $result->secret['nid'] = '91990';
+  $result->secret['node'] = $data['authenticator']['identifier'] . '_NODE';
+  $result->secret['key'] = $key;
+  $result->authenticator = $data['authenticator'];
+  $result->authenticator['hash'] = '';
+  $result->authenticator['time'] += 1;
+
   return $result;
 }
