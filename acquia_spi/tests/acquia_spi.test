@@ -1,0 +1,133 @@
+<?php
+
+/**
+* Tests the functionality of the Acquia SPI module.
+*/
+class AcquiaSPITestCase extends DrupalWebTestCase {
+  protected $privileged_user;
+  protected $setup_path;
+  protected $credentials_path;
+  protected $settings_path;
+  protected $status_report_url;
+
+  public static function getInfo() {
+    // Note: getInfo() strings are not translated with t().
+    return array(
+      'name' => 'Acquia SPI',
+      'description' => 'Test sending Acquia SPI data.',
+      'group' => 'Acquia',
+    );
+  }
+
+  public function setUp() {
+    global $base_url;
+    // Enable any modules required for the test
+    parent::setUp('acquia_agent', 'acquia_spi', 'acquia_connector_test');
+    // Create and log in our privileged user.
+    $this->privileged_user = $this->drupalCreateUser(array(
+      'administer site configuration',
+      'access administration pages',
+    ));
+    $this->drupalLogin($this->privileged_user);
+    // Setup variables.
+    $this->credentials_path = 'admin/config/system/acquia-agent/credentials';
+    $this->settings_path = 'admin/config/system/acquia-agent';
+    $this->status_report_url = 'admin/reports/status';
+    variable_set('acquia_network_address', $base_url);
+    variable_set('acquia_spi_server', $base_url);
+    variable_set('acquia_spi_ssl_override', TRUE);
+  }
+
+  /**
+   * Helper function for storing UI strings.
+   */
+  private function acquiaSPIStrings($id) {
+    switch ($id) {
+      case 'spi-status-text':
+        return 'SPI data will be sent once every 30 minutes once cron is called';
+      case 'spi-not-sent';
+        return 'SPI data has not been sent';
+      case 'spi-send-text';
+        return 'manually send SPI data';
+      case 'spi-data-sent':
+        return 'SPI data sent';
+      case 'spi-data-sent-error':
+        return 'There was an error sending SPI data';
+    }
+  }
+
+  public function testAcquiaSPISendData() {
+    $this->drupalGet($this->status_report_url);
+    $this->assertNoText($this->acquiaSPIStrings('spi-status-text'), 'SPI send option does not exist when site is not connected');
+    // Connect site on key and id that will error.
+    $edit_fields = array(
+      'acquia_identifier' => ACQTEST_ERROR_ID,
+      'acquia_key' => ACQTEST_ERROR_KEY,
+    );
+    $submit_button = 'Connect';
+    $this->drupalPost($this->credentials_path, $edit_fields, $submit_button);
+    // Send SPI data.
+    $this->drupalGet($this->status_report_url);
+    $this->assertText($this->acquiaSPIStrings('spi-status-text'), 'SPI explanation text exists');
+    $this->assertText($this->acquiaSPIStrings('spi-not-sent'), 'SPI data has not been sent');
+    $this->clickLink($this->acquiaSPIStrings('spi-send-text'));
+    $this->assertNoText($this->acquiaSPIStrings('spi-data-sent'), 'SPI data was not sent');
+    $this->assertText($this->acquiaSPIStrings('spi-data-sent-error'), 'Page says there was an error sending data');
+
+    // Connect site on non-error key and id.
+    $this->drupalGet($this->credentials_path);
+    $edit_fields = array(
+      'acquia_identifier' => ACQTEST_ID,
+      'acquia_key' => ACQTEST_KEY,
+    );
+    $this->drupalPost($this->credentials_path, $edit_fields, $submit_button);
+    // Send SPI data.
+    $this->drupalGet($this->status_report_url);
+    $this->clickLink($this->acquiaSPIStrings('spi-send-text'));
+    $this->assertText($this->acquiaSPIStrings('spi-data-sent'), 'SPI data was sent');
+    $this->assertNoText($this->acquiaSPIStrings('spi-not-sent'), 'SPI does not say "data has not been sent"');
+  }
+
+  public function testAcquiaSPIGet() {
+    $spi_default_keys = array(
+      'spi_data_version',
+      'site_key',
+      'modules',
+      'platform',
+      'quantum',
+      'system_status',
+      'failed_logins',
+      '404s',
+      'watchdog_size',
+      'watchdog_data',
+      'last_nodes',
+      'last_users',
+      'extra_files',
+      'ssl_login',
+      'file_hashes',
+      'hashes_md5',
+      'hashes_sha1',
+      'fileinfo',
+      'distribution',
+      'base_version',
+      'build_data',
+      'roles',
+      'uid_0_present',
+    );
+    // Test acquia_spi_get().
+    $spi_data = acquia_spi_get();
+    $valid = is_array($spi_data);
+    $this->assertTrue($valid, 'acquia_spi_get() returns an array');
+    if ($valid) {
+      foreach ($spi_default_keys as $key) {
+        if (!array_key_exists($key, $spi_data)) {
+          $valid = FALSE;
+          break;
+        }
+      }
+      $this->assertTrue($valid, 'Array has expected keys');
+      
+      $this->assertEqual(sha1(drupal_get_private_key()), $spi_data['site_key'], 'Site key is sha1 of Drupal private key');
+    }
+  }
+}

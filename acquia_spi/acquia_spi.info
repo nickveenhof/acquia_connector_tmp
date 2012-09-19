@@ -4,3 +4,4 @@ package = Acquia Network Connector
 php = 5.0
 core = 7.x
 dependencies[] = acquia_agent
+files[] = tests/acquia_spi.test

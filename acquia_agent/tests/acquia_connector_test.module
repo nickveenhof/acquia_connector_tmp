@@ -21,6 +21,8 @@ define('ACQTEST_EMAIL', 'TEST_networkuser@example.com');
 define('ACQTEST_PASS', 'TEST_password');
 define('ACQTEST_ID', 'TEST_AcquiaConnectorTestID');
 define('ACQTEST_KEY', 'TEST_AcquiaConnectorTestKey');
+define('ACQTEST_ERROR_ID', 'TEST_AcquiaConnectorTestIDErr');
+define('ACQTEST_ERROR_KEY', 'TEST_AcquiaConnectorTestKeyErr');
 
 function acquia_connector_test_xmlrpc() {
   return array(
@@ -72,7 +74,7 @@ function acquia_connector_test_xmlrpc() {
     array(
       'acquia.nspi.update',
       'acquia_connector_test_nspi_update',
-      array('boolean', 'array'),
+      array('array', 'array'),
       t('Test incoming site profile information.')
     ),
   );
@@ -181,13 +183,13 @@ function acquia_connector_test_subscription_name($data) {
     return $result;
   }
   if (!empty($data['body']['identifier'])) {
-    if ($data['body']['identifier'] != ACQTEST_ID) {
+    if ($data['body']['identifier'] != ACQTEST_ID && $data['body']['identifier'] != ACQTEST_ERROR_ID) {
       return xmlrpc_error(ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found'));
     }
     $result = array();
     $result['is_error'] = FALSE;
     $result['body']['subscription'] = array(
-      'site_name' => ACQTEST_ID,
+      'site_name' => $data['body']['identifer'],
     );
     return $result;
   }
@@ -205,7 +207,36 @@ function acquia_connector_test_migration_complete($data) {
 }
 
 function acquia_connector_test_nspi_update($data) {
-  return TRUE;
+  $fields = array(
+    'time' => 'is_numeric',
+    'nonce' => 'is_string',
+    'hash' => 'is_string',
+  );
+  $result = acquia_connector_test_basic_authenticator($fields, $data);
+  if (!empty($result->is_error)) {
+    return $result;
+  }
+  if (!empty($data['authenticator']['identifier'])) {
+    if ($data['authenticator']['identifier'] != ACQTEST_ID && $data['authenticator']['identifier'] != ACQTEST_ERROR_ID) {
+      return xmlrpc_error(ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found'));
+    }
+    if ($data['authenticator']['identifier'] == ACQTEST_ERROR_ID) {
+      return FALSE;
+    }
+    else {
+      $spi_data = $data['body'];
+      if (!isset($spi_data['spi_data_version'])) {
+        $return_result = TRUE;
+      }
+      else {
+        $return_result = array('result' => TRUE);
+      }
+      return $return_result;
+    }
+  }
+  else {
+    return xmlrpc_error(ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments'));
+  }
 }
 
 function acquia_connector_test_basic_authenticator($fields, $data) {
