@@ -247,7 +247,10 @@ function acquia_search_acquia_subscription_status($active, $subscription = FALSE
     acquia_search_enable_acquia_solr_environment();
     // Refresh the salt with the subscription data returned by the heartbeat
     // since it can change periodically.
-    variable_set('acquia_search_derived_key_salt', $subscription['derived_key_salt']);
+    $salt = variable_get('acquia_search_derived_key_salt', '');
+    if (isset($subscription['derived_key_salt']) && $salt != $subscription['derived_key_salt']) {
+      variable_set('acquia_search_derived_key_salt', $subscription['derived_key_salt']);
+    }
   }
   else {
     if (is_int($subscription)) {
