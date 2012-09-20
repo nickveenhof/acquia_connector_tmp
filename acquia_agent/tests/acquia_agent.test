@@ -47,6 +47,7 @@ class AcquiaAgentTestCase extends DrupalWebTestCase {
     variable_set('acquia_network_address', $base_url);
     variable_set('acquia_spi_server', $base_url);
     variable_set('acquia_spi_ssl_override', TRUE);
+    variable_set('acquia_agent_verify_peer', FALSE);
   }
 
   /**

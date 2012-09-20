@@ -23,6 +23,9 @@ define('ACQTEST_ID', 'TEST_AcquiaConnectorTestID');
 define('ACQTEST_KEY', 'TEST_AcquiaConnectorTestKey');
 define('ACQTEST_ERROR_ID', 'TEST_AcquiaConnectorTestIDErr');
 define('ACQTEST_ERROR_KEY', 'TEST_AcquiaConnectorTestKeyErr');
+if (!defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+  define('ACQUIA_DEVELOPMENT_NOSSL', TRUE);
+}
 
 function acquia_connector_test_xmlrpc() {
   return array(
