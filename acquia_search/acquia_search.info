@@ -9,5 +9,4 @@ dependencies[] = apachesolr_search
 dependencies[] = search
 
 files[] = Acquia_Search_Service.php
-
-
+files[] = tests/acquia_search.test
