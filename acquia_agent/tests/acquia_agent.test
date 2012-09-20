@@ -155,6 +155,16 @@ class AquiaAgentUnitTestCase extends DrupalUnitTestCase {
     );
   }
 
+  /**
+   * Overrides DrupalUnitTestCase::setUp().
+   *
+   * Includes the required files in the Acquia Agent module.
+   */
+  public function setUp() {
+    parent::setUp();
+    require_once dirname(dirname(__FILE__)) . '/acquia_agent.module';
+  }
+
   public function testAuthenticators() {
     $identifier = $this->randomName();
     $key = $this->randomName();
