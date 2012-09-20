@@ -126,8 +126,37 @@ class AcquiaSPITestCase extends DrupalWebTestCase {
         }
       }
       $this->assertTrue($valid, 'Array has expected keys');
-      
       $this->assertEqual(sha1(drupal_get_private_key()), $spi_data['site_key'], 'Site key is sha1 of Drupal private key');
+      $this->assertTrue(!empty($spi_data['spi_data_version']), 'SPI data version is set');
     }
+  }
+
+  public function testAcquiaSPIUpdateResponse() {
+    $this->drupalGet($this->credentials_path);
+    $edit_fields = array(
+      'acquia_identifier' => ACQTEST_ID,
+      'acquia_key' => ACQTEST_KEY,
+    );
+    $submit_button = 'Connect';
+    $this->drupalPost($this->credentials_path, $edit_fields, $submit_button);
+    $nspi_server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
+    $spi_data = acquia_spi_get();
+    // Check that result is an array.
+    $result = acquia_agent_call('acquia.nspi.update', $spi_data, NULL, NULL, $nspi_server);
+    $this->assertTrue(is_array($result['result']), 'SPI update result is an array');
+
+    // Check that result is a bool when spi_data_version is not sent.
+    $spi_data_version = $spi_data['spi_data_version'];
+    unset($spi_data['spi_data_version']);
+    $result = acquia_agent_call('acquia.nspi.update', $spi_data, NULL, NULL, $nspi_server);
+    $this->assertTrue(is_bool($result['result']), 'SPI update result is a boolean when not sending "spi_data_version"');
+
+    $spi_data['spi_data_version'] = $spi_data_version;
+    // Trigger a SPI definition update response.
+    $spi_data['spi_def_update'] = TRUE;
+    $result = acquia_agent_call('acquia.nspi.update', $spi_data, NULL, NULL, $nspi_server);
+    $result = $result['result'];
+    $this->assertTrue(!empty($result['result']), 'SPI result array has expected "result" key.');
+    $this->assertTrue(!empty($result['update_spi_definition']), 'SPI result array has expected "update_spi_definition" key.');
   }
 }

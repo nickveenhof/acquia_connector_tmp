@@ -235,6 +235,9 @@ function acquia_connector_test_nspi_update($data) {
       }
       else {
         $return_result = array('result' => TRUE);
+        if (isset($spi_data['spi_def_update'])) {
+          $return_result['update_spi_definition'] = TRUE;
+        }
       }
       return $return_result;
     }

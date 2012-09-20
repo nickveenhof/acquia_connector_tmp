@@ -87,7 +87,7 @@ function acquia_spi_boot() {
 function _acquia_spi_send_access() {
   $acquia_key = acquia_agent_settings('acquia_key');
   if (!empty($acquia_key) && isset($_GET['key'])) {
-    $key = md5($acquia_key . '-spi-send-' . drupal_get_private_key());
+    $key = sha1(drupal_get_private_key());
     if ($key == $_GET['key']) {
       return TRUE;
     }
@@ -219,7 +219,7 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
     '#title' => t('Send via Drupal cron'),
     '#default_value' => $use_cron,
   );
-  $key = md5(acquia_agent_settings('acquia_key') . '-spi-send-' . drupal_get_private_key());
+  $key = sha1(drupal_get_private_key());
   $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
   $form['connection']['spi_use_cron_url'] = array(
     '#type' => 'container',
