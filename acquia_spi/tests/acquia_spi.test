@@ -54,6 +54,8 @@ class AcquiaSPITestCase extends DrupalWebTestCase {
         return 'SPI data sent';
       case 'spi-data-sent-error':
         return 'There was an error sending SPI data';
+      case 'spi-new-def':
+        return 'There are new checks that will be performed on your site by the Acquia Network Connector';
     }
   }
 
@@ -129,6 +131,10 @@ class AcquiaSPITestCase extends DrupalWebTestCase {
       $this->assertTrue($valid, 'Array has expected keys');
       $this->assertEqual(sha1(drupal_get_private_key()), $spi_data['site_key'], 'Site key is sha1 of Drupal private key');
       $this->assertTrue(!empty($spi_data['spi_data_version']), 'SPI data version is set');
+      $vars = drupal_json_decode($spi_data['system_vars']);
+      $this->assertTrue(is_array($vars), 'SPI data system_vars is a JSON-encoded array');
+      $this->pass(var_export($vars, TRUE));
+      $this->assertTrue(isset($vars['user_admin_role']), 'user_admin_role included in SPI data');
     }
   }
 
@@ -159,5 +165,25 @@ class AcquiaSPITestCase extends DrupalWebTestCase {
     $result = $result['result'];
     $this->assertTrue(!empty($result['result']), 'SPI result array has expected "result" key.');
     $this->assertTrue(!empty($result['update_spi_definition']), 'SPI result array has expected "update_spi_definition" key.');
+    $def_timestamp = variable_get('acquia_spi_def_timestamp', 0);
+    $this->assertEqual($def_timestamp, 0, 'SPI definition has not been called before');
+    $def_vars = variable_get('acquia_spi_def_vars', array());
+    $this->assertTrue(empty($def_vars), 'SPI definition variables is empty');
+    $waived_vars = variable_get('acquia_spi_def_waived_vars', array());
+    $this->assertTrue(empty($waived_vars), 'SPI definition waived variables is empty');
+    if (!empty($result['update_spi_definition']) && function_exists('acquia_spi_update_definition')) {
+      $update_res = acquia_spi_update_definition();
+      $this->assertTrue($update_res, 'Update definition call returned true');
+      $def_timestamp = variable_get('acquia_spi_def_timestamp', 0);
+      $this->assertNotEqual($def_timestamp, 0, 'SPI definition timestamp set');
+      $def_vars = variable_get('acquia_spi_def_vars', array());
+      $this->assertTrue(!empty($def_vars), 'SPI definition variable set');
+      variable_set('acquia_spi_def_waived_vars', array('user_admin_role'));
+      // Test that new variables are in SPI data.
+      $spi_data = acquia_spi_get();
+      $vars = drupal_json_decode($spi_data['system_vars']);
+      $this->assertTrue(!empty($vars['file_temporary_path']), 'New variables included in SPI data');
+      $this->assertTrue(!isset($vars['user_admin_role']), 'user_admin_role not included in SPI data');
+    }
   }
 }

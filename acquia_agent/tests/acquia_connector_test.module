@@ -83,6 +83,25 @@ function acquia_connector_test_xmlrpc() {
   );
 }
 
+function acquia_connector_test_menu() {
+  $items['spi_def/get/%'] = array(
+    'page callback' => 'acquia_connector_test_spi_definition',
+    'page arguments' => array(2),
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+function acquia_connector_test_spi_definition($arg_version) {
+  $vars = array('file_temporary_path' => array('optional' => FALSE, 'description' => 'file_temporary_path'), 'page_compression' => array('optional' => TRUE, 'description' => 'page_compression'), 'user_admin_role' => array('optional' => TRUE, 'description' => 'user_admin_role'));
+  $data = array(
+    'drupal_version' => $arg_version,
+    'timestamp' => (string) (REQUEST_TIME + 9),
+    'acquia_spi_variables' => $vars,
+  );
+  drupal_json_output($data);
+}
+
 function acquia_connector_test_validate($data) {
   $result = acquia_connector_test_validate_authenticator($data);
   if (empty($result->is_error)) {
