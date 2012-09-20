@@ -304,7 +304,7 @@ function acquia_spi_update_definition() {
   }
 
   // NSPI response is in expected format.
-  if ($response_data['timestamp'] > variable_get('acquia_spi_def_timestamp', 0)) {
+  if ((int) $response_data['timestamp'] > (int) variable_get('acquia_spi_def_timestamp', 0)) {
     // Compare stored variable names to incoming and report on update.
     $old_vars = variable_get('acquia_spi_def_vars', array());
     $new_vars = $response_data['acquia_spi_variables'];
