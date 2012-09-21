@@ -84,12 +84,12 @@ function acquia_search_enable_acquia_solr_environment() {
   // Creates the new environment
   $environment = apachesolr_environment_load(ACQUIA_SEARCH_ENVIRONMENT_ID);
   if (!$environment) {
-    // Only set the default if we just created the environment.
-    // This will almost always happen, unless the module was disabled via SQL.
-    variable_set('apachesolr_default_environment', ACQUIA_SEARCH_ENVIRONMENT_ID);
-    // Make sure apachesolr search is the default search module.
-    variable_set('search_default_module', 'apachesolr_search');
     $environment['conf'] = array();
+
+    // Copy the bundles from the previous default environment
+    $orig_env_id = apachesolr_default_environment();
+    $orig_env = apachesolr_environment_load($orig_env_id);
+    $environment['index_bundles'] = $orig_env['index_bundles'];
 
     // Also make sure that the default search page has Acquia Search as its
     // default environment
@@ -99,6 +99,12 @@ function acquia_search_enable_acquia_solr_environment() {
       $default_search_page['env_id'] = ACQUIA_SEARCH_ENVIRONMENT_ID;
       apachesolr_search_page_save($default_search_page);
     }
+
+    // Only set the default if we just created the environment.
+    // This will almost always happen, unless the module was disabled via SQL.
+    variable_set('apachesolr_default_environment', ACQUIA_SEARCH_ENVIRONMENT_ID);
+    // Make sure apachesolr search is the default search module.
+    variable_set('search_default_module', 'apachesolr_search');
   }
 
   $acquia_environment = acquia_search_get_environment();
@@ -117,8 +123,13 @@ function acquia_search_enable_acquia_solr_environment() {
  * Helper function to clear variables we may have set.
  */
 function acquia_search_disable() {
-  // Remove the environment we added.
+  // Remove the base Acquia Search environment we added.
   apachesolr_environment_delete(ACQUIA_SEARCH_ENVIRONMENT_ID);
+  // Revert the default search environment
+  if (apachesolr_default_environment() == ACQUIA_SEARCH_ENVIRONMENT_ID) {
+    acquia_search_disable_revert_defaults();
+  }
+
   // Unset all other acquia search environments
   $environments = apachesolr_load_all_environments();
   foreach ($environments as $environment) {
@@ -127,8 +138,7 @@ function acquia_search_disable() {
       // unset our acquia url and set it back to default
       $environment['url'] = 'http://localhost:8983/solr';
       if (apachesolr_default_environment() == $environment['env_id']) {
-        // Go back to the default.
-        variable_del('apachesolr_default_environment');
+        acquia_search_disable_revert_defaults();
       }
       // Emptying the service class, unsetting it would not work, since it would
       // not overwrite the old value
@@ -137,6 +147,34 @@ function acquia_search_disable() {
     }
   }
   variable_del('acquia_search_derived_key_salt');
+}
+
+/**
+ * Helper function to revert the default environment after disable
+ */
+function acquia_search_disable_revert_defaults() {
+  // if the environment does not exists, it will return FALSE
+  // Clear all caches to be sure.
+  cache_clear_all('apachesolr:environments', 'cache_apachesolr');
+  drupal_static_reset('apachesolr_load_all_environments');
+  drupal_static_reset('apachesolr_get_solr');
+  if (module_exists('ctools')) {
+    ctools_include('export');
+    ctools_export_load_object_reset('apachesolr_environment');
+  }
+  if (!apachesolr_environment_load('solr')) {
+    module_load_include('inc', 'apachesolr', 'apachesolr.index');
+    // Same statements as during the apachesolr install process
+    // @todo make this less duplicate
+    db_insert('apachesolr_environment')->fields(array('env_id' => 'solr', 'name' => 'localhost server', 'url' => 'http://localhost:8983/solr'))->execute();
+    // Initialize the entities to index. We enable all node types by default
+    $info = entity_get_info('node');
+    $bundles = array_keys($info['bundles']);
+    $env_id = apachesolr_default_environment();
+    apachesolr_index_set_bundles($env_id, 'node', $bundles);
+  }
+  // Go back to the default variable which is 'solr'.
+  variable_del('apachesolr_default_environment');
 }
 
 /**
