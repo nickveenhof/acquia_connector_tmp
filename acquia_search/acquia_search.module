@@ -123,13 +123,12 @@ function acquia_search_enable_acquia_solr_environment() {
  * Helper function to clear variables we may have set.
  */
 function acquia_search_disable() {
-  // Remove the base Acquia Search environment we added.
-  apachesolr_environment_delete(ACQUIA_SEARCH_ENVIRONMENT_ID);
   // Revert the default search environment
   if (apachesolr_default_environment() == ACQUIA_SEARCH_ENVIRONMENT_ID) {
     acquia_search_disable_revert_defaults();
   }
-
+  // Remove the base Acquia Search environment we added.
+  apachesolr_environment_delete(ACQUIA_SEARCH_ENVIRONMENT_ID);
   // Unset all other acquia search environments
   $environments = apachesolr_load_all_environments();
   foreach ($environments as $environment) {
@@ -137,9 +136,6 @@ function acquia_search_disable() {
       // remove traces of acquia_search
       // unset our acquia url and set it back to default
       $environment['url'] = 'http://localhost:8983/solr';
-      if (apachesolr_default_environment() == $environment['env_id']) {
-        acquia_search_disable_revert_defaults();
-      }
       // Emptying the service class, unsetting it would not work, since it would
       // not overwrite the old value
       $environment['service_class'] = '';
@@ -170,8 +166,7 @@ function acquia_search_disable_revert_defaults() {
     // Initialize the entities to index. We enable all node types by default
     $info = entity_get_info('node');
     $bundles = array_keys($info['bundles']);
-    $env_id = apachesolr_default_environment();
-    apachesolr_index_set_bundles($env_id, 'node', $bundles);
+    apachesolr_index_set_bundles('solr', 'node', $bundles);
   }
   // Go back to the default variable which is 'solr'.
   variable_del('apachesolr_default_environment');
