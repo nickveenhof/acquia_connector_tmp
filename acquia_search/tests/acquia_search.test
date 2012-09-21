@@ -132,7 +132,7 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
 
   /**
    * Creates an authenticated user that has access to search content.
-   * 
+   *
    * @return stdClass
    *   The user object of the authenticated user.
    *
