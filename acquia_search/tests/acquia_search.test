@@ -38,6 +38,7 @@ class AcquiaSearchUnitTestCase extends DrupalUnitTestCase {
     // Create a derived key from these values
     $this->derivedKey = _acquia_search_create_derived_key($this->salt, $this->id, $this->key);
   }
+
   /**
    * Tests derived key generation.
    */
@@ -57,7 +58,6 @@ class AcquiaSearchUnitTestCase extends DrupalUnitTestCase {
    * Tests HMAC generation.
    */
   public function testHMACCookie() {
-
     // Generate the expected hash.
     $time = REQUEST_TIME;
     $nonce = $this->randomName(32);
@@ -79,7 +79,6 @@ class AcquiaSearchUnitTestCase extends DrupalUnitTestCase {
  * Tests the functionality of the Acquia Search module.
  */
 class AcquiaSearchWebTestCase extends DrupalWebTestCase {
-
   protected $id;
   protected $key;
   protected $salt;
@@ -94,7 +93,7 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
     );
   }
 
-/**
+  /**
    * Overrides DrupalTestCase::setUp().
    */
   public function setUp() {
@@ -127,6 +126,21 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
       'search content',
       'administer nodes',
       'administer search',
+    );
+    return $this->drupalCreateUser($permissions);
+  }
+
+  /**
+   * Creates an authenticated user that has access to search content.
+   * 
+   * @return stdClass
+   *   The user object of the authenticated user.
+   *
+   * @see DrupalWebTestCase::drupalCreateUser()
+   */
+  public function createAuthenticatedUser() {
+    $permissions = array(
+      'search content',
     );
     return $this->drupalCreateUser($permissions);
   }
@@ -212,5 +226,32 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
 
     $this->drupalGet('admin/config/search/apachesolr/settings/' . ACQUIA_SEARCH_ENVIRONMENT_ID . '/delete');
     $this->assertResponse(403, t('The Acquia Search environment cannot be deleted via the UI.'));
+  }
+
+  /**
+   * Tests that Apache Solr search is set as the default search when the Acquia
+   * Search environment is enabled.
+   *
+   * Tests executed:
+   * - The "search_default_module" variable is set to "apachesolr_search".
+   * - Executing a search via the core search block redirects to search/site.
+   */
+  public function testDefaultSearch() {
+    // Enable the Acquia Search environment
+    $this->enableEnvironment();
+    // Clear the static caches
+    $this->clearStaticCache();
+
+    // Test that the default search variable is set to the expected value.
+    $default_search = variable_get('search_default_module', 'node');
+    $this->assertEqual('apachesolr_search', $default_search, t('The default search is set to Apache Solr search when the Acquia Search environment is created.'), 'Acquia Search');
+
+    // Visit the homepage and execute a search through the core search block. It
+    // should redirect to "search/site/test" if working properly.
+    $authenticated_user = $this->createAuthenticatedUser();
+    $this->drupalLogin($authenticated_user);
+    $edit = array('search_block_form' => 'test');
+    $this->drupalPost('', $edit, t('Search'));
+    $this->assertUrl('search/site/test', array(), t('The core search block redirects to the Apache Solr search page.'), 'Acquia Search');
   }
 }

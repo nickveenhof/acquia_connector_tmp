@@ -87,6 +87,8 @@ function acquia_search_enable_acquia_solr_environment() {
     // Only set the default if we just created the environment.
     // This will almost always happen, unless the module was disabled via SQL.
     variable_set('apachesolr_default_environment', ACQUIA_SEARCH_ENVIRONMENT_ID);
+    // Make sure apachesolr search is the default search module.
+    variable_set('search_default_module', 'apachesolr_search');
     $environment['conf'] = array();
 
     // Also make sure that the default search page has Acquia Search as its
