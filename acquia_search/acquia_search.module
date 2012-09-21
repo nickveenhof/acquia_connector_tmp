@@ -21,25 +21,25 @@ function acquia_search_get_environment($conf = array()) {
   }
   $search_host = variable_get('acquia_search_host', 'search.acquia.com');
   // @todo rework this logic once we have AH_SERVER_REGION
-  // legacy_internal will be true if 'internal.' is the start of the host
+  // legacy_internal will be true if 'internal-' is the start of the host
   // name that's set in via Acquia Cloud platform or vset.
-  $legacy_internal = (strpos($search_host, 'internal.') === 0);
+  $legacy_internal = preg_match('/internal[-.]/', $search_host);
   // Adding the subscription specific colony to the heartbeat data
   if (!empty($subscription['heartbeat_data']['search_service_colony'])) {
     $search_host = $subscription['heartbeat_data']['search_service_colony'];
     if ($legacy_internal) {
       // If we want to be using an internal host name, fix the one
       // from the hearbeat data here.
-      $search_host = 'internal.' . $search_host;
+      $search_host = 'internal-' . $search_host;
     }
   }
   // Check if we are on Acquia Cloud hosting. @see NN-2503
   if (!empty($_ENV['AH_SITE_ENVIRONMENT']) && !empty($_ENV['AH_SERVER_REGION'])) {
     if ($_ENV['AH_SERVER_REGION'] == 'us-east-1' && $search_host == 'search.acquia.com') {
-      $search_host = 'internal.search.acquia.com';
+      $search_host = 'internal-search.acquia.com';
     }
     elseif (strpos($search_host, 'search-' . $_ENV['AH_SERVER_REGION']) === 0) {
-      $search_host = 'internal.' . $search_host;
+      $search_host = 'internal-' . $search_host;
     }
   }
 
