@@ -910,7 +910,7 @@ function acquia_spi_get_platform() {
   // version being after the slash.
   preg_match('!^([^/]+)(/.+)?$!', $server['SERVER_SOFTWARE'], $webserver);
 
-  if (stristr($webserver[1], 'Apache') && function_exists('apache_get_version')) {
+  if (isset($webserver[1]) && stristr($webserver[1], 'Apache') && function_exists('apache_get_version')) {
     $webserver[2] = apache_get_version();
     $apache_modules = apache_get_modules();
   }
