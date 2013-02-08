@@ -105,7 +105,7 @@ function acquia_agent_migrate_form($form, &$form_state) {
       '#title' => t('Select environment for migration'),
       '#options' => $envs,
       '#description' => t('Select which environment your site should be migrated to.
-        Please note that only environments that are running trunk or branch can
+        Only environments that are running trunk or branch can
         be overwritten by migration. Environments running a tag are not included.')
     );
   }
@@ -606,7 +606,7 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
     return;
   }
 
-  $migrate_files = !empty($form_state['values']['migrate_files']) ? $form_state['values']['migrate_files'] : 1;
+  $migrate_files = isset($form_state['values']['migrate_files']) ? $form_state['values']['migrate_files'] : 1;
   variable_set('acquia_migrate_files', $migrate_files);
   $reduce_db_size = !empty($form_state['values']['reduce_db_size']) ? $form_state['values']['reduce_db_size'] : 0;
   if (count($form_state['values']['envs']) > 1) {

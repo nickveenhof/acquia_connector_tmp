@@ -89,6 +89,10 @@ function acquia_connector_test_menu() {
     'page arguments' => array(2),
     'access callback' => TRUE,
   );
+  $items['system/acquia-connector-test-upload'] = array(
+    'page callback' => 'acquia_connector_test_upload',
+    'access callback' => TRUE,
+  );
   return $items;
 }
 
@@ -100,6 +104,10 @@ function acquia_connector_test_spi_definition($arg_version) {
     'acquia_spi_variables' => $vars,
   );
   drupal_json_output($data);
+}
+
+function acquia_connector_test_upload() {
+  
 }
 
 function acquia_connector_test_validate($data) {
@@ -226,7 +234,38 @@ function acquia_connector_test_subscription_name($data) {
 }
 
 function acquia_connector_test_cloud_migration_environments($data) {
-  // return array
+  $fields = array(
+    'time' => 'is_numeric',
+    'nonce' => 'is_string',
+    'hash' => 'is_string',
+  );
+  $result = acquia_connector_test_basic_authenticator($fields, $data);
+  if (!empty($result->is_error)) {
+    return $result;
+  }
+  if (!empty($data['body']['identifier'])) {
+    if ($data['body']['identifier'] != ACQTEST_ID && $data['body']['identifier'] != ACQTEST_ERROR_ID) {
+      return xmlrpc_error(ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found'));
+    }
+  }
+  else {
+    return xmlrpc_error(ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments'));
+  }
+  if ($data['body']['identifier'] == ACQTEST_ERROR_ID) {
+    return xmlrpc_error(ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND, t("Hosting not available under your subscription. Upgrade your subscription to continue with import."));
+  }
+  $result = array();
+  $result['is_error'] = FALSE;
+  foreach (array('dev' => 'Development', 'test' => 'Stage', 'prod' => 'Production') as $key => $name) {
+    $result['body']['environments'][$key] = array(
+      'url' => url('system/acquia-connector-test-upload', array('absolute' => TRUE)),
+      'stage' => $key,
+      'nonce' => 'nonce',
+      'secret' => 'secret',
+      'site_name' => $name,
+    );
+  }
+  return $result;
 }
 
 function acquia_connector_test_migration_complete($data) {
@@ -312,7 +351,7 @@ function acquia_connector_test_validate_authenticator($data) {
     return $result;
   }
   if (strpos($data['authenticator']['identifier'], 'TEST_') !== 0) {
-    $result->code = ACQSUBSCRIPTION_NOT_FOUND;
+    $result->code = ACQTEST_SUBSCRIPTION_NOT_FOUND;
     $result->message = t('Subscription not found.');
     $result->is_error = TRUE;
     return $result;
