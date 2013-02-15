@@ -634,6 +634,7 @@ function acquia_agent_migrate_form_submit($form, &$form_state) {
     $batch = array(
       'title' => t('Acquia Cloud Migrate'),
       'operations' => array(
+        array('acquia_migrate_batch_test', array($migration)),
         array('acquia_migrate_batch_db', array($migration)),
         array('acquia_migrate_batch_tar', array($migration)),
         array('acquia_migrate_batch_transmit', array($migration)),

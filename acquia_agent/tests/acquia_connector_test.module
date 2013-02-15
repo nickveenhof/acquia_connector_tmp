@@ -258,7 +258,7 @@ function acquia_connector_test_cloud_migration_environments($data) {
   $result['is_error'] = FALSE;
   foreach (array('dev' => 'Development', 'test' => 'Stage', 'prod' => 'Production') as $key => $name) {
     $result['body']['environments'][$key] = array(
-      'url' => url('system/acquia-connector-test-upload', array('absolute' => TRUE)),
+      'url' => url('system/acquia-connector-test-upload/AH_UPLOAD', array('absolute' => TRUE)),
       'stage' => $key,
       'nonce' => 'nonce',
       'secret' => 'secret',
