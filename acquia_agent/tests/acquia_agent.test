@@ -29,6 +29,8 @@ class AcquiaAgentTestCase extends DrupalWebTestCase {
     parent::setUp('acquia_agent', 'acquia_connector_test');
     // Create and log in our privileged user.
     $this->privileged_user = $this->drupalCreateUser(array(
+      'access toolbar',
+      'access dashboard',
       'administer site configuration',
       'access administration pages',
     ));

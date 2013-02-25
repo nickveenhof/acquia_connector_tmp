@@ -372,7 +372,7 @@ function acquia_connector_test_validate_authenticator($data) {
   $result->body['active'] = 1;
   $result->body['href'] = 'TEST';
   $result->body['expiration_date']['value'] = '2023-10-08T06:30:00';
-  $result->body['product'] = '';
+  $result->body['product'] = ACQTEST_ID;
   $result->body['derived_key_salt'] = $data['authenticator']['identifier'] . '_KEY_SALT';
   $result->body['update_service'] = 1;
   $result->body['search_service_enabled'] = 1;

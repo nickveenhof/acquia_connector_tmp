@@ -91,9 +91,10 @@ function acquia_agent_page_alter(&$page) {
  * Pre-render function which dynamically adds links to the toolbar.
  */
 function acquia_agent_toolbar_add_links($toolbar) {
-    $link['html'] = TRUE;
-    if (acquia_agent_subscription_is_active()) {
-      $subscription = acquia_agent_settings('acquia_subscription_data');
+  $link = array();
+  if (acquia_agent_subscription_is_active()) {
+    $subscription = acquia_agent_settings('acquia_subscription_data');
+    if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
       $icon = '<img src="' . base_path() . 'misc/message-16-ok.png" alt="ok" style="vertical-align: middle;" />';
@@ -102,15 +103,16 @@ function acquia_agent_toolbar_add_links($toolbar) {
       $link['attributes']['title'] = $subscription['product']['view'];
       $link['href'] = $subscription['href'];
     }
-    else {
-      // Yes, this uses inline CSS, which sounds bad, but including a CSS file
-      // just for this sounds equally bad.
-      $icon = '<img src="' . base_path() . 'misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
-      $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
-      $link['attributes']['class'][] = "acquia-inactive-subscription";
-      $link['href'] = 'http://acquia.com/network';
-    }
-
+  }
+  if (empty($link)) {
+    // Yes, this uses inline CSS, which sounds bad, but including a CSS file
+    // just for this sounds equally bad.
+    $icon = '<img src="' . base_path() . 'misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
+    $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
+    $link['attributes']['class'][] = "acquia-inactive-subscription";
+    $link['href'] = 'http://acquia.com/network';
+  }
+  $link['html'] = TRUE;
   $toolbar['toolbar_user']['#links'] = array_merge(array('acquia_agent' => $link), $toolbar['toolbar_user']['#links']);
   return $toolbar;
 }
