@@ -158,11 +158,13 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
   }
 
   /**
-   * Enables the environment of Acquia Search.
+   * Enables the environment of Acquia Search and clears the static caches so
+   * that the change is reflected in the API functions.
    */
-  public function enableEnvironment() {
+  public function enableAcquiaSearchEnvironment() {
     // API function that creates the environemnt if it doesn't exist yet.
     acquia_search_enable_acquia_solr_environment();
+    $this->clearStaticCache();
   }
 
   /**
@@ -175,10 +177,8 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
    * - The environment's URL is built as expected.
    */
   public function testEnvironment() {
-    // Enable the Acquia Search environment
-    $this->enableEnvironment();
-    // Clear the static caches
-    $this->clearStaticCache();
+    $this->enableAcquiaSearchEnvironment();
+
     // Load the newly enabled environment
     $environment = apachesolr_environment_load(ACQUIA_SEARCH_ENVIRONMENT_ID);
     // Load the default environment variable
@@ -206,10 +206,7 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
    * - Admin user receives 403 when attempting to delete the environment.
    */
   public function testEnvironmentUI() {
-    // Enable the Acquia Search environment
-    $this->enableEnvironment();
-    // Clear the static caches
-    $this->clearStaticCache();
+    $this->enableAcquiaSearchEnvironment();
 
     $admin_user = $this->createAdminUser();
     $this->drupalLogin($admin_user);
@@ -237,10 +234,7 @@ class AcquiaSearchWebTestCase extends DrupalWebTestCase {
    * - Executing a search via the core search block redirects to search/site.
    */
   public function testDefaultSearch() {
-    // Enable the Acquia Search environment
-    $this->enableEnvironment();
-    // Clear the static caches
-    $this->clearStaticCache();
+    $this->enableAcquiaSearchEnvironment();
 
     // Test that the default search variable is set to the expected value.
     $default_search = variable_get('search_default_module', 'node');
