@@ -56,7 +56,7 @@ function acquia_agent_migrate_page() {
 function acquia_agent_migrate_form($form, &$form_state) {
   $identifier = acquia_agent_settings('acquia_identifier');
   $key = acquia_agent_settings('acquia_key');
-  $data = acquia_agent_call('acquia.agent.cloud.migration.environments', array('identifier' => $identifier), $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
+  $data = acquia_agent_call('acquia.agent.cloud.migration.environments', array('identifier' => $identifier), $identifier, $key, variable_get('acquia_network_address', 'https://rpc.acquia.com'));
 
   $error = NULL;
   if ($errno = xmlrpc_errno()) {
@@ -274,7 +274,7 @@ function acquia_agent_automatic_setup_form_validate($form, &$form_state) {
     $authenticator = _acquia_agent_create_authenticator($body);
     $data = array('body' => $body, 'authenticator' => $authenticator);
     // Does not use acquia_agent_call() because Network identifier and key are not available.
-    $server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
+    $server = variable_get('acquia_network_address', 'https://rpc.acquia.com');
     $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.communication.settings' => array($data)));
 
     if ($errno = xmlrpc_errno() !== NULL) {
@@ -330,7 +330,7 @@ function _acquia_agent_automatic_start_submit(&$form_state) {
   $authenticator = _acquia_agent_create_authenticator($body, $form_state['pass']);
   $data = array('body' => $body, 'authenticator' => $authenticator);
   // Does not use acquia_agent_call() because Network identifier and key are not available.
-  $server = variable_get('acquia_spi_server', 'https://nspi.acquia.com');
+  $server = variable_get('acquia_network_address', 'https://rpc.acquia.com');
   $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.subscription.credentials' => array($data)));
 
   if ($errno = xmlrpc_errno()) {
@@ -405,7 +405,7 @@ function acquia_agent_settings_credentials_validate($form, &$form_state) {
   $key = $form_state['values']['acquia_key'];
   // Validate credentials and get subscription name.
   $body = array('identifier' => $identifier);
-  $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
+  $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, variable_get('acquia_network_address', 'https://rpc.acquia.com'));
 
   $error = NULL;
   if ($errno = xmlrpc_errno()) {
@@ -459,7 +459,7 @@ function _acquia_agent_setup_subscription_name() {
 
   // Get subscription name.
   $body = array('identifier' => $identifier);
-  $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
+  $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, variable_get('acquia_network_address', 'https://rpc.acquia.com'));
 
   if ($errno = xmlrpc_errno()) {
     $error = TRUE;
