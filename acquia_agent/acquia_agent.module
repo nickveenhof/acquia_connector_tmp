@@ -271,10 +271,10 @@ function acquia_agent_update_status_alter(&$projects) {
   foreach ($projects as $project => $project_info) {
     if ($project == 'drupal') {
       if (isset($subscription['update'])) {
-        $projects[$project]['status'] = $subscription['update']['status'];
-        $projects[$project]['releases'] = $subscription['update']['releases'];
-        $projects[$project]['recommended'] = $subscription['update']['recommended'];
-        $projects[$project]['latest_version'] = $subscription['update']['latest_version'];
+        $projects[$project]['status'] = isset($subscription['update']['status']) ? $subscription['update']['status'] : t('Unknown');
+        $projects[$project]['releases'] = isset($subscription['update']['releases']) ? $subscription['update']['releases'] : array();
+        $projects[$project]['recommended'] = isset($subscription['update']['recommended']) ? $subscription['update']['recommended'] : '';
+        $projects[$project]['latest_version'] = isset($subscription['update']['latest_version']) ? $subscription['update']['latest_version'] : '';
         // Security updates are a separate piece of data.  If we leave it, then core
         // security warnings from druapl.org will also be displayed on the update page.
         unset($projects[$project]['security updates']);
