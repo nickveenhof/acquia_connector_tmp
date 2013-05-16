@@ -117,9 +117,25 @@ function acquia_agent_toolbar_add_links($toolbar) {
 }
 
 /**
- * Implementation of hook_init().
+ * Implements hook_init().
  */
 function acquia_agent_init() {
+  // Auto-connect with Acquia Cloud credentials if there's not currently a
+  // connection or credentials set.
+   if (!acquia_agent_has_credentials() && !variable_get('acquia_subscription_data', FALSE)
+      && variable_get('ah_network_key', FALSE) && variable_get('ah_network_identifier', FALSE)) {
+
+    variable_set('acquia_identifier', variable_get('ah_network_identifier', FALSE));
+    variable_set('acquia_key', variable_get('ah_network_key', FALSE));
+
+    $activated = acquia_agent_check_subscription();
+
+    if ($activated) {
+      $text = t('Your site has been automatically connected to the Acquia Network. <a href="!url">Change subscription</a>', array('!url' => url('admin/config/system/acquia-agent/setup')));
+      drupal_set_message($text, 'status', FALSE);
+    }
+  }
+
   $request = ltrim(request_uri(), DIRECTORY_SEPARATOR);
   $hide_signup_messages = variable_get('acquia_agent_hide_signup_messages', 0);
   if (!$hide_signup_messages &&
