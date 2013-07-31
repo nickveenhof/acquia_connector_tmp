@@ -5,14 +5,23 @@
  *   Send site profile information (NSPI) and system data to Acquia Network.
  */
 
+// Version of SPI data format.
 define('ACQUIA_SPI_DATA_VERSION', '2.0');
+
+/**
+ * Identifiers for the method of sending SPI data.
+ */
+define('ACQUIA_SPI_METHOD_CALLBACK', 'menu');
+define('ACQUIA_SPI_METHOD_CRON', 'cron');
+define('ACQUIA_SPI_METHOD_DRUSH', 'drush');
+define('ACQUIA_SPI_METHOD_CREDS', 'creds');
 
 /**
  * Implementation of hook_help()
  */
 function acquia_spi_help($path, $arg) {
   $welcome_nid = variable_get('acquia_welcome', 0);
-  if ($path == 'admin/help#acquia_nspi' && $welcome_nid) {
+  if ($path == 'admin/help#acquia_spi' && $welcome_nid) {
     // Only provide help text if the welcome message is avalailable.
     if ($nid = db_query('SELECT nid FROM {node} where nid = :nid', array(':nid' => $welcome_nid))->fetchField()) {
       $txt = 'The !acquia_welcome provides information about how to '
@@ -40,7 +49,7 @@ function acquia_spi_cron() {
   // Determine if the required interval has passed.
   $now = REQUEST_TIME;
   if (variable_get('acquia_spi_use_cron', 1) && $now - $last > ($interval * 60)) {
-    $ret = acquia_spi_send_full_spi();
+    $ret = acquia_spi_send_full_spi(ACQUIA_SPI_METHOD_CRON);
   }
 }
 
@@ -131,7 +140,7 @@ function _acquia_spi_send_access() {
  * Callback for sending SPI data.
  */
 function _acquia_spi_send() {
-  $ret = acquia_spi_send_full_spi();
+  $ret = acquia_spi_send_full_spi(ACQUIA_SPI_METHOD_CALLBACK);
 
   if (isset($_GET['destination'])) {
     if ($ret) {
@@ -287,7 +296,7 @@ function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
  */
 function acquia_spi_agent_settings_submit($form, &$form_state) {
   // Send information as soon as the key/identifier pair is submitted.
-  acquia_spi_send_full_spi();
+  acquia_spi_send_full_spi(ACQUIA_SPI_METHOD_CREDS);
 }
 
 /*
@@ -381,16 +390,19 @@ function acquia_spi_update_definition() {
 
 /**
  * Gather full SPI data and send to Acquia Network.
+ *
+ * @param string $method Optional identifier for the method initiating request.
+ *   Values could be 'cron' or 'menu callback' or 'drush'.
+ * @return mixed FALSE if data not sent else NSPI result array
  */
-function acquia_spi_send_full_spi() {
+function acquia_spi_send_full_spi($method = '') {
   $spi = acquia_spi_get();
   if ($spi) {
-    $result = acquia_spi_send_data($spi);
-    // Check result for command to update SPI definition.
-    $update_command = isset($result['result']['update_spi_definition']) ? $result['result']['update_spi_definition'] : FALSE;
-    if ($update_command == TRUE) {
-      acquia_spi_update_definition();
+    if (!empty($method)) {
+      $spi['send_method'] = $method;
     }
+    $result = acquia_spi_send_data($spi);
+    acquia_spi_handle_server_response($result);
     variable_set('acquia_spi_cron_last', REQUEST_TIME);
     return $result['result'];
   }
@@ -398,9 +410,29 @@ function acquia_spi_send_full_spi() {
 }
 
 /**
+ * Act on SPI update server response.
+ *
+ * @param array $spi_response Array response from acquia_spi_send_data().
+ */
+function acquia_spi_handle_server_response($spi_response) {
+  // Check result for command to update SPI definition.
+  $update = isset($spi_response['result']['update_spi_definition']) ? $spi_response['result']['update_spi_definition'] : FALSE;
+  if ($update === TRUE) {
+    acquia_spi_update_definition();
+  }
+}
+
+/**
  * Send data to Acquia Network.
  *
- * @param array $spi SPI data.
+ * Note, call acquia_spi_send_full_spi() to support SPI response actions.
+ *
+ * @param array $spi SPI data. Required parameters:
+ *   'site_key' A SHA1 hash of the Drupal private key.
+ *   'spi_data_version'
+ *
+ *   Note, acquia_agent will add authenticator.
+ * @return mixed FALSE if no credentials to send else full NSPI response array.
  */
 function acquia_spi_send_data($spi) {
   // Do nothing unless we have credentials.
