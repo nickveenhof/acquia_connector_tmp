@@ -290,7 +290,7 @@ class AcquiaAgentTestCase extends DrupalWebTestCase {
     $this->drupalGet($this->migrate_path);
     $this->assertNoText($this->acquiaAgentStrings('migrate-hosting-404'), 'Did not get "cannot migrate" text.');
     $this->assertText($this->acquiaAgentStrings('migrate-select-environments'), 'Environment selection label appears.');
-    $this->assertNoText($this->acquiaAgentStrings('migrate-files-label'), 'The files label controls do not appear.');
+    $this->assertText($this->acquiaAgentStrings('migrate-files-label'), 'The files label controls do appear.');
     variable_set('acquia_agent_cloud_migration', 'test');
     $this->drupalGet($this->migrate_path);
     $this->assertText($this->acquiaAgentStrings('migrate-files-label'), 'The files label controls do appear after setting the migration variable.');
