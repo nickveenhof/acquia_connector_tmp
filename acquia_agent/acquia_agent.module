@@ -169,11 +169,12 @@ function acquia_agent_theme() {
  *
  * This check also sends a heartbeat to the Acquia Network unless
  * $params['no_heartbeat'] == 1.
+ *
+ * @return FALSE, integer (xmlrpc error number), or subscription data
  */
 function acquia_agent_check_subscription($params = array()) {
-  // Default return value is FALSE.
+  $current_subscription = acquia_agent_settings('acquia_subscription_data');
   $subscription = FALSE;
-  $response_error = FALSE;
   $active = FALSE;
   if (!acquia_agent_has_credentials()) {
     // If there is not an identifier or key, delete any old subscription data.
@@ -182,15 +183,20 @@ function acquia_agent_check_subscription($params = array()) {
   else {
     // Get our subscription data
     $subscription = acquia_agent_get_subscription($params);
-    if (is_int($subscription)) {
-      switch($subscription) {
+    if (is_numeric($subscription)) {
+      switch ($subscription) {
         case SUBSCRIPTION_NOT_FOUND:
         case SUBSCRIPTION_EXPIRED:
-          variable_del('acquia_subscription_data');
+          // Fall through since these values are stored and used by
+          // acquia_search_acquia_subscription_status()
           break;
+        default:
+          // Likely server error (503) or connection timeout (-110) so leave
+          // current subscription in place. _acquia_agent_request() logged an
+          // error message.
+          return $current_subscription;
       }
     }
-    // Everything checked out fine
     variable_set('acquia_subscription_data', $subscription);
     // Check if our main subscription is active
     if ($subscription) {
@@ -206,10 +212,10 @@ function acquia_agent_check_subscription($params = array()) {
  *
  * This check also sends a heartbeat to the Acquia Network unless
  * $params['no_heartbeat'] == 1.
+ *
+ * @return FALSE, integer (xmlrpc error number), or subscription data
  */
 function acquia_agent_get_subscription($params = array(), $identifier = NULL, $key = NULL, $acquia_network_address = NULL) {
-  // Default return value is FALSE.
-  $response_error = FALSE;
   // There is an identifier and key, so attempt communication.
   $subscription = array();
   $subscription['timestamp'] = REQUEST_TIME;
