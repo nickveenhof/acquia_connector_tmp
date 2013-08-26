@@ -701,3 +701,22 @@ function acquia_agent_an_info_header() {
   $output .= '</div>';
   return $output;
 }
+
+/**
+ * Returns basic site information in JSON.
+ */
+function acquia_agent_site_status() {
+  // We don't want this page cached.
+  drupal_page_is_cacheable(FALSE);
+  $data = array(
+    'version' => '1.0',
+    'data' => array(
+      'maintenance_mode' => (bool) variable_get('maintenance_mode', 0),
+      'cache' => (bool) variable_get('cache', 0),
+      'block_cache' => (bool) variable_get('block_cache', 0),
+    ),
+  );
+
+  drupal_json_output($data);
+  drupal_exit();
+}

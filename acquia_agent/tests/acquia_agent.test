@@ -303,6 +303,78 @@ class AcquiaAgentTestCase extends DrupalWebTestCase {
     $this->drupalGet($this->migrate_path);
     $this->assertNoFieldChecked('edit-migrate-files', "The migrate files checkbox is not checked.");
   }
+
+  /**
+   * Tests the site status callback.
+   */
+  public function testAcquiaAgentSiteStatus() {
+    module_load_include('inc', 'acquia_agent', 'acquia_agent.pages');
+
+    $uuid = '0dee0d07-4032-44ea-a2f2-84182dc10d54';
+    $test_url = "https://insight.acquia.com/node/uuid/{$uuid}/dashboard";
+    $variable_keys = array('maintenance_mode', 'cache', 'block_cache');
+
+    $test_data = array(
+      'timestamp' => 1361434801,
+      'active' => 1,
+      'href' => $test_url,
+    );
+    // Set some sample test data.
+    variable_set('acquia_subscription_data', $test_data);
+
+    // Test _acquia_agent_get_id_from_url().
+    $key = _acquia_agent_get_id_from_sub($test_data);
+    $this->assertIdentical($key, $uuid);
+
+    // Add a 'uuid' key to the data and make sure that is returned.
+    $test_data['uuid'] = $uuid;
+    $test_data['href'] = 'http://example.com';
+
+    $key = _acquia_agent_get_id_from_sub($test_data);
+    $this->assertIdentical($key, $uuid);
+
+    $query = array(
+      'key' => hash('sha1', "{$key}:test"),
+      'nonce' => 'test',
+      'stamp' => REQUEST_TIME,
+    );
+    $json = $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+
+    // Test the version.
+    $this->assertIdentical($json['version'], '1.0', 'Correct API version found.');
+
+    // Test all of the original values match.
+    foreach ($variable_keys as $variable) {
+      $this->assertEqual($json['data'][$variable], variable_get($variable));
+    }
+
+    // Set the variables to TRUE.
+    foreach ($variable_keys as $variable) {
+      variable_set($variable, true);
+    }
+
+    $json = $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+
+    // Test the the values again.
+    foreach ($variable_keys as $variable) {
+      $this->assertEqual($json['data'][$variable], variable_get($variable));
+    }
+
+    // Test some invalid query string parameters for access.
+    $query['stamp'] = $query['stamp'] + 500;
+    // The timestamp should be too new, so access should fail.
+    $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+    $this->assertResponse(403);
+    $query['stamp'] = $query['stamp'] - 2000;
+    // The timestamp should be too old, so access should fail.
+    $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+    $this->assertResponse(403);
+    // A random key value should fail too.
+    $query['stamp'] = REQUEST_TIME;
+    $query['key'] = $this->randomString(16);
+    $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+    $this->assertResponse(403);
+  }
 }
 
 class AquiaAgentUnitTestCase extends DrupalUnitTestCase {
@@ -355,5 +427,13 @@ class AquiaAgentUnitTestCase extends DrupalUnitTestCase {
       }
       $this->assertTrue($valid, 'Array has expected keys');
     }
+  }
+
+  public function testIdFromSub() {
+    $uuid = _acquia_agent_get_id_from_sub(array('uuid' => 'test'));
+    $this->assertIdentical('test', $uuid, 'UUID property identical');
+    $data = array('href'=> 'http://example.com/network/uuid/test/dashboard');
+    $uuid = _acquia_agent_get_id_from_sub($data);
+    $this->assertIdentical('test', $uuid, 'UUID extracted from href');
   }
 }
