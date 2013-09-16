@@ -24,6 +24,10 @@ function acquia_spi_uninstall() {
   variable_del('acquia_spi_server');
   variable_del('acquia_spi_ssl_override');
   variable_del('acquia_spi_module_rebuild');
+  variable_del('acquia_spi_set_variables_automatic');
+  variable_del('acquia_spi_ignored_set_variables');
+  variable_del('acquia_spi_saved_variables');
+  variable_del('acquia_spi_set_variables_override');
 }
 
 /**

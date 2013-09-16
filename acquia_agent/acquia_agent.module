@@ -549,6 +549,8 @@ function acquia_agent_help($path, $arg) {
       }
       $output .= '<dt>' . t('Receive updates from Acquia Network') . '</dt>';
       $output .= '<dd>' . t('Receive dynamic updates on the Network Settings page from Acquia.com about your subscription and new features.') . '</dd>';
+      $output .= '<dt>' . t('Allow Insight to update list of approved variables.') . '</dt>';
+      $output .= '<dd>' . t('As part of the Acquia Insight service, some variables can be corrected to their recommended settings from within the Insight system. The list of variables that can be corrected can also be updated at your discretion.') . '</dd>';
       $output .= '</dl>';
       return $output;
   }
@@ -756,8 +758,12 @@ function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {
 /**
  * Determine if a response from the Acquia Network is valid.
  *
- * @param $data
- *   The data array returned by acquia_agent_call().
+ * @param $data The data array returned by acquia_agent_call(). Expected keys:
+ *   'authenticator' - request authenticator sent to server
+ *   'result' - response from server including keys
+ *     'authenticator' - server response authenticator
+ *     'body' - server response body
+ *
  * @return
  *   TRUE or FALSE.
  */
