@@ -544,6 +544,17 @@ function acquia_spi_get() {
 
   $additional_data = array();
   $security_review_results = acquia_spi_run_security_review();
+
+  // It's worth sending along node access control information even if there are
+  // no modules implementing it - some alerts are simpler if we know we don't
+  // have to worry about node access.
+
+  // Check for node grants modules.
+  $additional_data['node_grants_modules'] = module_implements("node_grants", TRUE);
+
+  // Check for node access modules.
+  $additional_data['node_access_modules'] = module_implements("node_access", TRUE);
+
   if (!empty($security_review_results)) {
     $additional_data['security_review'] = $security_review_results['security_review'];
   }
