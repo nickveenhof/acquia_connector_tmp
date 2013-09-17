@@ -610,7 +610,7 @@ function acquia_spi_run_security_review() {
   // Collect the checklist.
   $checklist = acquia_spi_security_review_get_checks();
   // Run only specific checks.
-  $to_check = array('input_formats', 'admin_permissions', 'untrusted_php', 'private_files', 'upload_extensions');
+  $to_check = array('views_access', 'temporary_files', 'base_url_set', 'executable_php', 'input_formats', 'admin_permissions', 'untrusted_php', 'private_files', 'upload_extensions');
   foreach ($checklist as $module => $checks) {
     foreach ($checks as $check_name => $args) {
       if (!in_array($check_name, $to_check)) {
