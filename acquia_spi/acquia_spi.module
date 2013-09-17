@@ -555,6 +555,24 @@ function acquia_spi_get() {
       }
     }
   }
+
+  // Database updates required?
+  // Based on code from system.install
+  include_once DRUPAL_ROOT . '/includes/install.inc';
+  drupal_load_updates();
+
+  $additional_data['pending_updates'] = FALSE;
+  foreach (module_list() as $module) {
+    $updates = drupal_get_schema_versions($module);
+    if ($updates !== FALSE) {
+      $default = drupal_get_installed_schema_version($module);
+      if (max($updates) > $default) {
+        $additional_data['pending_updates'] = TRUE;
+        break;
+      }
+    }
+  }
+
   if (!empty($additional_data)) {
     // JSON encode this additional data.
     $spi['additional_data'] = drupal_json_encode($additional_data);
