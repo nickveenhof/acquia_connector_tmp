@@ -529,6 +529,8 @@ function acquia_agent_help($path, $arg) {
       $output .= '<dd>' . t('Enables secure communication between your Drupal sites and the Acquia Network.') . '</dt>';
       $output .= '<dt>Acquia SPI</dt>';
       $output .= '<dd>' . t('Automates the collection of site information. Required for use with the Acquia Insight service.') . '</dt>';
+      $output .= '<dt>Acquia SPI Custom Tests</dt>';
+      $output .= '<dd>' . t('Acquia Insight supports custom tests for your site. See <strong>acquia_spi.api.php</strong> for information on the custom test hook and validate your tests for inclusion in outgoing SPI data with the Drush command, <strong>spi-test-validate</strong>.') . '</dt>';
       $output .= '<dt>Acquia Search</dt>';
       $output .= '<dd>' . t('Provides authentication service to the Apache Solr Search Integration module to enable use of Acquia\'s hosted Solr search indexes.') . '</dt>';
       $output .= '</dl>';
