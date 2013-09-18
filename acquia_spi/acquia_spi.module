@@ -1742,10 +1742,10 @@ function acquia_spi_set_variables($set_variables) {
   }
   if (!empty($saved)) {
     variable_set('acquia_spi_saved_variables', array('variables' => $saved, 'time' => time()));
-    watchdog('acquia spi', 'Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)));
+    watchdog('acquia spi', 'Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)), WATCHDOG_INFO);
   }
   else {
-    watchdog('acquia spi', 'Did not save any variables from the Acquia Network.');
+    watchdog('acquia spi', 'Did not save any variables from the Acquia Network.', array(), WATCHDOG_INFO);
   }
 }
 
@@ -1755,5 +1755,7 @@ function acquia_spi_set_variables($set_variables) {
  * @return array Array of variable names.
  */
 function acquia_spi_approved_set_variables() {
-  return variable_get('acquia_spi_set_variables_automatic', array('acquia_spi_set_variables_automatic', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime'));
+  // acquia_spi_set_variables_automatic is in here so that if
+  // acquia_spi_set_variables_override is TRUE then it can be automatically set.
+  return variable_get('acquia_spi_set_variables_automatic', array('acquia_spi_set_variables_automatic', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'image_allow_insecure_derivatives', 'googleanalytics_cache', 'acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron'));
 }
