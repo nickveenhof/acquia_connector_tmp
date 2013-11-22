@@ -334,7 +334,7 @@ class AcquiaAgentTestCase extends DrupalWebTestCase {
     $query = array(
       'key' => hash('sha1', "{$key}:test"),
       'nonce' => 'test',
-      'stamp' => REQUEST_TIME,
+      'stamp' => time(),
     );
     $json = $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
 
