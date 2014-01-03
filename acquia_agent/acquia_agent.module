@@ -102,19 +102,13 @@ function acquia_agent_menu_site_status_alter(&$menu_site_status, $path) {
  */
 function acquia_agent_site_status_access() {
   // If we don't have all the query params, leave now.
-  if (!isset($_GET['key'], $_GET['nonce'], $_GET['stamp'])) {
+  if (!isset($_GET['key'], $_GET['nonce'])) {
     return FALSE;
   }
 
   $sub_data = acquia_agent_settings('acquia_subscription_data');
   $sub_uuid = _acquia_agent_get_id_from_sub($sub_data);
   if (!empty($sub_uuid)) {
-    // If the timestamp is 'newer' or more than 1 minute old.
-    $elapsed_time = REQUEST_TIME - (int) $_GET['stamp'];
-    if ($elapsed_time < 0 || $elapsed_time > 60) {
-      return FALSE;
-    }
-
     $expected_hash = hash('sha1', "{$sub_uuid}:{$_GET['nonce']}");
     // If the generated hash matches the hash from $_GET['key'], we're good.
     if ($_GET['key'] === $expected_hash) {
