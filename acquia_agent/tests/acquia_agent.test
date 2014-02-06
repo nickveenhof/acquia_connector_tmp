@@ -136,7 +136,6 @@ class AcquiaAgentTestCase extends DrupalWebTestCase {
     $this->drupalGet($this->settings_path);
     $this->assertText($this->acquiaAgentStrings('subscription'), 'Subscription connected with key and identifier');
     $this->assertLinkByHref($this->setup_path, 0, 'Link to change subscription exists');
-    $this->assertLinkByHref($this->help_path, 0, 'Link to help page exists');
     $this->assertText($this->acquiaAgentStrings('migrate'), 'Acquia Cloud Migrate description exists');
     // Connect via automatic setup.
     variable_del('acquia_identifier');
