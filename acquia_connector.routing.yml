@@ -1,0 +1,14 @@
+acquia_connector.settings:
+  path: '/admin/config/system/acquia-connector'
+  defaults:
+    _form: '\Drupal\acquia_connector\Form\SettingsForm'
+    _title: 'Acquia Network settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+acquia_connector.status:
+  path: '/system/acquia-connector-status'
+  defaults:
+    _controller: '\Drupal\acquia_connector\Controller\StatusController::json'
+  requirements:
+    _custom_access: '\Drupal\acquia_connector\Controller\StatusController::access'

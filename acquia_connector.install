@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * Implementation of hook_requirements()
+ */
+function acquia_agent_requirements($phase) {
+  $requirements = array();
+  $has_credentials = acquia_agent_has_credentials();
+  $is_active = acquia_agent_subscription_is_active();
+
+  switch ($phase) {
+    case 'runtime':
+      // Inform users on subscription status. Either we know they are active,
+      // or we know they have credentials but not active (not set up yet) or
+      // we have credentials but an inactive subscription (either bad
+      // credentials or expired subscription).
+      if ($is_active) {
+        $requirements['acquia_subscription_status'] = array(
+          'title' => t('Acquia Network subscription status'),
+          'severity' => REQUIREMENT_OK,
+          'value' => t('Active'),
+          'description' => t('You can <a href="@refresh-status">manually refresh the subscription status</a>.', array('@refresh-status' => url('admin/config/system/acquia-agent/refresh-status', array('query' => drupal_get_destination())))),
+        );
+      }
+      elseif (!$has_credentials) {
+        $requirements['acquia_subscription_status'] = array(
+          'title' => t('Acquia Network subscription status'),
+          'severity' => REQUIREMENT_WARNING,
+          'value' => t('Unknown'),
+          'description' => t('You did not complete your signup to the Acquia Network. You can provide the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page or try to <a href="@refresh-status">manually refresh the subscription status</a>.', array('@settings' => url('admin/config/system/acquia-agent'), '@refresh-status' => url('admin/config/system/acquia-agent/refresh-status', array('query' => drupal_get_destination()))))
+        );
+      }
+      else {
+        $subscription = variable_get('acquia_subscription_data', array('active' => FALSE));
+        $href = isset($subscription['href']) ? $subscription['href'] . '/health' : 'http://acquia.com/network';
+        $requirements['acquia_subscription_status'] = array(
+          'title' => t('Acquia Network subscription status'),
+          'severity' => REQUIREMENT_WARNING,
+          'value' => t('Inactive'),
+          'description' => t('Your subscription is expired or you are using an invalid identifier and key pair. You can check the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page. Check <a href="@acquia-network">your subscription on the Acquia Network</a> for further status information.', array('@settings' => url('admin/config/system/acquia-agent'), '@acquia-network' => $href)),
+        );
+      }
+    break;
+  }
+
+  return $requirements;
+}

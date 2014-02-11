@@ -1,0 +1,14 @@
+cloud_migration: []
+identifier: ''
+key: ''
+network_address: 'https://rpc.acquia.com'
+subscription_data:
+  - { active: false }
+subscription_name: ''
+use_cron: true
+admin_priv: true
+send_node_user: true
+send_watchdog: true
+module_diff_data: true
+set_variables_override: true
+debug: false
