@@ -6,6 +6,14 @@ acquia_connector.settings:
   requirements:
     _permission: 'administer site configuration'
 
+acquia_connector.setup:
+  path: 'admin/config/system/acquia-agent/setup'
+  defaults:
+    _form: '\Drupal\acquia_connector\Form\SetupForm'
+    _title: 'Acquia Network automatic setup'
+  requirements:
+    _permission: 'administer site configuration'
+
 acquia_connector.status:
   path: '/system/acquia-connector-status'
   defaults:
