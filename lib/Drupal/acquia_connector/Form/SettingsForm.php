@@ -229,6 +229,7 @@ class SettingsForm extends ConfigFormBase {
    * Submit handler for Migrate button on settings form.
    */
   public function submitMigrateGoForm($form, &$form_state) {
+    // @todo Convert to Url value class when route exists.
     $form_state['redirect'] = array('admin/config/system/acquia-agent/migrate');
   }
 

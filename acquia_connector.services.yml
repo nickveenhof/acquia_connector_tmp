@@ -1,0 +1,5 @@
+services:
+  acquia_connector_maintenance_mode_subscriber:
+    class: Drupal\acquia_connector\EventSubscriber\MaintenanceModeSubscriber
+    tags:
+      - { name: event_subscriber }

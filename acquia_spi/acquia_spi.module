@@ -35,26 +35,6 @@ function acquia_spi_help($path, $arg) {
 }
 
 /**
- * Implementation of hook_cron().
- */
-function acquia_spi_cron() {
-  // Get the last time we processed data.
-  $last = variable_get('acquia_spi_cron_last', 0);
-  // 30 minute interval for sending site profile.
-  $interval = variable_get('acquia_spi_cron_interval', 30);
-  // Allow an override.
-  if (variable_get('acquia_spi_cron_interval_override', FALSE)) {
-    $interval = variable_get('acquia_spi_cron_interval_override', 30);
-  }
-
-  // Determine if the required interval has passed.
-  $now = REQUEST_TIME;
-  if (variable_get('acquia_spi_use_cron', 1) && $now - $last > ($interval * 60)) {
-    $ret = acquia_spi_send_full_spi(ACQUIA_SPI_METHOD_CRON);
-  }
-}
-
-/**
  * Implements hook_menu().
  */
 function acquia_spi_menu() {
@@ -154,7 +134,7 @@ function _acquia_spi_send() {
     $method = ACQUIA_SPI_METHOD_INSIGHT;
   }
 
-  $response = acquia_spi_send_full_spi($method);
+  $response = acquia_connector_send_full_spi($method);
 
   if (isset($_GET['destination'])) {
     if (!empty($response)) {
@@ -237,106 +217,11 @@ function acquia_spi_send_module_data($data = array()) {
 }
 
 /**
- * Implementation of hook_form_[form_id]_alter().
- */
-function acquia_spi_form_acquia_agent_settings_form_alter(&$form) {
-  $identifier = acquia_agent_settings('acquia_identifier');
-  $key = acquia_agent_settings('acquia_key');
-  if (empty($identifier) && empty($key)) {
-    return;
-  }
-  // Help documentation is local unless the Help module is disabled.
-  if (module_exists('help')) {
-    $help_url = url('admin/help/acquia_agent');
-  }
-  else {
-    $help_url = url('https://docs.acquia.com/network/install');
-  }
-
-  $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
-  $form['connection']['#description'] = t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
-
-  $form['connection']['spi'] = array(
-    '#prefix' => '<div class="acquia-spi">',
-    '#suffix' => '</div>',
-    '#weight' => -1,
-  );
-  $form['connection']['spi']['admin_priv'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Admin privileges'),
-    '#default_value' => variable_get('acquia_spi_admin_priv', 1),
-  );
-  $form['connection']['spi']['send_node_user'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Nodes and users'),
-    '#default_value' => variable_get('acquia_spi_send_node_user', 1),
-  );
-  $form['connection']['spi']['send_watchdog'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Watchdog logs'),
-    '#default_value' => variable_get('acquia_spi_send_watchdog', 1),
-  );
-  $form['connection']['spi']['module_diff_data'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Source code'),
-    '#default_value' => (int) variable_get('acquia_spi_module_diff_data', 1) && $ssl_available,
-    '#description' => t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
-    '#disabled' => !$ssl_available,
-  );
-  $form['connection']['alter_variables'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Allow Insight to update list of approved variables.'),
-    '#default_value' => (int) variable_get('acquia_spi_set_variables_override', 0),
-    '#description' => t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
-  );
-
-  $use_cron = variable_get('acquia_spi_use_cron', 1);
-  $form['connection']['spi_use_cron'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Send via Drupal cron'),
-    '#default_value' => $use_cron,
-  );
-  $key = sha1(drupal_get_private_key());
-  $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
-  $form['connection']['spi_use_cron_url'] = array(
-    '#type' => 'container',
-    '#children'  => t('<p>Enter the following URL in your server\'s crontab to send SPI data:<br/><em>!url</em></p>', array('!url' => $url)),
-    '#states' => array(
-      'visible' => array(
-        ':input[name="spi_use_cron"]' => array('checked' => FALSE),
-      )
-    ),
-  );
-  if ($use_cron) {
-    // If using cron hide the URL container with #states visible.
-    $form['connection']['spi_use_cron_url']['#states'] = array(
-      'visible' => array(
-        ':input[name="spi_use_cron"]' => array('checked' => FALSE),
-      )
-    );
-  }
-
-  $form['actions']['submit']['#submit'][] = 'acquia_agent_spi_set_submit';
-}
-
-/**
  * Added submit function for acquia_agent_settings form.
  */
 function acquia_spi_agent_settings_submit($form, &$form_state) {
   // Send information as soon as the key/identifier pair is submitted.
-  acquia_spi_send_full_spi(ACQUIA_SPI_METHOD_CREDS);
-}
-
-/*
- * Save the results of the NSPI form
- */
-function acquia_agent_spi_set_submit($form, &$form_state) {
-  variable_set('acquia_spi_module_diff_data', $form_state['values']['module_diff_data']);
-  variable_set('acquia_spi_admin_priv', $form_state['values']['admin_priv']);
-  variable_set('acquia_spi_send_node_user', $form_state['values']['send_node_user']);
-  variable_set('acquia_spi_send_watchdog', $form_state['values']['send_watchdog']);
-  variable_set('acquia_spi_use_cron', $form_state['values']['spi_use_cron']);
-  variable_set('acquia_spi_set_variables_override', $form_state['values']['alter_variables']);
+  acquia_connector_send_full_spi(ACQUIA_SPI_METHOD_CREDS);
 }
 
 /**
@@ -415,27 +300,6 @@ function acquia_spi_update_definition() {
     return TRUE;
   }
   return FALSE;
-}
-
-/**
- * Gather full SPI data and send to Acquia Network.
- *
- * @param string $method Optional identifier for the method initiating request.
- *   Values could be 'cron' or 'menu callback' or 'drush'.
- * @return mixed FALSE if data not sent else NSPI result array
- */
-function acquia_spi_send_full_spi($method = '') {
-  $spi = acquia_spi_get();
-  if (!empty($method)) {
-    $spi['send_method'] = $method;
-  }
-  $result = acquia_spi_send_data($spi);
-  if ($result === FALSE) {
-    return FALSE;
-  }
-  acquia_spi_handle_server_response($result);
-  variable_set('acquia_spi_cron_last', REQUEST_TIME);
-  return $result;
 }
 
 /**

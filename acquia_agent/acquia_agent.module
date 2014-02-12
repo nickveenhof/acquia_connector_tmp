@@ -37,14 +37,6 @@ function acquia_agent_menu() {
     'access arguments' => array('administer site configuration'),
     'type' => MENU_CALLBACK,
   );
-  $items['admin/config/system/acquia-agent/migrate'] = array(
-    'title' => 'Acquia Cloud Migrate',
-    'description' => 'Migrate your site to Acquia Cloud.',
-    'page callback' => 'acquia_agent_migrate_page',
-    'file' => 'acquia_agent.pages.inc',
-    'access arguments' => array('administer site configuration'),
-    'type' => MENU_CALLBACK,
-  );
   $items['system/acquia-migrate-check'] = array(
     'title' => 'Upload capable',
     'description' => 'Check for Acquia Cloud migrate capabilities',
@@ -60,17 +52,6 @@ function acquia_agent_menu() {
     'type' => MENU_CALLBACK,
   );
   return $items;
-}
-
-/**
- * Implements hook_menu_site_status_alter().
- */
-function acquia_agent_menu_site_status_alter(&$menu_site_status, $path) {
-  // Disable offline mode so the acquia connector status page can always be
-  // accessed.
-  if (($menu_site_status == MENU_SITE_OFFLINE) && ($path == 'system/acquia-connector-status')) {
-    $menu_site_status = MENU_SITE_ONLINE;
-  }
 }
 
 /**
@@ -145,18 +126,6 @@ function acquia_agent_init() {
     $message = t($text, array('!acquia-free' => url('https://www.acquia.com/acquia-cloud-free'), '!settings' => url('admin/config/system/acquia-agent/setup')));
     drupal_set_message($message, 'warning', FALSE);
   }
-}
-
-/**
- * Implementation of hook_theme().
- */
-function acquia_agent_theme() {
-  return array(
-    'acquia_agent_banner_form' => array(
-      'render element' => 'form',
-      'file' => 'acquia_agent.pages.inc',
-    ),
-  );
 }
 
 /**
@@ -379,14 +348,6 @@ function acquia_agent_manual_status() {
   acquia_agent_check_subscription();
   // This callback will only ever be available if update module is active.
   update_manual_status();
-}
-
-/**
- * Implementation of hook_cron().
- */
-function acquia_agent_cron() {
-  // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
-  acquia_agent_check_subscription();
 }
 
 /**

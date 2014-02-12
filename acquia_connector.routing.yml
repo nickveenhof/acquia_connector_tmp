@@ -20,3 +20,11 @@ acquia_connector.status:
     _controller: '\Drupal\acquia_connector\Controller\StatusController::json'
   requirements:
     _custom_access: '\Drupal\acquia_connector\Controller\StatusController::access'
+
+acquia_connector.migrate:
+  path: 'admin/config/system/acquia-agent/migrate'
+  defaults:
+    _content: '\Drupal\acquia_connector\Controller\MigrateController::migratePage'
+    _title: 'Acquia Cloud Migrate'
+  requirements:
+    _permission: 'administer site configuration'

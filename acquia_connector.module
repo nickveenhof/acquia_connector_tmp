@@ -34,3 +34,51 @@ function acquia_connector_help($path, $arg) {
       return $output;
   }
 }
+
+/**
+ * Implements hook_cron().
+ */
+function acquia_connector_cron() {
+  // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
+  acquia_agent_check_subscription();
+
+  $config = \Drupal::config('acquia_connector.settings');
+
+  // Get the last time we processed data.
+  $last = \Drupal::state('acquia_connector.cron_last', 0);
+
+  // 30 minute interval for sending site profile.
+  $interval = $config->get('cron_interval');
+
+  // Determine if the required interval has passed.
+  if ($config->get('use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
+    $ret = acquia_connector_send_full_spi(ACQUIA_SPI_METHOD_CRON);
+  }
+}
+
+/**
+ * Gather full SPI data and send to Acquia Network.
+ *
+ * @param string $method Optional identifier for the method initiating request.
+ *   Values could be 'cron' or 'menu callback' or 'drush'.
+ * @return mixed FALSE if data not sent else NSPI result array
+ */
+function acquia_connector_send_full_spi($method = '') {
+  $spi = acquia_spi_get();
+
+  if (!empty($method)) {
+    $spi['send_method'] = $method;
+  }
+
+  $result = acquia_spi_send_data($spi);
+
+  if ($result === FALSE) {
+    return FALSE;
+  }
+
+  acquia_spi_handle_server_response($result);
+
+  \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
+
+  return $result;
+}
