@@ -47,7 +47,7 @@ class Subscription {
     }
     else {
       // Get our subscription data
-      $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('id'), $config->get('key'), $params);
+      $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
       if (!empty($subscription['error'])) {
         switch ($subscription['code']) {
           case static::NOT_FOUND:

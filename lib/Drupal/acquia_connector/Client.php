@@ -53,22 +53,17 @@ class Client {
    *   communication.
    */
   public function getSubscriptionCredentials($email, $password) {
-    // @todo get token from authentication with Accounts
-    try {
-      $settings = $this->getAccountSettings($email);
-      // Hash $password according to account salt and algorithm.
-      //$hash = $this->passwordCrypt($password, $settings);
-    }
-    catch (\Exception $e) {
-
-    }
-    $body = array('email' => $email);
+    $body = array('email' => $email, 'pass' => $password);
+    $authenticator = $this->buildAuthenticator($password, $body);
     $data = array(
       'body' => $body,
-      // Build authenticator based on account email.
-      'authenticator' => $this->buildAuthenticator($password, $body),
+      'authenticator' => $authenticator,
     );
-    return $this->request('POST', 'subscription-credentials', $data);
+    $response = $this->request('POST', 'subscription/credentials', $data);
+    //if ($this->validateResponse($password, $response, $authenticator)) {
+      return $response['body'];
+    //}
+    //return FALSE;
   }
 
   /**
@@ -110,21 +105,6 @@ class Client {
       return $response['body'];
     }
     return FALSE;
-  }
-
-  /**
-   * Get account settings to use for creating request authorizations.
-   *
-   * @param string $email
-   */
-  protected function getAccountSettings($email) {
-    $body = array('email' => $email);
-    $data = array(
-      'body' => $body,
-      // Build authenticator based on account email.
-      'authenticator' => $this->buildAuthenticator($email, $body),
-    );
-    return $this->request('POST', 'account-settings', $data);
   }
 
   /**
@@ -174,79 +154,6 @@ class Client {
     return FALSE;
   }
 
-  /**
-   * @param string $algo
-   * @param string $password
-   * @param string $setting
-   * @return string
-   */
-  protected function passwordCrypt($algo, $password, $setting) {
-    // The first 12 characters of an existing hash are its setting string.
-    $setting = substr($setting, 0, 12);
-
-    if ($setting[0] != '$' || $setting[2] != '$') {
-      return FALSE;
-    }
-    $salt = substr($setting, 4, 8);
-    // Hashes must have an 8 character salt.
-    if (strlen($salt) != 8) {
-      return FALSE;
-    }
-
-    // Convert the base 2 logarithm into an integer.
-    $count = 1 << $count_log2;
-
-    // We rely on the hash() function being available in PHP 5.2+.
-    $hash = hash($algo, $salt . $password, TRUE);
-    do {
-      $hash = hash($algo, $hash . $password, TRUE);
-    } while (--$count);
-
-    $len = strlen($hash);
-    $output =  $setting . $this->base64Encode($hash, $len);
-    // $this->base64Encode() of a 16 byte MD5 will always be 22 characters.
-    // $this->base64Encode() of a 64 byte sha512 will always be 86 characters.
-    $expected = 12 + ceil((8 * $len) / 6);
-    return (strlen($output) == $expected) ? substr($output, 0, 55) : FALSE;
-  }
-
-  /**
-   * Encodes bytes into printable base 64 using the *nix standard from crypt().
-   *
-   * @param String $input
-   *   The string containing bytes to encode.
-   * @param Integer $count
-   *   The number of characters (bytes) to encode.
-   *
-   * @return String
-   *   Encoded string
-   */
-  protected function base64Encode($input, $count) {
-    $output = '';
-    $i = 0;
-    do {
-      $value = ord($input[$i++]);
-      $output .= static::$ITOA64[$value & 0x3f];
-      if ($i < $count) {
-        $value |= ord($input[$i]) << 8;
-      }
-      $output .= static::$ITOA64[($value >> 6) & 0x3f];
-      if ($i++ >= $count) {
-        break;
-      }
-      if ($i < $count) {
-        $value |= ord($input[$i]) << 16;
-      }
-      $output .= static::$ITOA64[($value >> 12) & 0x3f];
-      if ($i++ >= $count) {
-        break;
-      }
-      $output .= static::$ITOA64[($value >> 18) & 0x3f];
-    } while ($i < $count);
-
-    return $output;
-  }
-
   /*
    * Build authenticator to sign requests to the Acquia Network
    *
@@ -267,7 +174,6 @@ class Client {
     $authenticator['time'] = REQUEST_TIME;
     $authenticator['hash'] = $this->hash($key, REQUEST_TIME, $nonce, $params);
     $authenticator['nonce'] = $nonce;
-
 
     return $authenticator;
   }

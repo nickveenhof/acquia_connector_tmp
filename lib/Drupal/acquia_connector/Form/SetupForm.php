@@ -12,6 +12,7 @@ use Drupal\acquia_connector\Client;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\acquia_connector\Subscription;
 
 /**
  * Class SetupForm.
@@ -136,7 +137,7 @@ class SetupForm extends ConfigFormBase {
     if (!isset($form_state['choose'])) {
       $response = $this->client->getSubscriptionCredentials($form_state['values']['email'], $form_state['values']['pass']);
 
-      if ($response['error'] == TRUE) {
+      if (!empty($response['error'])) {
         // Set form error to prevent switching to the next page.
         $this->setFormError('email', $form_state, $response['message']);
       }
@@ -171,15 +172,14 @@ class SetupForm extends ConfigFormBase {
     if (!$this->errorHandler()->getErrors($form_state) && empty($form_state['rebuild'])) {
       // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
       // Our status gets updated locally via the return data.
-      $active = acquia_agent_check_subscription();
+
+      $subscription_class = new Subscription();
+      $subscription = $subscription_class->update();
 
       // Redirect to the path without the suffix.
-      $form_state['redirect'] = new Url('acquia_connector.settings');
+      $form_state['redirect_route'] = new Url('acquia_connector.settings');
 
-      // @todo What is this trying to clear in particular?
-      cache_clear_all();
-
-      if ($active && count($active) > 1) {
+      if ($subscription['active']) {
         drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Network.'));
       }
     }
@@ -204,7 +204,6 @@ class SetupForm extends ConfigFormBase {
     else {
       // One subscription so set id/key pair.
       $sub = $form_state['response']['subscription'][0];
-
       $config->set('key', $sub['key'])
         ->set('identifier', $sub['identifier'])
         ->set('subscription_name', $sub['name'])
