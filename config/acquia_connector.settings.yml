@@ -16,3 +16,8 @@ debug: false
 cron_interval: 30
 verify_peer: false
 migrate_files: true
+hide_signup_messages: false
+ah:
+  network:
+    key: false
+    identifier: false

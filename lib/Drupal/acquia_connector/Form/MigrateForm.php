@@ -126,8 +126,6 @@ class MigrateForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, array &$form_state) {
-    module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
-
     // Sanity check.
     if (empty($form_state['values']['envs'])) {
       return;

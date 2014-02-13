@@ -58,3 +58,19 @@ acquia_connector.migrate_check:
     _title: 'Upload capable'
   requirements:
     _permission: 'access content'
+
+acquia_connector.send:
+  path: '/system/acquia-connector-send'
+  defaults:
+    _controller: '\Drupal\acquia_connector\Controller\SpiController::send'
+    _title: 'Acquia SPI send'
+  requirements:
+    _custom_access: '\Drupal\acquia_connector\Controller\SpiController::sendAccess'
+
+acquia_connector.test_validate:
+  path: '/system/acquia-connector-test-validate'
+  defaults:
+    _contoller: '\Drupal\acquia_connector\Controller\SpiController::testStatus'
+    _title: 'Acquia SPI Custom Test Validation'
+  requirements:
+    _permission: 'access site reports'

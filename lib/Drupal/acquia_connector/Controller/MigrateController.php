@@ -7,6 +7,7 @@
 
 namespace Drupal\acquia_connector\Controller;
 
+use Drupal\acquia_connector\Migration;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,22 +26,22 @@ class MigrateController extends ControllerBase {
     $key = $config->get('key');
 
     if (!empty($identifier) && !empty($key)) {
-      if (acquia_agent_valid_credentials($identifier, $key, $config->get('network_address'))) {
+      if (\Drupal::service('acquia_connector.client')->validateCredentials($identifier, $key)) {
         $form_builder = $this->formBuilder()->getForm('');
         $form_builder->setRequest($request);
 
-        return drupal_get_form('acquia_agent_migrate_form');
+        return $form_builder->getForm('\Drupal\acquia_connector\Form\MigrateForm');
       }
       else {
         $error = acquia_agent_connection_error_message();
       }
     }
     else {
-      $error = 'Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key.';
+      $error = $this->t('Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key.');
     }
 
     // If there was an error.
-    if (isset($error)) {
+    if (!empty($error)) {
       drupal_set_message($this->t('There was an error in communicating with Acquia.com. @err', array('@err' => $error)), 'error');
     }
 
@@ -52,7 +53,9 @@ class MigrateController extends ControllerBase {
    */
   public function migrateCheck() {
     $return = array('compatible' => TRUE);
-    $env = _acquia_migrate_check_env();
+
+    $migrate = new Migration();
+    $env = $migrate->checkEnv();
 
     if (empty($env) || $env['error'] !== FALSE) {
       $return['compatible'] = FALSE;

@@ -32,7 +32,9 @@ class StatusController extends ControllerBase {
   }
 
   /**
+   * Return JSON site status.
    *
+   * Used by Acquia uptime monitoring.
    */
   public function json() {
     // We don't want this page cached.
@@ -53,7 +55,7 @@ class StatusController extends ControllerBase {
   }
 
   /**
-   *
+   * Access callback for json() callback.
    */
   public function access(Request $request) {
     $query = $request->query->all();

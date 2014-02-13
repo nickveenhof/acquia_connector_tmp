@@ -67,6 +67,22 @@ function acquia_connector_help($path, $arg) {
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter()..
+ */
+function acquia_connector_form_system_modules_alter(&$form, &$form_state) {
+  if (isset($form['description']['acquia_search'])) {
+    $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+
+    if (!\Drupal::moduleHandler()->moduleExists('acquia_search') && empty($subscription['active'])) {
+      $form['status']['#disabled_modules'][] = 'acquia_search';
+      $text = 'Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>';
+      $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
+      $form['description']['acquia_search']['#value'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $message . '</div>' . $form['description']['acquia_search']['#value'];
+    }
+  }
+}
+
+/**
  * Implements hook_cron().
  */
 function acquia_connector_cron() {
@@ -88,33 +104,44 @@ function acquia_connector_cron() {
 }
 
 /**
- * Implements hook_toolbar_alter().
+ * Implements hook_toolbar().
  */
-function acquia_connector_toolbar_alter(&$items) {
-  $link = array();
+function acquia_connector_toolbar() {
+  $link = array(
+    '#type' => 'link',
+    '#options' => array(
+      'html' => TRUE
+    ),
+  );
+
   if (acquia_connector_subscription_is_active()) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
     if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
       $icon = '<img src="' . base_path() . 'core/misc/message-24-ok.png" alt="ok" style="vertical-align: middle;" />';
-      $link['title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
-      $link['attributes']['class'][] = "acquia-active-subscription";
-      $link['href'] = $subscription['href'];
+      $link['#title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
+      $link['#options']['attributes']['class'][] = "acquia-active-subscription";
+      $link['#href'] = $subscription['href'];
     }
   }
 
-  if (empty($link)) {
+  if (empty($link['#href'])) {
     // Yes, this uses inline CSS, which sounds bad, but including a CSS file
     // just for this sounds equally bad.
     $icon = '<img src="' . base_path() . 'core/misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
-    $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
-    $link['attributes']['class'][] = "acquia-inactive-subscription";
-    $link['href'] = 'http://acquia.com/network';
+    $link['#title'] = t("!icon Subscription not active", array('!icon' => $icon));
+    $link['#attributes']['class'][] = "acquia-inactive-subscription";
+    $link['#href'] = 'http://acquia.com/network';
   }
 
-  $link['html'] = TRUE;
-  $items['user']['tray']['user_links']['#links'] = array_merge(array('acquia_agent' => $link), $items['user']['tray']['user_links']['#links']);
+  return array(
+    'acquia_connector' => array(
+      '#type' => 'toolbar_item',
+      'tab' => $link,
+      '#weight' => 200,
+    ),
+  );
 }
 
 /**
@@ -225,7 +252,7 @@ function acquia_connector_subscription_is_active() {
   if (acquia_connector_has_credentials()) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
     // Make sure we have data at least once per day.
-    if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
+    if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > (60 * 60 * 24))) {
       $subscription = acquia_agent_get_subscription(array('no_heartbeat' => 1));
     }
     $active = !empty($subscription['active']);
@@ -295,6 +322,7 @@ function acquia_connector_get_platform() {
       $platform[$key] = '';
     }
   }
+
   return $platform;
 }
 
@@ -365,5 +393,6 @@ function acquia_connector_get_platform_mysql_data() {
 
     }
   }
+
   return $ret;
 }

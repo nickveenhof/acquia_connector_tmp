@@ -628,7 +628,7 @@ class Migration {
   /**
    * Remove files and directory created for migration.
    */
-  protected function cleanup(&$migration) {
+  public function cleanup(&$migration) {
     if (isset($migration['db_file'])) {
       $this->cleanupDb($migration);
     }

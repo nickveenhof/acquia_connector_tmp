@@ -25,42 +25,6 @@ define('SUBSCRIPTION_PROVISION_ERROR' , 9000);
 define('SUBSCRIPTION_MESSAGE_LIFETIME', 15*60);
 
 /**
- * Implements hook_init().
- */
-function acquia_agent_init() {
-  // Auto-connect with Acquia Cloud credentials if there's not currently a
-  // connection or credentials set.
-   if (!acquia_agent_has_credentials() && !variable_get('acquia_subscription_data', FALSE)
-      && variable_get('ah_network_key', FALSE) && variable_get('ah_network_identifier', FALSE)) {
-
-    variable_set('acquia_identifier', variable_get('ah_network_identifier', FALSE));
-    variable_set('acquia_key', variable_get('ah_network_key', FALSE));
-
-    $activated = acquia_agent_check_subscription();
-
-    if ($activated) {
-      $text = t('Your site has been automatically connected to the Acquia Network. <a href="!url">Change subscription</a>', array('!url' => url('admin/config/system/acquia-agent/setup')));
-      drupal_set_message($text, 'status', FALSE);
-    }
-  }
-
-  $request = ltrim(request_uri(), DIRECTORY_SEPARATOR);
-  $hide_signup_messages = variable_get('acquia_agent_hide_signup_messages', 0);
-  if (!$hide_signup_messages &&
-    (arg(0) != 'overlay-ajax') && (arg(3) != 'acquia-agent') &&
-    empty($_POST) &&  user_access('administer site configuration') &&
-    (!acquia_agent_has_credentials()) &&
-    (strpos($request, variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR . 'files')) !== 0)) {
-    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="!acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
-    if (isset($_SERVER['AH_SITE_GROUP'])) {
-      $text = '<a href="!settings">Connect your site to the Acquia Network now</a>. <a href="!more">Learn more</a>.';
-    }
-    $message = t($text, array('!acquia-free' => url('https://www.acquia.com/acquia-cloud-free'), '!settings' => url('admin/config/system/acquia-agent/setup')));
-    drupal_set_message($message, 'warning', FALSE);
-  }
-}
-
-/**
  * Get subscription status from the Acquia Network, and store the result.
  *
  * This check also sends a heartbeat to the Acquia Network unless
@@ -393,23 +357,6 @@ function acquia_agent_network_address($acquia_network_address = NULL) {
 function acquia_agent_load_versions() {
   // Include version number information.
   include_once 'acquia_agent_drupal_version.inc';
-}
-
-/**
- * Implementation of hook_form_[form_id]_alter()..
- */
-function acquia_agent_form_system_modules_alter(&$form, &$form_state) {
-
-  if (isset($form['description']['acquia_search'])) {
-    $subscription = acquia_agent_settings('acquia_subscription_data');
-
-    if (!module_exists('acquia_search') && empty($subscription['active'])) {
-      $form['status']['#disabled_modules'][] = 'acquia_search';
-      $text = 'Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>';
-      $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
-      $form['description']['acquia_search']['#value'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $message . '</div>' . $form['description']['acquia_search']['#value'];
-    }
-  }
 }
 
 /**

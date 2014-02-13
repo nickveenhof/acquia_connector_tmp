@@ -29,7 +29,7 @@ class StartController extends ControllerBase {
     );
 
     $banner = theme('image', array('uri' => $path . '/images/action.png'));
-    $banner = l($banner, 'admin/config/ system/acquia-agent/setup', array('html' => TRUE));
+    $banner = l($banner, 'admin/config/system/acquia-connector/setup', array('html' => TRUE, 'absolute' => TRUE));
 
     $output  = '<div class="an-wrapper">';
     $output .= '<h2 id="an-info-header">' . $this->t('Acquia Network', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';

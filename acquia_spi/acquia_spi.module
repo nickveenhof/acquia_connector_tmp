@@ -18,49 +18,6 @@ define('ACQUIA_SPI_METHOD_CREDS', 'creds');
 define('ACQUIA_SPI_METHOD_INSIGHT', 'insight');
 
 /**
- * Implements hook_menu().
- */
-function acquia_spi_menu() {
-  $items['system/acquia-spi-send'] = array(
-    'title' => 'Acquia SPI Send',
-    'description' => 'Send SPI data to Acquia Network.',
-    'page callback' => '_acquia_spi_send',
-    'access callback' => '_acquia_spi_send_access',
-  );
-  $items['system/acquia-spi-custom-test-validate'] = array(
-    'title'           => 'Acquia SPI Custom Test Validation',
-    'description'     => 'Perform a validation check on all Acquia SPI custom tests.',
-    'page callback'   => 'acquia_spi_test_status',
-    'page arguments'  => array(TRUE),
-    'access arguments' => array('access site reports'),
-  );
-
-  return $items;
-}
-
-/**
- * Implements hook_boot().
- */
-function acquia_spi_boot() {
-  // Store server information for SPI incase data is being sent from PHP CLI.
-  if (drupal_is_cli()) {
-    return;
-  }
-
-  // Get the last time we processed data.
-  $last = variable_get('acquia_spi_boot_last', 0);
-  // 60 minute interval for storing the global variable.
-  $interval = variable_get('acquia_spi_cron_interval', 60);
-  // Determine if the required interval has passed.
-  $now = REQUEST_TIME;
-  if ((($now - $last) > ($interval * 60))) {
-    $platform = acquia_spi_get_platform();
-    acquia_spi_data_store_set(array('platform' => $platform));
-    variable_set('acquia_spi_boot_last', $now);
-  }
-}
-
-/**
  * Put SPI data in local storage.
  *
  * @param array $data Keyed array of data to store.
@@ -91,55 +48,6 @@ function acquia_spi_data_store_get($keys) {
     }
   }
   return $store;
-}
-
-/**
- * Access callback check for SPI send independent call.
- */
-function _acquia_spi_send_access() {
-  $acquia_key = acquia_agent_settings('acquia_key');
-  if (!empty($acquia_key) && isset($_GET['key'])) {
-    $key = sha1(drupal_get_private_key());
-    if ($key === $_GET['key']) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-/**
- * Callback for sending SPI data.
- */
-function _acquia_spi_send() {
-  $method = ACQUIA_SPI_METHOD_CALLBACK;
-  // Insight's set variable feature will pass method insight.
-  if (isset($_GET['method']) && $_GET['method'] === ACQUIA_SPI_METHOD_INSIGHT) {
-    $method = ACQUIA_SPI_METHOD_INSIGHT;
-  }
-
-  $response = acquia_connector_send_full_spi($method);
-
-  if (isset($_GET['destination'])) {
-    if (!empty($response)) {
-      $message = array();
-      if (isset($response['spi_data_received']) && $response['spi_data_received'] === TRUE) {
-        $message[] = t('SPI data sent.');
-      }
-      if (!empty($response['nspi_messages'])) {
-        $message[] = t('Acquia Network returned the following messages. Further information may be in the logs.');
-        foreach ($response['nspi_messages'] as $nspi_message) {
-          $message[] = check_plain($nspi_message);
-        }
-      }
-      drupal_set_message(implode('<br/>', $message));
-    }
-    else {
-      drupal_set_message(t('Error sending SPI data. Consult the logs for more information.'), 'error');
-    }
-    drupal_goto();
-  }
-  // If destination was not sent the call is via cron so close request and exit.
-  drupal_exit();
 }
 
 /**
@@ -583,139 +491,6 @@ function acquia_spi_test_modules_enabled($modules) {
   }
 }
 
-
-/**
- * Determines the status of all user-contributed tests and logs any failures to
- * a tracking table.
- *
- * @param boolean $log
- *  (Optional) If TRUE, log all failures.
- *
- * @return array $custom_data
- *  An associative array containing any tests which failed validation.
- *
- */
-function acquia_spi_test_status($log = FALSE) {
-
-  $custom_data = array();
-
-  // Iterate through modules which contain hook_acquia_spi_test().
-  foreach (module_implements('acquia_spi_test') as $module) {
-    $function = $module . '_acquia_spi_test';
-    if (function_exists($function)) {
-      $result = acquia_spi_test_validate($function());
-
-      if (!$result['result']) {
-        $custom_data[$module] = $result;
-
-        foreach ($result['failure'] as $test_name => $test_failures) {
-          foreach ($test_failures as $test_param => $test_value) {
-            $variables = array(
-              '!module' => $module,
-              '@message'     => $test_value['message'],
-              '!param_name'  => $test_param,
-              '!test'   => $test_name,
-              '!value'       => $test_value['value'],
-            );
-
-            // Only log if we're performing a full validation check.
-            if ($log) {
-              drupal_set_message(t("Custom test validation failed for !test in !module and has been logged: @message for parameter '!param_name'; current value '!value'.", $variables), 'error');
-              watchdog('acquia spi test', "<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables, WATCHDOG_WARNING);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // If a full validation check is being performed, go to the status page to
-  // show the results.
-  if ($log) {
-    drupal_goto('admin/reports/status');
-  }
-
-  return $custom_data;
-}
-
-/**
- * Validates data from custom test callbacks.
- *
- * @param array $collection
- *  An associative array containing a collection of user-contributed tests.
- *
- * @return array
- *  An associative array containing the validation result of the given tests,
- *  along with any failed parameters.
- *
- */
-function acquia_spi_test_validate($collection) {
-
-  $result = TRUE;
-  $check_result_value = array();
-
-  // Load valid categories and severities.
-  $categories = array('performance', 'security', 'best_practices');
-  $severities = array(0, 1, 2, 4, 8, 16, 32, 64, 128);
-
-  foreach ($collection as $machine_name => $tests) {
-    foreach ($tests as $check_name => $check_value) {
-      $fail_value = '';
-      $message    = '';
-
-      $check_name  = strtolower($check_name);
-      $check_value = (is_string($check_value)) ? strtolower($check_value) : $check_value;
-
-      // Validate the data inputs for each check.
-      switch ($check_name) {
-        case 'category':
-          if (!is_string($check_value) || !in_array($check_value, $categories)) {
-            $type       = gettype($check_value);
-            $fail_value = "$check_value ($type)";
-            $message    = 'Value must be a string and one of ' . implode(', ', $categories);
-          }
-          break;
-
-        case 'solved':
-          if (!is_bool($check_value)) {
-            $type       = gettype($check_value);
-            $fail_value = "$check_value ($type)";
-            $message    = 'Value must be a boolean';
-          }
-          break;
-
-        case 'severity':
-          if (!is_int($check_value) || !in_array($check_value, $severities)) {
-            $type       = gettype($check_value);
-            $fail_value = "$check_value ($type)";
-            $message    = 'Value must be an integer and set to one of ' . implode(', ', $severities);
-          }
-          break;
-
-        default:
-          if (!is_string($check_value) || strlen($check_value) > 1024) {
-            $type       = gettype($check_value);
-            $fail_value = "$check_value ($type)";
-            $message    = 'Value must be a string and no more than 1024 characters';
-          }
-          break;
-      }
-
-      if (!empty($fail_value) && !empty($message)) {
-        $check_result_value['failed'][$machine_name][$check_name]['value']   = $fail_value;
-        $check_result_value['failed'][$machine_name][$check_name]['message'] = $message;
-      }
-    }
-  }
-
-  // If there were any failures, the test has failed. Into exile it must go.
-  if (!empty($check_result_value)) {
-    $result = FALSE;
-  }
-
-  return array('result' => $result, 'failure' => (isset($check_result_value['failed'])) ? $check_result_value['failed'] : array());
-}
-
 /**
  * Attempt to determine the version of Drupal being used.
  * Note, there is better information on this in the common.inc file.
@@ -866,11 +641,10 @@ function acquia_spi_check_files_present() {
 }
 
 /**
- * Get lsat 15 users created--useful for determining if your site is comprimised
+ * Get last 15 users created. Useful for determining if your site is compromised.
  *
- * @param n/a
- *
- * @return array of the details of last 15 users created
+ * @return array
+ *   The details of last 15 users created.
  */
 function acquai_spi_get_last_users() {
   $last_five_users = array();

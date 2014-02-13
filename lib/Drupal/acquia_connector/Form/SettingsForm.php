@@ -7,6 +7,7 @@
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\acquia_connector\Client;
+use Drupal\acquia_connector\Migration;
 use Drupal\Core\Url;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -110,7 +111,7 @@ class SettingsForm extends ConfigFormBase {
     );
     if (!empty($subscription)) {
       $form['subscription'] = array(
-        '#markup' => $this->t('Subscription: @sub <a href="!url">change</a>', array('@sub' => $subscription, '!url' => url('admin/config/system/acquia-agent/setup'))),
+        '#markup' => $this->t('Subscription: @sub <a href="!url">change</a>', array('@sub' => $subscription, '!url' => $this->url('acquia_connector.setup'))),
       );
     }
     $form['connection'] = array(
@@ -230,7 +231,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('admin_priv', $values['admin_priv'])
       ->set('send_node_user', $values['send_node_user'])
       ->set('send_watchdog', $values['send_watchdog'])
-      ->set('use_cron', $values['spi_use_cron'])
+      ->set('use_cron', $values['use_cron'])
       ->set('set_variables_override', $values['alter_variables'])
       ->save();
 
@@ -249,9 +250,9 @@ class SettingsForm extends ConfigFormBase {
    * @param $form_state
    */
   public function submitMigrateCleanupForm($form, &$form_state) {
-    module_load_include('inc', 'acquia_agent', 'acquia_agent.migrate');
     $migration = $this->config('acquia_connector.settings')->get('cloud_migration');
-    _acquia_migrate_cleanup($migration);
+    $migration_class = new Migration();
+    $migration_class->cleanup($migration);
     drupal_set_message($this->t('Temporary files removed'));
     $form_state['redirect'] = new Url('acquia_connector.settings');
   }
