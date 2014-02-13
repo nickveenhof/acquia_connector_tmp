@@ -19,6 +19,19 @@ use Symfony\Component\HttpFoundation\Request;
 class StatusController extends ControllerBase {
 
   /**
+   * Menu callback for 'admin/config/system/acquia-agent/refresh-status'.
+   */
+  public function refresh() {
+    // Refresh subscription information, so we are sure about our update status.
+    // We send a heartbeat here so that all of our status information gets
+    // updated locally via the return data.
+    acquia_agent_check_subscription();
+
+    // Return to the setting pages (or destination).
+    $this->redirect('acquia_connector.settings');
+  }
+
+  /**
    *
    */
   public function json() {
@@ -100,6 +113,7 @@ class StatusController extends ControllerBase {
     $parts = explode('/', $url['path']);
     // Remove '/dashboard'.
     array_pop($parts);
+
     return end($parts);
   }
 

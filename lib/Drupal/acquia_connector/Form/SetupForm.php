@@ -19,7 +19,7 @@ class SetupForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'acquia_agent_automatic_setup_form';
+    return 'acquia_connector_automatic_setup_form';
   }
 
   /**
@@ -50,7 +50,7 @@ class SetupForm extends ConfigFormBase {
       'pass' => array(
         '#type' => 'password',
         '#title' => $this->t('Enter your Acquia Network password:'),
-        '#description' => t('Your password will not be stored locally and will be sent securely to Acquia.com. <a href="!url" target="_blank">Forgot password?</a>', array('!url' => url('https://accounts.acquia.com/user/password'))),
+        '#description' => $this->t('Your password will not be stored locally and will be sent securely to Acquia.com. <a href="!url" target="_blank">Forgot password?</a>', array('!url' => url('https://accounts.acquia.com/user/password'))),
         '#size' => 32,
         '#required' => TRUE,
       ),

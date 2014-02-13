@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -40,9 +41,25 @@ class MigrateController extends ControllerBase {
 
     // If there was an error.
     if (isset($error)) {
-      drupal_set_message(t('There was an error in communicating with Acquia.com. @err', array('@err' => $error)), 'error');
+      drupal_set_message($this->t('There was an error in communicating with Acquia.com. @err', array('@err' => $error)), 'error');
     }
-    drupal_goto('admin/config/system/acquia-agent');
+
+    $this->redirect('acquia_connector.settings');
+  }
+
+  /**
+   * Menu callback for checking client upload.
+   */
+  public function migrateCheck() {
+    $return = array('compatible' => TRUE);
+    $env = _acquia_migrate_check_env();
+
+    if (empty($env) || $env['error'] !== FALSE) {
+      $return['compatible'] = FALSE;
+      $return['message'] = $env['error'];
+    }
+
+    return new JsonResponse($return);
   }
 
 }

@@ -14,3 +14,5 @@ module_diff_data: true
 set_variables_override: true
 debug: false
 cron_interval: 30
+verify_peer: false
+migrate_files: true

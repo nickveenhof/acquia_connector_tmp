@@ -6,7 +6,7 @@
 
 namespace Drupal\acquia_connector\Form;
 
-use Drupal\Component\Utility\Url;
+use Drupal\Core\Url;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -65,7 +65,7 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'acquia_agent_settings_form';
+    return 'acquia_connector_settings_form';
   }
 
   /**
@@ -78,19 +78,16 @@ class SettingsForm extends ConfigFormBase {
     $key = $config->get('key');
     $subscription = $config->get('subscription_name');
 
-    if (empty($_POST)) {
-      // Check our connection to the Acquia Network and validity of the credentials.
-      $acquia_network_address = $config->get('network_address');
+    // Check our connection to the Acquia Network and validity of the credentials.
+    $acquia_network_address = $config->get('network_address');
 
-// @todo !!
-//      if (!acquia_agent_valid_credentials($identifier, $key, $acquia_network_address)) {
-//        $error_message = acquia_agent_connection_error_message();
-//        $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && variable_get('acquia_agent_verify_peer', 0);
-//        if (empty($error_message) && $ssl_available) {
-//          $error_message = 'There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_agent_verify_peer to false.';
-//        }
-//        drupal_set_message(t($error_message), 'error', FALSE);
-//      }
+    if (!acquia_agent_valid_credentials($identifier, $key, $acquia_network_address)) {
+      $error_message = acquia_agent_connection_error_message();
+      $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('verify_peer');
+      if (empty($error_message) && $ssl_available) {
+        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_agent_verify_peer to false.');
+      }
+      drupal_set_message($error_message, 'error', FALSE);
     }
 
     $form['connected'] = array(
@@ -229,8 +226,7 @@ class SettingsForm extends ConfigFormBase {
    * Submit handler for Migrate button on settings form.
    */
   public function submitMigrateGoForm($form, &$form_state) {
-    // @todo Convert to Url value class when route exists.
-    $form_state['redirect'] = array('admin/config/system/acquia-agent/migrate');
+    $form_state['redirect'] = new Url('acquia_connector.migrate');
   }
 
   /**

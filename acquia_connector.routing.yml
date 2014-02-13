@@ -7,10 +7,18 @@ acquia_connector.settings:
     _permission: 'administer site configuration'
 
 acquia_connector.setup:
-  path: 'admin/config/system/acquia-agent/setup'
+  path: '/admin/config/system/acquia-agent/setup'
   defaults:
     _form: '\Drupal\acquia_connector\Form\SetupForm'
     _title: 'Acquia Network automatic setup'
+  requirements:
+    _permission: 'administer site configuration'
+
+acquia_connector.credentials:
+  path: '/admin/config/system/acquia-agent/credentials'
+  defaults:
+    _form: '\Drupal\acquia_connector\Form\CredentialForm'
+    _title: 'Acquia Network credentials'
   requirements:
     _permission: 'administer site configuration'
 
@@ -21,10 +29,26 @@ acquia_connector.status:
   requirements:
     _custom_access: '\Drupal\acquia_connector\Controller\StatusController::access'
 
+acquia_connector.refresh_status:
+  path: '/admin/config/system/acquia-agent/refresh-status'
+  defaults:
+    _controller: '\Drupal\acquia_connector\Controller\StatusController::refresh'
+    _title: 'Manual update check'
+  requirements:
+    _permission: 'administer site configuration'
+
 acquia_connector.migrate:
-  path: 'admin/config/system/acquia-agent/migrate'
+  path: '/admin/config/system/acquia-agent/migrate'
   defaults:
     _content: '\Drupal\acquia_connector\Controller\MigrateController::migratePage'
     _title: 'Acquia Cloud Migrate'
   requirements:
     _permission: 'administer site configuration'
+
+acquia_connector.migrate_check:
+  path: '/system/acquia-migrate-check'
+  defaults:
+    _content: '\Drupal\acquia_connector\Controller\MigrateController::migrateCheck'
+    _title: 'Upload capable'
+  requirements:
+    _permission: 'access content'

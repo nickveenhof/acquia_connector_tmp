@@ -171,93 +171,6 @@ function acquia_agent_settings_page($arg = NULL) {
   }
 }
 
-function acquia_agent_settings_credentials($form, &$form_state) {
-  $form = array();
-  $identifier = acquia_agent_settings('acquia_identifier');
-  $key = acquia_agent_settings('acquia_key');
-
-  $form['#prefix'] = t('Enter your <a href="!net">identifer and key</a> from your subscriptions overview or <a href="!url">log in</a> to connect your site to the Acquia Network.', array('!net' => url('https://insight.acquia.com/subscriptions'), '!url' => url('admin/config/system/acquia-agent/setup')));
-  $form['acquia_identifier'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Identifier'),
-    '#default_value' => $identifier,
-    '#required' => TRUE,
-  );
-  $form['acquia_key'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Network key'),
-    '#default_value' => $key,
-    '#required' => TRUE,
-  );
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Connect'),
-  );
-  $form['actions']['signup'] = array(
-    '#markup' => t('Need a subscription? <a href="!url">Get one</a>.', array('!url' => url('https://www.acquia.com/acquia-cloud-free'))),
-  );
-
-  return $form;
-}
-
-/**
- * Validate credentials form submit.
- */
-function acquia_agent_settings_credentials_validate($form, &$form_state) {
-  // Trim all input to get rid of possible whitespace pasted from the website.
-  foreach ($form_state['values'] as $key => $value) {
-    $form_state['values'][$key] = trim($value);
-  }
-  $identifier = $form_state['values']['acquia_identifier'];
-  $key = $form_state['values']['acquia_key'];
-  // Validate credentials and get subscription name.
-  $body = array('identifier' => $identifier);
-  $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, variable_get('acquia_network_address', 'https://rpc.acquia.com'));
-
-  $error = NULL;
-  if ($errno = xmlrpc_errno()) {
-    acquia_agent_report_xmlrpc_error();
-    // Set form error to prevent switching to the next page.
-    form_set_error('');
-  }
-  elseif (!$data || !isset($data['result'])) {
-    form_set_error('', t('Server error, please submit again.'));
-  }
-  $result = $data['result'];
-  if (!empty($result['is_error'])) {
-    form_set_error('', t('Server error, please submit again.'));
-  }
-  elseif (isset($result['body']['error'])) {
-    form_set_error('', $result['body']['error']);
-  }
-  elseif (empty($result['body']['subscription'])) {
-    form_set_error('acquia_identifier', t('No subscriptions were found.'));
-  }
-  else {
-    // Store subscription.
-    $form_state['sub'] = $result['body']['subscription'];
-  }
-}
-
-/**
- * Save credentials form submissions.
- */
-function acquia_agent_settings_credentials_submit($form, &$form_state) {
-  variable_set('acquia_key', $form_state['values']['acquia_key']);
-  variable_set('acquia_identifier', $form_state['values']['acquia_identifier']);
-  variable_set('acquia_subscription_name', $form_state['sub']['site_name']);
-  // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
-  // Our status gets updated locally via the return data.
-  $active = acquia_agent_check_subscription();
-  // Redirect to the path without the suffix.
-  $form_state['redirect'] = array('admin/config/system/acquia-agent');
-  cache_clear_all();
-  if ($active && count($active) > 1) {
-    drupal_set_message(t('<h3>Connection successful!</h3>You are now connected to the Acquia Network.'));
-  }
-}
-
 /**
  * Set subscription name and clear cache. Requires key and id to be set.
  */
@@ -294,13 +207,6 @@ function _acquia_agent_setup_subscription_name() {
     drupal_set_message(t('Unable to automatically set subscription name, please reconnect to your subscription.'), 'error');
     drupal_goto('admin/config/system/acquia-agent/setup');
   }
-}
-
-/**
- * Submit handler for Cancel button on migrate form.
- */
-function acquia_agent_migrate_cancel_submit($form, &$form_state) {
-  $form_state['redirect'] = array('admin/config/system/acquia-agent');
 }
 
 /**

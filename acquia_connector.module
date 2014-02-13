@@ -57,6 +57,100 @@ function acquia_connector_cron() {
 }
 
 /**
+ * Implements hook_toolbar_alter().
+ */
+function acquia_connector_toolbar_alter(&$items) {
+  $link = array();
+  if (acquia_connector_subscription_is_active()) {
+    $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+    if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
+      // Yes, this uses inline CSS, which sounds bad, but including a CSS file
+      // just for this sounds equally bad.
+      $icon = '<img src="' . base_path() . 'core/misc/message-24-ok.png" alt="ok" style="vertical-align: middle;" />';
+      $link['title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
+      $link['attributes']['class'][] = "acquia-active-subscription";
+      $link['href'] = $subscription['href'];
+    }
+  }
+
+  if (empty($link)) {
+    // Yes, this uses inline CSS, which sounds bad, but including a CSS file
+    // just for this sounds equally bad.
+    $icon = '<img src="' . base_path() . 'core/misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
+    $link['title'] = t("!icon Subscription not active", array('!icon' => $icon));
+    $link['attributes']['class'][] = "acquia-inactive-subscription";
+    $link['href'] = 'http://acquia.com/network';
+  }
+
+  $link['html'] = TRUE;
+  $items['user']['tray']['user_links']['#links'] = array_merge(array('acquia_agent' => $link), $items['user']['tray']['user_links']['#links']);
+}
+
+/**
+ * Implements hook_update_status_alter().
+ *
+ * This compares the array of computed information about projects that are
+ * missing available updates with the saved settings. If the settings specify
+ * that a particular project or release should be ignored, the status for that
+ * project is altered to indicate it is ignored because of settings.
+ *
+ * @param $projects
+ *   Reference to an array of information about available updates to each
+ *   project installed on the system.
+ *
+ * @see update_calculate_project_data()
+ */
+function acquia_connector_update_status_alter(&$projects) {
+  if (!$subscription = acquia_agent_has_update_service()) {
+    // Get subscription data or return if the service is not enabled.
+    return;
+  }
+
+  foreach ($projects as $project => $project_info) {
+    if ($project == 'drupal') {
+      if (isset($subscription['update'])) {
+        $projects[$project]['status'] = isset($subscription['update']['status']) ? $subscription['update']['status'] : t('Unknown');
+        $projects[$project]['releases'] = isset($subscription['update']['releases']) ? $subscription['update']['releases'] : array();
+        $projects[$project]['recommended'] = isset($subscription['update']['recommended']) ? $subscription['update']['recommended'] : '';
+        $projects[$project]['latest_version'] = isset($subscription['update']['latest_version']) ? $subscription['update']['latest_version'] : '';
+        // Security updates are a separate piece of data.  If we leave it, then core
+        // security warnings from druapl.org will also be displayed on the update page.
+        unset($projects[$project]['security updates']);
+      }
+      else {
+        $projects[$project]['status'] = UPDATE_NOT_CHECKED;
+        $projects[$project]['reason'] = t('No information available from the Acquia Network');
+        unset($projects[$project]['releases']);
+        unset($projects[$project]['recommended']);
+      }
+      $projects[$project]['link'] = 'http://acquia.com/products-services/acquia-drupal';
+      $projects[$project]['title'] = 'Acquia Drupal';
+      $projects[$project]['existing_version'] = ACQUIA_DRUPAL_VERSION;
+      $projects[$project]['install_type'] = 'official';
+      unset($projects[$project]['extra']);
+    }
+    elseif ($project_info['datestamp'] == 'acquia drupal') {
+      $projects['drupal']['includes'][$project] = !empty($project_info['title']) ? $project_info['title'] : '';
+      unset($projects[$project]);
+    }
+  }
+}
+
+/**
+ * Implements hook_system_info_alter()
+ */
+function acquia_connector_system_info_alter(&$info) {
+//  if (!$subscription = acquia_agent_has_update_service()) {
+//    // Get subscription data or return if the service is not enabled.
+//    return;
+//  }
+//
+//  if (isset($info['acquia'])) {
+//    // Slight hack - the datestamp field is carried through by update.module.
+//    $info['datestamp'] = 'acquia drupal';
+//  }
+}
+/**
  * Gather full SPI data and send to Acquia Network.
  *
  * @param string $method Optional identifier for the method initiating request.
@@ -81,4 +175,29 @@ function acquia_connector_send_full_spi($method = '') {
   \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
 
   return $result;
+}
+
+/**
+ * Helper function to check if an identifer and key exist.
+ */
+function acquia_connector_has_credentials() {
+  $config = \Drupal::config('acquia_connector.settings');
+  return $config->get('identifier') && $config->get('key');
+}
+
+/**
+ * Helper function to check if the site has an active subscription.
+ */
+function acquia_connector_subscription_is_active() {
+  $active = FALSE;
+  // Subscription cannot be active if we have no credentials.
+  if (acquia_connector_has_credentials()) {
+    $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+    // Make sure we have data at least once per day.
+    if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
+      $subscription = acquia_agent_get_subscription(array('no_heartbeat' => 1));
+    }
+    $active = !empty($subscription['active']);
+  }
+  return $active;
 }
