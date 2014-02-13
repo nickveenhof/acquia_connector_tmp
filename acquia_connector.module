@@ -1,5 +1,24 @@
 <?php
 
+use Drupal\Core\Database\Database;
+
+/**
+ * Implements hook_menu().
+ */
+function acquia_connector_menu_link_defaults() {
+  $items = array();
+
+  $items['acquia_connector.settings'] = array(
+    'link_title' => 'Acquia connector settings',
+    'parent' => 'system.admin.config.system',
+    'description' => 'Acquia connector settings.',
+    'route_name' => 'acquia_connector.settings',
+    'weight' => -20,
+  );
+
+  return $items;
+}
+
 /**
  * Implements hook_help().
  */
@@ -31,6 +50,18 @@ function acquia_connector_help($path, $arg) {
       $output .= '<dd>' . t('As part of the Acquia Insight service, some variables can be corrected to their recommended settings from within the Insight system. The list of variables that can be corrected can also be updated at your discretion.') . '</dd>';
       $output .= '</dl>';
 
+//      $welcome_nid = variable_get('acquia_welcome', 0);
+//      if ($path == 'admin/help#acquia_spi' && $welcome_nid) {
+//        // Only provide help text if the welcome message is avalailable.
+//        if ($nid = db_query('SELECT nid FROM {node} where nid = :nid', array(':nid' => $welcome_nid))->fetchField()) {
+//          $txt = 'The !acquia_welcome provides information about how to '
+//            . 'quickly get your site up and running.  Also there are instructions for '
+//            . 'setting the site theme as well as many other configuration tasks.';
+//          $link = l('Acquia Drupal welcome page', 'node/' . $nid);
+//          return '<p>' . t($txt, array('!acquia_welcome' => $link)) . '<p>';
+//        }
+//      }
+
       return $output;
   }
 }
@@ -52,7 +83,7 @@ function acquia_connector_cron() {
 
   // Determine if the required interval has passed.
   if ($config->get('use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
-    $ret = acquia_connector_send_full_spi(ACQUIA_SPI_METHOD_CRON);
+    acquia_connector_send_full_spi(ACQUIA_SPI_METHOD_CRON);
   }
 }
 
@@ -200,4 +231,139 @@ function acquia_connector_subscription_is_active() {
     $active = !empty($subscription['active']);
   }
   return $active;
+}
+
+/**
+ * Gather platform specific information.
+ *
+ * @return
+ *   An associative array keyed by a platform information type.
+ */
+function acquia_connector_get_platform() {
+  $server = \Drupal::request()->server;
+  // Database detection depends on the structure starting with the database
+  $db_class = '\Drupal\Core\Database\Driver\\' . Database::getConnection()->driver() . '\Install\Tasks';
+  $db_tasks = new $db_class();
+  // Webserver detection is based on name being before the slash, and
+  // version being after the slash.
+  preg_match('!^([^/]+)(/.+)?$!', $server->get('SERVER_SOFTWARE'), $webserver);
+
+  if (isset($webserver[1]) && stristr($webserver[1], 'Apache') && function_exists('apache_get_version')) {
+    $webserver[2] = apache_get_version();
+    $apache_modules = apache_get_modules();
+  }
+  else {
+    $apache_modules = '';
+  }
+
+  // Get some basic PHP vars
+  $php_quantum = array(
+    'memory_limit' => ini_get('memory_limit'),
+    'register_globals' => ini_get('register_globals'),
+    'post_max_size' => ini_get('post_max_size'),
+    'max_execution_time' => ini_get('max_execution_time'),
+    'upload_max_filesize' => ini_get('upload_max_filesize'),
+    'error_log' => ini_get('error_log'),
+    'error_reporting' => ini_get('error_reporting'),
+    'display_errors' => ini_get('display_errors'),
+    'log_errors' => ini_get('log_errors'),
+    'session.cookie_domain' => ini_get('session.cookie_domain'),
+    'session.cookie_lifetime' => ini_get('session.cookie_lifetime'),
+    'newrelic.appname' => ini_get('newrelic.appname'),
+    'SERVER' => $server,
+    'sapi' => php_sapi_name(),
+  );
+
+  $platform = array(
+    'php'               => PHP_VERSION,
+    'webserver_type'    => isset($webserver[1]) ? $webserver[1] : '',
+    'webserver_version' => isset($webserver[2]) ? $webserver[2] : '',
+    'apache_modules'    => $apache_modules,
+    'php_extensions'    => get_loaded_extensions(),
+    'php_quantum'       => $php_quantum,
+    'database_type'     => $db_tasks->name(),
+    'database_version'  => Database::getConnection()->version(),
+    'system_type'       => php_uname('s'),
+    // php_uname() only accepts one character, so we need to concatenate ourselves.
+    'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
+    'mysql'             => (Database::getConnection()->driver() == 'mysql') ? acquia_connector_get_platform_mysql_data() : array(),
+  );
+
+  // Never send NULL (or FALSE?) - that causes hmac errors.
+  foreach ($platform as $key => $value) {
+    if (empty($platform[$key])) {
+      $platform[$key] = '';
+    }
+  }
+  return $platform;
+}
+
+/**
+ * @return array
+ */
+function acquia_connector_get_platform_mysql_data() {
+  $connection = Database::getConnection('default');
+  $result = $connection->query('SHOW GLOBAL STATUS', array(), array());
+
+  $ret = array();
+  if (empty($result)) {
+    return $ret;
+  }
+  foreach ($result as $record) {
+    if (!isset($record->variable_name)) {
+      continue;
+    }
+    switch ($record->variable_name) {
+      case 'Table_locks_waited':
+        $ret['Table_locks_waited'] = $record->value;
+        break;
+      case 'Slow_queries':
+        $ret['Slow_queries'] = $record->value;
+        break;
+      case 'Qcache_hits':
+        $ret['Qcache_hits'] = $record->value;
+        break;
+      case 'Qcache_inserts':
+        $ret['Qcache_inserts'] = $record->value;
+        break;
+      case 'Qcache_queries_in_cache':
+        $ret['Qcache_queries_in_cache'] = $record->value;
+        break;
+      case 'Qcache_lowmem_prunes':
+        $ret['Qcache_lowmem_prunes'] = $record->value;
+        break;
+      case 'Open_tables':
+        $ret['Open_tables'] = $record->value;
+        break;
+      case 'Opened_tables':
+        $ret['Opened_tables'] = $record->value;
+        break;
+      case 'Select_scan':
+        $ret['Select_scan'] = $record->value;
+        break;
+      case 'Select_full_join':
+        $ret['Select_full_join'] = $record->value;
+        break;
+      case 'Select_range_check':
+        $ret['Select_range_check'] = $record->value;
+        break;
+      case 'Created_tmp_disk_tables':
+        $ret['Created_tmp_disk_tables'] = $record->value;
+        break;
+      case 'Created_tmp_tables':
+        $ret['Created_tmp_tables'] = $record->value;
+        break;
+      case 'Handler_read_rnd_next':
+        $ret['Handler_read_rnd_next'] = $record->value;
+        break;
+      case 'Sort_merge_passes':
+        $ret['Sort_merge_passes'] = $record->value;
+        break;
+      case 'Qcache_not_cached':
+        $ret['Qcache_not_cached'] = $record->value;
+        break;
+
+    }
+  }
+  return $ret;
 }

@@ -7,6 +7,8 @@
 
 namespace Drupal\acquia_connector;
 
+use Guzzle\Http\ClientInterface;
+
 /**
  * Class Migration.
  */
@@ -129,16 +131,16 @@ class Migration {
       'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
     );
 
-    $response = drupal_http_request($url, array('headers' => $headers, 'max_redirects' => 0));
+    $response = \Drupal::service('http_default_client')->get($url, $headers, array('follow_redirects' => FALSE))->send();
 
-    if ($response->code != 200) {
+    if ($response->isSuccessful()) {
       $migration['error'] = t('Unable to connect to migration destination site, please contact Acquia Support.');
       return FALSE;
     }
 
     // A 200 response with body 'invalid request' is returned from the AH_UPLOAD
     // script if receiving a GET request.
-    if (strpos($url, 'AH_UPLOAD') !== FALSE && trim($response->data) != 'invalid request') {
+    if (strpos($url, 'AH_UPLOAD') !== FALSE && trim($response->getBody()) != 'invalid request') {
       $migration['error'] = t('Unable to connect to migration destination site, please contact Acquia Support.');
       return FALSE;
     }

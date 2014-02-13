@@ -151,7 +151,7 @@ function acquia_agent_settings_page($arg = NULL) {
   $subscription = acquia_agent_settings('acquia_subscription_name');
   $path = drupal_get_path('module', 'acquia_agent');
 
-  drupal_add_css($path . '/css/acquia_agent.css');
+  drupal_add_css($path . '/css/acquia_connector.css');
 
   if (empty($identifier) && empty($key) && $arg != 'setup') {
     drupal_set_title(t('Get an Acquia Cloud Free subscription'));

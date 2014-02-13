@@ -2,20 +2,26 @@ acquia_connector.settings:
   path: '/admin/config/system/acquia-connector'
   defaults:
     _form: '\Drupal\acquia_connector\Form\SettingsForm'
-    _title: 'Acquia Network settings'
   requirements:
     _permission: 'administer site configuration'
 
 acquia_connector.setup:
-  path: '/admin/config/system/acquia-agent/setup'
+  path: '/admin/config/system/acquia-connector/setup'
   defaults:
     _form: '\Drupal\acquia_connector\Form\SetupForm'
     _title: 'Acquia Network automatic setup'
   requirements:
     _permission: 'administer site configuration'
 
+acquia_connector.start:
+  path: '/admin/config/system/acquia-connector/start'
+  defaults:
+    _content: '\Drupal\acquia_connector\Controller\StartController::info'
+  requirements:
+    _permission: 'administer site configuration'
+
 acquia_connector.credentials:
-  path: '/admin/config/system/acquia-agent/credentials'
+  path: '/admin/config/system/acquia-connector/credentials'
   defaults:
     _form: '\Drupal\acquia_connector\Form\CredentialForm'
     _title: 'Acquia Network credentials'
@@ -30,7 +36,7 @@ acquia_connector.status:
     _custom_access: '\Drupal\acquia_connector\Controller\StatusController::access'
 
 acquia_connector.refresh_status:
-  path: '/admin/config/system/acquia-agent/refresh-status'
+  path: '/admin/config/system/acquia-connector/refresh-status'
   defaults:
     _controller: '\Drupal\acquia_connector\Controller\StatusController::refresh'
     _title: 'Manual update check'

@@ -6,12 +6,14 @@
 
 namespace Drupal\acquia_connector\Form;
 
+use Drupal\acquia_connector\Client;
 use Drupal\Core\Url;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\PrivateKey;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -34,6 +36,13 @@ class SettingsForm extends ConfigFormBase {
   protected $privateKey;
 
   /**
+   * The Acquia connector client.
+   *
+   * @var \Drupal\acquia_connector\Client
+   */
+  protected $client;
+
+  /**
    * Constructs a \Drupal\aggregator\SettingsForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactory $config_factory
@@ -42,12 +51,15 @@ class SettingsForm extends ConfigFormBase {
    *   The module handler.
    * @param \Drupal\Core\PrivateKey $private_key
    *   The private key.
+   * @param \Drupal\acquia_connector\Client $client
+   *   The Acquia client.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, PrivateKey $private_key) {
+  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, PrivateKey $private_key, Client $client) {
     parent::__construct($config_factory);
 
     $this->moduleHandler = $module_handler;
     $this->privateKey = $private_key;
+    $this->client = $client;
   }
 
   /**
@@ -57,7 +69,8 @@ class SettingsForm extends ConfigFormBase {
     return new static(
       $container->get('config.factory'),
       $container->get('module_handler'),
-      $container->get('private_key')
+      $container->get('private_key'),
+      $container->get('acquia_connector.client')
     );
   }
 
@@ -78,11 +91,13 @@ class SettingsForm extends ConfigFormBase {
     $key = $config->get('key');
     $subscription = $config->get('subscription_name');
 
-    // Check our connection to the Acquia Network and validity of the credentials.
-    $acquia_network_address = $config->get('network_address');
+    if (empty($identifier) && empty($key)) {
+      return new RedirectResponse($this->url('acquia_connector.start'));
+    }
 
-    if (!acquia_agent_valid_credentials($identifier, $key, $acquia_network_address)) {
-      $error_message = acquia_agent_connection_error_message();
+    // Check our connection to the Acquia Network and validity of the credentials.
+    if (!$this->client->validateCredentials($identifier, $key)) {
+      $error_message = array(); // acquia_agent_connection_error_message();
       $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('verify_peer');
       if (empty($error_message) && $ssl_available) {
         $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_agent_verify_peer to false.');
@@ -159,14 +174,14 @@ class SettingsForm extends ConfigFormBase {
       $form['connection']['spi']['module_diff_data'] = array(
         '#type' => 'checkbox',
         '#title' => t('Source code'),
-        '#default_value' => (int)$config->get('module_diff_data', 1) && $ssl_available,
+        '#default_value' => (int) $config->get('module_diff_data', 1) && $ssl_available,
         '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
         '#disabled' => !$ssl_available,
       );
       $form['connection']['alter_variables'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Allow Insight to update list of approved variables.'),
-        '#default_value' => (int)$config->get('set_variables_override', 0),
+        '#default_value' => (int) $config->get('set_variables_override', 0),
         '#description' => $this->t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
       );
 

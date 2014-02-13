@@ -1,6 +1,7 @@
 services:
   acquia_connector.maintenance_mode_subscriber:
     class: Drupal\acquia_connector\EventSubscriber\MaintenanceModeSubscriber
+    arguments: ['@config.factory', '@state', '@cache.cache']
     tags:
       - { name: event_subscriber }
   acquia_connector.client:
