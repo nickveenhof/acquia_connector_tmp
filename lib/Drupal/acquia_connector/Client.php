@@ -93,10 +93,13 @@ class Client {
    *
    * @param string $id Network ID
    * @param string $key Network Key
+   * @param array $body
+   *   (optional)
+   *
    * @return array|false
    */
-  public function getSubscription($id, $key) {
-    $body = array('identifier' => $id);
+  public function getSubscription($id, $key, array $body = array()) {
+    $body += array('identifier' => $id);
     $authenticator =  $this->buildAuthenticator($key, $body);
     $data = array(
       'body' => $body,
@@ -306,4 +309,4 @@ class Client {
   protected function getNonce() {
     return Crypt::hashBase64(uniqid(mt_rand(), TRUE) . Crypt::randomBytes(55));
   }
-} 
+}

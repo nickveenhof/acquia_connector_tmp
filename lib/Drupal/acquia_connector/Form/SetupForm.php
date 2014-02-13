@@ -7,13 +7,44 @@
 
 namespace Drupal\acquia_connector\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\acquia_connector\Client;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Url;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class SetupForm.
  */
 class SetupForm extends ConfigFormBase {
+
+  /**
+   * The Acquia client.
+   *
+   * @var \Drupal\acquia_connector\Client
+   */
+  protected $client;
+
+  /**
+   * Constructs a \Drupal\system\ConfigFormBase object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, Client $client) {
+    $this->configFactory = $config_factory;
+    $this->client = $client;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('acquia_connector.client')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -41,7 +72,7 @@ class SetupForm extends ConfigFormBase {
    */
   protected function setupForm(&$form_state) {
     $form = array(
-      '#prefix' => $this->t('Log in or <a href="!url">configure manually</a> to connect your site to the Acquia Network.', array('!url' => url('admin/config/system/acquia-agent/credentials'))),
+      '#prefix' => $this->t('Log in or <a href="!url">configure manually</a> to connect your site to the Acquia Network.', array('!url' => url('admin/config/system/acquia-connector/credentials'))),
       'email' => array(
         '#type' => 'textfield',
         '#title' => $this->t('Enter the email address you use to login to the Acquia Network:'),
@@ -103,32 +134,18 @@ class SetupForm extends ConfigFormBase {
    */
   public function validateForm(array &$form, array &$form_state) {
     if (!isset($form_state['choose'])) {
-      $config = $this->config('acquia_connector.settings');
+      $response = $this->client->getSubscriptionCredentials($form_state['values']['email'], $form_state['values']['pass']);
 
-      // Validate e-mail address and get account hash settings.
-      $body = array(
-        'email' => $form_state['values']['email'],
-      );
-      $authenticator = _acquia_agent_create_authenticator($body);
-      $data = array('body' => $body, 'authenticator' => $authenticator);
-      // Does not use acquia_agent_call() because Network identifier and key are not available.
-      $server = $config->get('network_address');
-      $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.communication.settings' => array($data)));
-
-      if ($errno = xmlrpc_errno() !== NULL) {
-        acquia_agent_report_xmlrpc_error();
+      if ($response['error'] == TRUE) {
         // Set form error to prevent switching to the next page.
-        $this->setFormError('', $form_state);
+        $this->setFormError('email', $form_state, $response['message']);
       }
-      elseif (!$result) {
+      elseif (empty($response)) {
         // Email doesn't exist.
-        $this->setFormError('email', $form_state, $this->t('Account not found on the Acquia Network.'));
+        $this->setFormError('', $form_state, $this->t('Can\'t connect to the Acquia Network.'));
       }
       else {
-        // Build hashed password from account password settings for further
-        // XML-RPC communications with acquia.com.
-        $pass = _acquia_agent_hash_password_crypt($result['algorithm'], $form_state['values']['pass'], $result['hash_setting'], $result['extra_md5']);
-        $form_state['pass'] = $pass;
+        $form_state['response'] = $response;
       }
     }
   }
@@ -141,9 +158,9 @@ class SetupForm extends ConfigFormBase {
       $config = $this->config('acquia_connector.settings');
 
       $sub = $form_state['subscriptions'][$form_state['values']['subscription']];
-      $config->set('acquia_key', $sub['key'])
-        ->set('acquia_identifier', $sub['identifier'])
-        ->set('acquia_subscription_name', $sub['name'])
+      $config->set('key', $sub['key'])
+        ->set('identifier', $sub['identifier'])
+        ->set('subscription_name', $sub['name'])
         ->save();
     }
     else {
@@ -174,47 +191,23 @@ class SetupForm extends ConfigFormBase {
   protected function automaticStartSubmit(&$form_state) {
     $config = $this->config('acquia_connector.settings');
 
-    // Make hashed password signed request to Acquia Network for subscriptions.
-    $body = array(
-      'email' => $form_state['values']['email'],
-    );
-    // acquia.com authenticator uses hash of client-supplied password hashed with
-    // remote settings so that the hash can match. pass was hashed in
-    // _acquia_agent_setup_form_validate().
-    $authenticator = _acquia_agent_create_authenticator($body, $form_state['pass']);
-    $data = array('body' => $body, 'authenticator' => $authenticator);
-    // Does not use acquia_agent_call() because Network identifier and key are not available.
-    $server = $config->get('network_address');
-    $result = xmlrpc(acquia_agent_network_address($server), array('acquia.agent.subscription.credentials' => array($data)));
-
-    if ($errno = xmlrpc_errno()) {
-      acquia_agent_report_xmlrpc_error();
-      // Set form error to prevent switching to the next page.
-      $this->setFormError('', $form_state);
-    }
-    elseif (!$result) {
-      // Email doesn't exist
-      $this->setFormError('email', $form_state, $this->t('Server error, please submit again.'));
-    }
-    elseif ($result['is_error']) {
-      $this->setFormError('email', $form_state, $this->t('Server error, please submit again.'));
-    }
-    elseif (empty($result['body']['subscription'])) {
+    if (empty($form_state['response']['subscription'])) {
       $this->setFormError('email', $form_state, $this->t('No subscriptions were found for your account.'));
     }
-    elseif (count($result['body']['subscription']) > 1) {
+    elseif (count($form_state['response']['subscription']) > 1) {
       // Multistep form for choosing from available subscriptions.
       $form_state['choose'] = TRUE;
-      $form_state['subscriptions'] = $result['body']['subscription'];
-      $form_state['rebuild'] = TRUE; // Force rebuild with next step.
+      $form_state['subscriptions'] = $form_state['response']['subscription'];
+      // Force rebuild with next step.
+      $form_state['rebuild'] = TRUE;
     }
     else {
       // One subscription so set id/key pair.
-      $sub = $result['body']['subscription'][0];
+      $sub = $form_state['response']['subscription'][0];
 
-      $config->set('acquia_key', $sub['key'])
-        ->set('acquia_identifier', $sub['identifier'])
-        ->set('acquia_subscription_name', $sub['name'])
+      $config->set('key', $sub['key'])
+        ->set('identifier', $sub['identifier'])
+        ->set('subscription_name', $sub['name'])
         ->save();
     }
   }

@@ -6,25 +6,6 @@
  */
 
 /**
- * XML-RPC errors defined by the Acquia Network.
- */
-define('SUBSCRIPTION_NOT_FOUND'       , 1000);
-define('SUBSCRIPTION_KEY_MISMATCH'    , 1100);
-define('SUBSCRIPTION_EXPIRED'         , 1200);
-define('SUBSCRIPTION_REPLAY_ATTACK'   , 1300);
-define('SUBSCRIPTION_KEY_NOT_FOUND'   , 1400);
-define('SUBSCRIPTION_MESSAGE_FUTURE'  , 1500);
-define('SUBSCRIPTION_MESSAGE_EXPIRED' , 1600);
-define('SUBSCRIPTION_MESSAGE_INVALID' , 1700);
-define('SUBSCRIPTION_VALIDATION_ERROR', 1800);
-define('SUBSCRIPTION_PROVISION_ERROR' , 9000);
-
-/**
- * Subscription message lifetime defined by the Acquia Network.
- */
-define('SUBSCRIPTION_MESSAGE_LIFETIME', 15*60);
-
-/**
  * Get subscription status from the Acquia Network, and store the result.
  *
  * This check also sends a heartbeat to the Acquia Network unless
