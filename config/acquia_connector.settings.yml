@@ -2,16 +2,10 @@ cloud_migration: []
 identifier: ''
 key: ''
 network_address: 'https://rpc.acquia.com'
-nspi_address: 'https://nspi.acquia.com'
 subscription_data:
   - { active: false }
 subscription_name: ''
 use_cron: true
-admin_priv: true
-send_node_user: true
-send_watchdog: true
-module_diff_data: true
-set_variables_override: true
 debug: false
 cron_interval: 30
 verify_peer: false
@@ -21,3 +15,31 @@ ah:
   network:
     key: false
     identifier: false
+spi:
+  server: 'https://nspi.acquia.com'
+  def_vars: []
+  def_waived_vars: []
+  def_timestamp: 0
+  new_optional_data: true
+  admin_priv: true
+  send_node_user: true
+  send_watchdog: true
+  module_diff_data: true
+  set_variables_override: false
+  set_variables_automatic:
+    - acquia_connector.settings:
+      - spi: [set_variables_automatic, send_node_user, admin_priv, module_diff_data, send_watchdog, use_cron]
+    - system.logging: error_level
+    - system.performance:
+      - cache:
+       - page: [use_internal, max_age]
+      - css: [preprocess, gzip]
+      - js: [preprocess, gzip]
+      - fast_404: [enabled]
+      - response: [gzip]
+  ignored_set_variables: []
+  saved_variables:
+    - { variables: [], time: 0 }
+  ssl_override: false
+  cron_interval: 28800
+  module_rebuild: 0
