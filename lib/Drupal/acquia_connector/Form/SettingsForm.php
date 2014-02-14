@@ -119,7 +119,7 @@ class SettingsForm extends ConfigFormBase {
       '#title' => $this->t('Acquia Network Settings'),
       '#collapsible' => FALSE,
     );
-
+    /*
     $form['migrate'] = array(
       '#type' => 'fieldset',
       '#title' => $this->t('Acquia Cloud Migrate'),
@@ -142,7 +142,7 @@ class SettingsForm extends ConfigFormBase {
       $form['migrate']['#prefix'] = '<div class="messages error">' . $this->t('Temporary files were leftover from last migration attempt.') . '</div>';
       $form['migrate']['submit']['#value'] = $this->t('Cleanup files');
       $form['migrate']['submit']['#submit'] = array($this, 'submitMigrateCleanupForm');
-    }
+    }*/
 
     // Help documentation is local unless the Help module is disabled.
     if ($this->moduleHandler->moduleExists('help')) {

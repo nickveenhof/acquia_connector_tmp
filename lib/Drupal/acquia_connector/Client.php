@@ -9,6 +9,7 @@
 namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Guzzle\Http\ClientInterface;
 
 class Client {
@@ -33,15 +34,20 @@ class Client {
    */
   protected $server;
 
-  public function __construct(ClientInterface $client) {
+  /**
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  public function __construct(ClientInterface $client, ConfigFactoryInterface $config) {
     $this->client = $client;
     $this->headers = array(
       'Content-Type' => 'application/json',
       'Accept' => 'application/json'
 
     );
-    // @todo get from config
-    $this->server = 'http://nspi.acquia.local/agent-api/';
+    $this->config = $config->get('acquia_connector.settings');
+    $this->server = $this->config->get('network_address');
   }
 
   /**
@@ -59,7 +65,7 @@ class Client {
       'body' => $body,
       'authenticator' => $authenticator,
     );
-    $response = $this->request('POST', 'subscription/credentials', $data);
+    $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
     //if ($this->validateResponse($password, $response, $authenticator)) {
       return $response['body'];
     //}
@@ -100,7 +106,7 @@ class Client {
       'body' => $body,
       'authenticator' => $authenticator,
     );
-    $response = $this->request('POST', 'subscription/' . $id, $data);
+    $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
     if ($this->validateResponse($key, $response, $authenticator)) {
       return $response['body'];
     }
@@ -138,6 +144,7 @@ class Client {
     switch ($method) {
       case 'POST':
         $request = $this->client->post($uri, array(), json_encode($data));
+
         // Guzzle requires resetting headers??? @todo
         $request->setHeaders($this->headers);
         $response = $request->send();
