@@ -26,14 +26,10 @@ function acquia_connector_menu_link_defaults() {
 function acquia_connector_help($path, $arg) {
   switch ($path) {
     case 'admin/help#acquia_connector':
-      $output = '<h2>' . t('Acquia Connector module') . '</h2>';
-      $output .= '<p>' . t("The Acquia Network Connector suite of modules allow you to connect your site to the Acquia Network and use its variety of services.") . '<p>';
+      $output = '<h2>' . t('Acquia Connector') . '</h2>';
+      $output .= '<p>' . t("The Acquia Network Connector module allows you to connect your site to the Acquia Network and use its variety of services.") . '<p>';
       $output .= '<p>' . t("<a href='!url'>Read more about the installation and use of the Acquia Network Connector module on the Acquia Library</a>.", array('!url' => url('https://docs.acquia.com/network/install/connector', array('external' => TRUE)))) . '</p>';
       $output .= '<dl>';
-      $output .= '<dt>Acquia Agent</dt>';
-      $output .= '<dd>' . t('Enables secure communication between your Drupal sites and the Acquia Network.') . '</dt>';
-      $output .= '<dt>Acquia SPI</dt>';
-      $output .= '<dd>' . t('Automates the collection of site information. Required for use with the Acquia Insight service.') . '</dt>';
       $output .= '<dt>Acquia SPI Custom Tests</dt>';
       $output .= '<dd>' . t('Acquia Insight supports custom tests for your site. See <strong>acquia_spi.api.php</strong> for information on the custom test hook and validate your tests for inclusion in outgoing SPI data with the Drush command, <strong>spi-test-validate</strong>.') . '</dt>';
       $output .= '<dt>Acquia Search</dt>';
@@ -50,18 +46,6 @@ function acquia_connector_help($path, $arg) {
       $output .= '<dt>' . t('Allow Insight to update list of approved variables.') . '</dt>';
       $output .= '<dd>' . t('As part of the Acquia Insight service, some variables can be corrected to their recommended settings from within the Insight system. The list of variables that can be corrected can also be updated at your discretion.') . '</dd>';
       $output .= '</dl>';
-
-//      $welcome_nid = variable_get('acquia_welcome', 0);
-//      if ($path == 'admin/help#acquia_spi' && $welcome_nid) {
-//        // Only provide help text if the welcome message is avalailable.
-//        if ($nid = db_query('SELECT nid FROM {node} where nid = :nid', array(':nid' => $welcome_nid))->fetchField()) {
-//          $txt = 'The !acquia_welcome provides information about how to '
-//            . 'quickly get your site up and running.  Also there are instructions for '
-//            . 'setting the site theme as well as many other configuration tasks.';
-//          $link = l('Acquia Drupal welcome page', 'node/' . $nid);
-//          return '<p>' . t($txt, array('!acquia_welcome' => $link)) . '<p>';
-//        }
-//      }
 
       return $output;
   }

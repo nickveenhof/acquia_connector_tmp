@@ -206,15 +206,6 @@ class SettingsForm extends ConfigFormBase {
           )
         ),
       );
-
-      if ($use_cron) {
-        // If using cron hide the URL container with #states visible.
-        $form['connection']['spi']['use_cron_url']['#states'] = array(
-          'visible' => array(
-            ':input[name="spi_use_cron"]' => array('checked' => FALSE),
-          )
-        );
-      }
     }
 
     return parent::buildForm($form, $form_state);
