@@ -140,11 +140,11 @@ class SetupForm extends ConfigFormBase {
 
       if (!empty($response['error'])) {
         // Set form error to prevent switching to the next page.
-        $this->setFormError('email', $form_state, $response['message']);
+        $form_state->setErrorByName('email', $response['message']);
       }
       elseif (empty($response)) {
         // Email doesn't exist.
-        $this->setFormError('', $form_state, $this->t('Can\'t connect to the Acquia Network.'));
+        $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
       }
       else {
         $form_state['response'] = $response;

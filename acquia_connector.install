@@ -86,7 +86,7 @@ function acquia_connector_install() {
   // 6) There are no credentials already set up for Acquia Agent
   // 7) We're not serving a public file (again...friggin' route-match this)
   //
-  // This oughta be a function called acquia_agent_display_signup_message()
+  // This is partially refactored into src/EventSubscriber/InitSubscriber.
   //
   /* if (!$hide_signup_messages &&
     (arg(0) != 'overlay-ajax') && (arg(3) != 'acquia-agent') &&

@@ -4,23 +4,6 @@ use Drupal\Core\Database\Database;
 use Drupal\acquia_connector\Subscription;
 
 /**
- * Implements hook_menu().
- */
-function acquia_connector_menu_link_defaults() {
-  $items = array();
-
-  $items['acquia_connector.settings'] = array(
-    'link_title' => 'Acquia connector settings',
-    'parent' => 'system.admin.config.system',
-    'description' => 'Acquia connector settings.',
-    'route_name' => 'acquia_connector.settings',
-    'weight' => -20,
-  );
-
-  return $items;
-}
-
-/**
  * Implements hook_help().
  */
 function acquia_connector_help($path, $arg) {
