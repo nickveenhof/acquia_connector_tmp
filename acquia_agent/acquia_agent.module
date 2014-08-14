@@ -17,9 +17,10 @@ function acquia_agent_check_subscription($params = array()) {
   $current_subscription = acquia_agent_settings('acquia_subscription_data');
   $subscription = FALSE;
   $active = FALSE;
+  $config = \Drupal::config('acquia_connector.settings');
   if (!acquia_agent_has_credentials()) {
     // If there is not an identifier or key, delete any old subscription data.
-    variable_del('acquia_subscription_data');
+    $config->clear('subscription_data');
   }
   else {
     // Get our subscription data
@@ -38,7 +39,7 @@ function acquia_agent_check_subscription($params = array()) {
           return $current_subscription;
       }
     }
-    variable_set('acquia_subscription_data', $subscription);
+    $config->set('subscription_data', $subscription);
     // Check if our main subscription is active
     if ($subscription) {
       $active = acquia_agent_subscription_is_active();
@@ -346,7 +347,7 @@ function acquia_agent_load_versions() {
 function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {
   $opts = array();
   $uri = parse_url($url);
-  $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && variable_get('acquia_agent_verify_peer', 0);
+  $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && \Drupal::config('acquia_agent')->get('verify_peer');
   if (isset($uri['scheme']) && ($uri['scheme'] == 'https') && $ssl_available) {
     // Look for a local certificate to validate the server identity.
     $pem_file = drupal_get_path('module', $module) . '/' . $uri['host'] . '.pem';
@@ -360,7 +361,6 @@ function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {
   }
   return stream_context_create($opts);
 }
-
 
 /**
  * Determine if a response from the Acquia Network is valid.
@@ -403,7 +403,7 @@ function _acquia_agent_request($url, $method, $data) {
     $result = xmlrpc($url, array($method => array($data)), array('context' => $ctx));
   }
   if ($errno = xmlrpc_errno()) {
-    $acquia_debug = variable_get('acquia_agent_debug', FALSE);
+    $acquia_debug = \Drupal::config('acquia_agent')->get('debug');
     if ($acquia_debug) {
       watchdog('acquia agent', '@message (@errno): %server - %method - <pre>@data</pre>', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method, '@data' => var_export($data, TRUE)), WATCHDOG_ERROR);
     }

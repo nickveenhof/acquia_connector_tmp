@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Implementation of hook_requirements()
+ * Implements hook_requirements().
  */
 function acquia_agent_requirements($phase) {
   $requirements = array();
@@ -73,7 +73,22 @@ function acquia_connector_install() {
   $hide_signup_messages = $config->get('hide_signup_messages');
   $current_user = \Drupal::currentUser();
 
-  if (!$hide_signup_messages &&
+  // @todo
+  // OK, so, what this crazy-ass if statement is doing is display a message asking you
+  // to connect to the Acquia Network, but ONLY if ALL of the following conditions are
+  // met:
+  //
+  // 1) $hide_signup_messages is FALSE (i.e., the default setting)
+  // 2) We're not on an AJAX overlay page (we should route-match this)
+  // 3) We're not actually configuring Acquia Agent (again, route-match this)
+  // 4) There's no POST data
+  // 5) The current user has 'administer site configuration' permission
+  // 6) There are no credentials already set up for Acquia Agent
+  // 7) We're not serving a public file (again...friggin' route-match this)
+  //
+  // This oughta be a function called acquia_agent_display_signup_message()
+  //
+  /* if (!$hide_signup_messages &&
     (arg(0) != 'overlay-ajax') && (arg(3) != 'acquia-agent') &&
     empty($_POST) &&  $current_user->hasPermission('administer site configuration') &&
     (!acquia_agent_has_credentials()) &&
@@ -85,4 +100,5 @@ function acquia_connector_install() {
     $message = t($text, array('!acquia-free' => url('https://www.acquia.com/acquia-cloud-free'), '!settings' => url('admin/config/system/acquia-agent/setup')));
     drupal_set_message($message, 'warning', FALSE);
   }
+  */
 }

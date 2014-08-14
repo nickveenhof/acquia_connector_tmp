@@ -9,7 +9,7 @@ namespace Drupal\acquia_connector\EventSubscriber;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -67,7 +67,7 @@ class MaintenanceModeSubscriber implements EventSubscriberInterface {
    */
   public function onKernelRequest(GetResponseEvent $event) {
     // Store server information for SPI in case data is being sent from PHP CLI.
-    if (drupal_is_cli()) {
+    if (PHP_SAPI == 'cli') {
       return;
     }
 

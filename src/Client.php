@@ -10,7 +10,7 @@ namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Guzzle\Http\ClientInterface;
+use GuzzleHttp\ClientInterface;
 
 class Client {
 

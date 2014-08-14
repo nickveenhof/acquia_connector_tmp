@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
@@ -25,7 +26,7 @@ class CredentialForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
     $form['#prefix'] = $this->t('Enter your <a href="!net">identifer and key</a> from your subscriptions overview or <a href="!url">log in</a> to connect your site to the Acquia Network.', array('!net' => url('https://insight.acquia.com/subscriptions'), '!url' => url('admin/config/system/acquia-agent/setup')));
@@ -56,7 +57,7 @@ class CredentialForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
     // Trim all input to get rid of possible whitespace pasted from the website.
@@ -97,7 +98,7 @@ class CredentialForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
     $config->set('key', $form_state['values']['acquia_key'])

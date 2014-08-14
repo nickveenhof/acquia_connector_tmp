@@ -359,3 +359,11 @@ function acquia_connector_get_platform_mysql_data() {
 
   return $ret;
 }
+
+/**
+ * Helper function to check if an identifer and key exist.
+ */
+function acquia_agent_has_credentials() {
+  $config = \Drupal::config('acquia_agent.credentials');
+  return (bool) ($config->get('identifier') && $config->get('key'));
+}

@@ -10,6 +10,7 @@ namespace Drupal\acquia_connector\Form;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\acquia_connector\Client;
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_connector\Subscription;
@@ -57,7 +58,7 @@ class SetupForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     if (empty($form_state['choose'])) {
       return $this->setupForm($form_state);
     }
@@ -133,7 +134,7 @@ class SetupForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     if (!isset($form_state['choose'])) {
       $response = $this->client->getSubscriptionCredentials($form_state['values']['email'], $form_state['values']['pass']);
 
@@ -154,7 +155,7 @@ class SetupForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     if (isset($form_state['choose']) && isset($form_state['subscriptions'][$form_state['values']['subscription']])) {
       $config = $this->config('acquia_connector.settings');
 

@@ -11,6 +11,7 @@ use Drupal\acquia_connector\Migration;
 use Drupal\Core\Url;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\PrivateKey;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -85,7 +86,7 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, Request $request = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
     $identifier = $config->get('identifier');
@@ -214,7 +215,7 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
     $values = $form_state['values'];
 
