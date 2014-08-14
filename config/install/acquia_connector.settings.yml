@@ -27,16 +27,16 @@ spi:
   module_diff_data: true
   set_variables_override: false
   set_variables_automatic:
-    - acquia_connector.settings:
-      - spi: [set_variables_automatic, send_node_user, admin_priv, module_diff_data, send_watchdog, use_cron]
-    - system.logging: error_level
-    - system.performance:
-      - cache:
-       - page: [use_internal, max_age]
-      - css: [preprocess, gzip]
-      - js: [preprocess, gzip]
-      - fast_404: [enabled]
-      - response: [gzip]
+    - acquia_connector_settings:
+        spi: [set_variables_automatic, send_node_user, admin_priv, module_diff_data, send_watchdog, use_cron]
+    - system_logging: error_level
+    - system_performance:
+        cache:
+          page: [use_internal, max_age]
+        css: [preprocess, gzip]
+        js: [preprocess, gzip]
+        fast_404: [enabled]
+        response: [gzip]
   ignored_set_variables: []
   saved_variables:
     - { variables: [], time: 0 }

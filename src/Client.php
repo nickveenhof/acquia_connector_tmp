@@ -11,6 +11,7 @@ namespace Drupal\acquia_connector;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ClientException;
 
 class Client {
 
@@ -143,11 +144,16 @@ class Client {
     $uri = $this->server . $path;
     switch ($method) {
       case 'POST':
-        $request = $this->client->post($uri, array(), json_encode($data));
+        try {
+          $request = $this->client->post($uri, array(), json_encode($data));
 
-        // Guzzle requires resetting headers??? @todo
-        $request->setHeaders($this->headers);
-        $response = $request->send();
+          // Guzzle requires resetting headers??? @todo
+          $request->setHeaders($this->headers);
+          $response = $request->send();
+        }
+        catch (ClientException $e) {
+          drupal_set_message($e->getMessage(), 'error');
+        }
     }
     // @todo support response code
     if (!empty($response)) {

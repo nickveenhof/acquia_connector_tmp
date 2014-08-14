@@ -350,3 +350,47 @@ function acquia_agent_has_credentials() {
   $config = \Drupal::config('acquia_agent.credentials');
   return (bool) ($config->get('identifier') && $config->get('key'));
 }
+
+/**
+ * Get subscription status from the Acquia Network, and store the result.
+ *
+ * This check also sends a heartbeat to the Acquia Network unless
+ * $params['no_heartbeat'] == 1.
+ *
+ * @return FALSE, integer (xmlrpc error number), or subscription data
+ */
+function acquia_agent_check_subscription($params = array()) {
+  $config = \Drupal::config('acquia_connector.settings');
+  $current_subscription = $config->get('subscription_data');
+  $subscription = FALSE;
+  $active = FALSE;
+  if (!acquia_agent_has_credentials()) {
+    // If there is not an identifier or key, delete any old subscription data.
+    $config->clear('subscription_data');
+  }
+  else {
+    // Get our subscription data
+    $subscription = acquia_agent_get_subscription($params);
+    if (is_numeric($subscription)) {
+      switch ($subscription) {
+        case SUBSCRIPTION_NOT_FOUND:
+        case SUBSCRIPTION_EXPIRED:
+          // Fall through since these values are stored and used by
+          // acquia_search_acquia_subscription_status()
+          break;
+        default:
+          // Likely server error (503) or connection timeout (-110) so leave
+          // current subscription in place. _acquia_agent_request() logged an
+          // error message.
+          return $current_subscription;
+      }
+    }
+    $config->set('subscription_data', $subscription);
+    // Check if our main subscription is active
+    if ($subscription) {
+      $active = acquia_agent_subscription_is_active();
+    }
+  }
+  \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$active, $subscription]);
+  return $subscription;
+}
