@@ -107,10 +107,13 @@ class Client {
       'body' => $body,
       'authenticator' => $authenticator,
     );
-    $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
-    if ($this->validateResponse($key, $response, $authenticator)) {
-      return $response['body'];
+    try{
+      $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
+      if ($this->validateResponse($key, $response, $authenticator)) {
+        return $response['body'];
+      }
     }
+    catch (\Exception $e){}
     return FALSE;
   }
 
