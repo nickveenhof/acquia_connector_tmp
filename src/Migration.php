@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector;
 
 use Guzzle\Http\ClientInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 
 /**
  * Class Migration.
@@ -45,8 +46,6 @@ class Migration {
    *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
    */
   public function prepare($environment) {
-    cache_clear_all();
-
     // Internal migration store is an array because objects cannot be stored
     // by Drupal's Batch API.
     $local_env = $this->checkEnv();
@@ -74,7 +73,7 @@ class Migration {
       // Parameters used in transfer request.
       'request_params' => array(
         // Return URL on this site.
-        'r' => url('admin/config/system/acquia-agent', array('absolute' => TRUE)),
+        'r' => $this->getUrl('admin/config/system/acquia-agent', array('absolute' => TRUE)),
         'y' => 'sar', // For Acquia Hosting
         'stage' => $environment['stage'],
         'nonce' => $environment['nonce'],
@@ -99,7 +98,8 @@ class Migration {
     }
     // If not in 'safe mode', increase the maximum execution time:
     if (!ini_get('safe_mode') && strpos(ini_get('disable_functions'), 'set_time_limit') === FALSE && ini_get('max_execution_time') < 1200) {
-      set_time_limit(variable_get('acquia_migrate_max_time', 1200));
+      // @todo: Change to use config.
+      set_time_limit(1200);
     }
     // Load any required include files.
     return $this->checkEnv();
@@ -587,6 +587,17 @@ class Migration {
    */
   public function getToken($now, $return, $secret) {
     return hash_hmac('sha256', $now . $return, $secret);
+  }
+
+  /**
+   * Get url for a path.
+   *
+   * @param null $path
+   * @param array $options
+   * @return mixed
+   */
+  public function getUrl($path = NULL, $options = array()) {
+    return url($path, $options);
   }
 
   /**
