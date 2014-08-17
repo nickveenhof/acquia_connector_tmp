@@ -145,11 +145,13 @@ class Client {
     switch ($method) {
       case 'POST':
         try {
-          $request = $this->client->post($uri, array(), json_encode($data));
+          $options = array(
+            'headers' => $this->headers,
+            'json' => json_encode($data),
+          );
 
-          // Guzzle requires resetting headers??? @todo
-          $request->setHeaders($this->headers);
-          $response = $request->send();
+          $response = $this->client->post($uri, $options);
+
         }
         catch (ClientException $e) {
           drupal_set_message($e->getMessage(), 'error');
@@ -159,8 +161,7 @@ class Client {
     if (!empty($response)) {
       $body = $response->json();
       if (!empty($body['error'])) {
-        throw new \Exception($body['message'], $body['code']);
-
+        drupal_set_message($body['code'] . ' : ' .$body['message'], 'error');
       }
       return $body;
     }
