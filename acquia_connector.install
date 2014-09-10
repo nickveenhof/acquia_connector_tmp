@@ -74,9 +74,8 @@ function acquia_connector_install() {
   $current_user = \Drupal::currentUser();
 
   // @todo
-  // OK, so, what this crazy-ass if statement is doing is display a message asking you
-  // to connect to the Acquia Network, but ONLY if ALL of the following conditions are
-  // met:
+  // Display a message asking to connect to the Acquia Network if ALL of the
+  // following conditions are met:
   //
   // 1) $hide_signup_messages is FALSE (i.e., the default setting)
   // 2) We're not on an AJAX overlay page (we should route-match this)
@@ -84,7 +83,7 @@ function acquia_connector_install() {
   // 4) There's no POST data
   // 5) The current user has 'administer site configuration' permission
   // 6) There are no credentials already set up for Acquia Agent
-  // 7) We're not serving a public file (again...friggin' route-match this)
+  // 7) We're not serving a public file
   //
   // This is partially refactored into src/EventSubscriber/InitSubscriber.
   //
