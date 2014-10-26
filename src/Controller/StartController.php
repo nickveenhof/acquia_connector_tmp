@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 
 /**
  * Class StartController.
@@ -29,7 +30,9 @@ class StartController extends ControllerBase {
     );
 
     $banner = _theme('image', array('uri' => $path . '/images/action.png'));
-    $banner = l($banner, 'admin/config/system/acquia-connector/setup', array('html' => TRUE, 'absolute' => TRUE));
+    // @todo make this link HTML
+    $banner = \Drupal::l($banner, Url::fromRoute('acquia_connector.setup'));
+
 
     $output  = '<div class="an-wrapper">';
     $output .= '<h2 id="an-info-header">' . $this->t('Acquia Network', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';

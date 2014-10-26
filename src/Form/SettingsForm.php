@@ -147,16 +147,22 @@ class SettingsForm extends ConfigFormBase {
 
     // Help documentation is local unless the Help module is disabled.
     if ($this->moduleHandler->moduleExists('help')) {
-      $help_url = url('admin/help/acquia_connector');
+      $help_url = \Drupal::url('help.page', array('name' => 'acquia_connector'));
     }
     else {
-      $help_url = url('https://docs.acquia.com/network/install');
+      $help_url = Url::fromUri('https://docs.acquia.com/network/install')->getUri();
     }
 
     if (!empty($identifier) && !empty($key)) {
       $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
 
       $form['connection']['#description'] = $this->t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
+
+      $form['connection']['spi'] = array(
+        '#prefix' => '<div class="acquia-spi">',
+        '#suffix' => '</div>',
+        '#weight' => -1,
+      );
 
       $form['connection']['spi']['admin_priv'] = array(
         '#type' => 'checkbox',
@@ -189,24 +195,24 @@ class SettingsForm extends ConfigFormBase {
 
       $use_cron = $config->get('use_cron');
 
-      $form['connection']['spi']['use_cron'] = array(
+      $form['connection']['use_cron'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Send via Drupal cron'),
         '#default_value' => $use_cron,
       );
 
-      $key = sha1($this->privateKey->get());
-      $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
-
-      $form['connection']['spi']['use_cron_url'] = array(
-        '#type' => 'container',
-        '#children' => '<p>' . $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br/><em>!url</em>', array('!url' => $url)) . '</p>',
-        '#states' => array(
-          'visible' => array(
-            ':input[name="use_cron"]' => array('checked' => FALSE),
-          )
-        ),
-      );
+//      $key = sha1($this->privateKey->get());
+//      $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
+//
+//      $form['connection']['spi']['use_cron_url'] = array(
+//        '#type' => 'container',
+//        '#children' => '<p>' . $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br/><em>!url</em>', array('!url' => $url)) . '</p>',
+//        '#states' => array(
+//          'visible' => array(
+//            ':input[name="use_cron"]' => array('checked' => FALSE),
+//          )
+//        ),
+//      );
     }
 
     return parent::buildForm($form, $form_state);

@@ -59,7 +59,8 @@ class SetupForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    if (empty($form_state['choose'])) {
+    $storage = $form_state->getStorage();
+    if (empty($storage['choose'])) {
       return $this->setupForm($form_state);
     }
     else {
@@ -72,9 +73,9 @@ class SetupForm extends ConfigFormBase {
    *
    * @return array
    */
-  protected function setupForm(&$form_state) {
+  protected function setupForm(FormStateInterface &$form_state) {
     $form = array(
-      '#prefix' => $this->t('Log in or <a href="!url">configure manually</a> to connect your site to the Acquia Network.', array('!url' => url('admin/config/system/acquia-connector/credentials'))),
+      '#prefix' => $this->t('Log in or <a href="@url">configure manually</a> to connect your site to the Acquia Network.', array('@url' => \Drupal::url('acquia_connector.credentials'))),
       'email' => array(
         '#type' => 'textfield',
         '#title' => $this->t('Enter the email address you use to login to the Acquia Network:'),
@@ -83,7 +84,7 @@ class SetupForm extends ConfigFormBase {
       'pass' => array(
         '#type' => 'password',
         '#title' => $this->t('Enter your Acquia Network password:'),
-        '#description' => $this->t('Your password will not be stored locally and will be sent securely to Acquia.com. <a href="!url" target="_blank">Forgot password?</a>', array('!url' => url('https://accounts.acquia.com/user/password'))),
+        '#description' => $this->t('Your password will not be stored locally and will be sent securely to Acquia.com. <a href="@url" target="_blank">Forgot password?</a>', array('@url' => Url::fromUri('https://accounts.acquia.com/user/password')->getUri())),
         '#size' => 32,
         '#required' => TRUE,
       ),
@@ -94,7 +95,7 @@ class SetupForm extends ConfigFormBase {
           '#value' => $this->t('Next'),
         ),
         'signup' => array(
-          '#markup' => $this->t('Need a subscription? <a href="!url">Get one</a>.', array('!url' => url('https://www.acquia.com/acquia-cloud-free'))),
+          '#markup' => $this->t('Need a subscription? <a href="@url">Get one</a>.', array('@url' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri())),
         ),
       ),
     );
@@ -106,9 +107,10 @@ class SetupForm extends ConfigFormBase {
    *
    * @return array
    */
-  protected function chooseForm(&$form_state) {
+  protected function chooseForm(FormStateInterface &$form_state) {
     $options = array();
-    foreach ($form_state['subscriptions'] as $credentials) {
+    $storage = $form_state->getStorage();
+    foreach ($storage['response']['subscription'] as $credentials) {
       $options[] = $credentials['name'];
     }
     asort($options);
@@ -135,8 +137,9 @@ class SetupForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    if (!isset($form_state['choose'])) {
-      $response = $this->client->getSubscriptionCredentials($form_state['values']['email'], $form_state['values']['pass']);
+    $storage = $form_state->getStorage();
+    if (!isset($storage['choose'])) {
+      $response = $this->client->getSubscriptionCredentials($form_state->getValue('email'), $form_state->getValue('pass'));
 
       if (!empty($response['error'])) {
         // Set form error to prevent switching to the next page.
@@ -147,19 +150,23 @@ class SetupForm extends ConfigFormBase {
         $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
       }
       else {
-        $form_state['response'] = $response;
+        $storage['response'] = $response;
       }
     }
+
+    $form_state->setStorage($storage);
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    if (isset($form_state['choose']) && isset($form_state['subscriptions'][$form_state['values']['subscription']])) {
+    $storage = $form_state->getStorage();
+
+    if (isset($storage['choose']) && isset($storage['response']['subscription'][$form_state->getValue('subscription')])) {
       $config = $this->config('acquia_connector.settings');
 
-      $sub = $form_state['subscriptions'][$form_state['values']['subscription']];
+      $sub = $storage['response']['subscription'][$form_state->getValue('subscription')];
       $config->set('key', $sub['key'])
         ->set('identifier', $sub['identifier'])
         ->set('subscription_name', $sub['name'])
@@ -170,7 +177,7 @@ class SetupForm extends ConfigFormBase {
     }
 
     // Don't set message or redirect if multistep.
-    if (!$this->errorHandler()->getErrors($form_state) && empty($form_state['rebuild'])) {
+    if (!$form_state->getErrors($form_state) && empty($storage['rebuild'])) {
       // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
       // Our status gets updated locally via the return data.
 
@@ -178,7 +185,7 @@ class SetupForm extends ConfigFormBase {
       $subscription = $subscription_class->update();
 
       // Redirect to the path without the suffix.
-      $form_state['redirect_route'] = new Url('acquia_connector.settings');
+      $form_state->setRedirect('acquia_connector.settings');
 
       if ($subscription['active']) {
         drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Network.'));
@@ -189,22 +196,23 @@ class SetupForm extends ConfigFormBase {
   /**
    * @param $form_state
    */
-  protected function automaticStartSubmit(&$form_state) {
+  protected function automaticStartSubmit(FormStateInterface &$form_state) {
     $config = $this->config('acquia_connector.settings');
+    $storage = $form_state->getStorage();
 
-    if (empty($form_state['response']['subscription'])) {
-      $this->setFormError('email', $form_state, $this->t('No subscriptions were found for your account.'));
+    if (empty($storage['response']['subscription'])) {
+      drupal_set_message($this->t('No subscriptions were found for your account.'), 'error');
     }
-    elseif (count($form_state['response']['subscription']) > 1) {
+    elseif (count($storage['response']['subscription']) > 1) {
       // Multistep form for choosing from available subscriptions.
-      $form_state['choose'] = TRUE;
-      $form_state['subscriptions'] = $form_state['response']['subscription'];
+      $storage['choose'] = TRUE;
       // Force rebuild with next step.
-      $form_state['rebuild'] = TRUE;
+      $form_state->setRebuild(TRUE);
+      $form_state->setStorage($storage);
     }
     else {
       // One subscription so set id/key pair.
-      $sub = $form_state['response']['subscription'][0];
+      $sub = $storage['response']['subscription'][0];
       $config->set('key', $sub['key'])
         ->set('identifier', $sub['identifier'])
         ->set('subscription_name', $sub['name'])
