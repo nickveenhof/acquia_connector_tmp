@@ -29,10 +29,14 @@ class StartController extends ControllerBase {
       $path . '/css/acquia_connector.css',
     );
 
-    $banner = _theme('image', array('uri' => $path . '/images/action.png'));
-    // @todo make this link HTML
-    $banner = \Drupal::l($banner, Url::fromRoute('acquia_connector.setup'));
-
+    $banner = array(
+      '#theme' => 'image',
+      '#attributes' => array(
+        'src' => Url::fromUri('base://' . $path . '/images/action.png', array('absolute' => TRUE))->toString(),
+      ),
+    );
+    $uri = Url::fromRoute('acquia_connector.setup', array(), array('absolute' => TRUE))->toString();
+    $banner = \Drupal::l($banner, Url::fromUri($uri, array('html' => TRUE)));
 
     $output  = '<div class="an-wrapper">';
     $output .= '<h2 id="an-info-header">' . $this->t('Acquia Network', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';
