@@ -2,6 +2,7 @@ cloud_migration: []
 identifier: ''
 key: ''
 network_address: 'https://rpc.acquia.com'
+ssl_verify: true
 subscription_data:
   - { active: false }
 subscription_name: ''
@@ -40,6 +41,5 @@ spi:
   ignored_set_variables: []
   saved_variables:
     - { variables: [], time: 0 }
-  ssl_override: false
   cron_interval: 28800
   module_rebuild: 0

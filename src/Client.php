@@ -45,10 +45,10 @@ class Client {
     $this->headers = array(
       'Content-Type' => 'application/json',
       'Accept' => 'application/json'
-
     );
     $this->config = $config->get('acquia_connector.settings');
     $this->server = $this->config->get('network_address');
+    $this->client->setDefaultOption('verify', $this->config->get('ssl_verify'));
   }
 
   /**
