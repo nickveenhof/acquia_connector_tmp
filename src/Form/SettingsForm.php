@@ -222,16 +222,15 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $config = $this->config('acquia_connector.settings');
-    $values = $form_state['values'];
-
+    $config = \Drupal::config('acquia_connector.settings');
+    $values = $form_state->getValues();
     $config->set('module_diff_data', $values['module_diff_data'])
-      ->set('admin_priv', $values['admin_priv'])
-      ->set('send_node_user', $values['send_node_user'])
-      ->set('send_watchdog', $values['send_watchdog'])
-      ->set('use_cron', $values['use_cron'])
-      ->set('set_variables_override', $values['alter_variables'])
-      ->save();
+	      ->set('admin_priv', $values['admin_priv'])
+	      ->set('send_node_user', $values['send_node_user'])
+	      ->set('send_watchdog', $values['send_watchdog'])
+	      ->set('use_cron', $values['use_cron'])
+	      ->set('set_variables_override', $values['alter_variables'])
+          ->save();
 
     parent::submitForm($form, $form_state);
   }
