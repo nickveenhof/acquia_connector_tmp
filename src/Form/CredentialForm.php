@@ -7,14 +7,47 @@
 
 namespace Drupal\acquia_connector\Form;
 
-use Drupal\Core\Form\FormBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\acquia_connector\Client;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\acquia_connector\Subscription;
 
 /**
  * Class CredentialForm.
  */
-class CredentialForm extends FormBase {
+class CredentialForm extends ConfigFormBase {
+
+  /**
+   * The Acquia client.
+   *
+   * @var \Drupal\acquia_connector\Client
+   */
+  protected $client;
+
+  /**
+   * Constructs a \Drupal\system\ConfigFormBase object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   * @param Client $client
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, Client $client) {
+    $this->configFactory = $config_factory;
+    $this->client = $client;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('acquia_connector.client')
+    );
+  }
 
  /**
   * {@inheritdoc}
@@ -60,38 +93,21 @@ class CredentialForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
-    // Trim all input to get rid of possible whitespace pasted from the website.
-    foreach ($form_state['values'] as $key => $value) {
-      $form_state['values'][$key] = trim($value);
-    }
-    $identifier = $form_state['values']['acquia_identifier'];
-    $key = $form_state['values']['acquia_key'];
-    // Validate credentials and get subscription name.
-    $body = array('identifier' => $identifier);
-    $data = acquia_agent_call('acquia.agent.subscription.name', $body, $identifier, $key, $config->get('network_address'));
+    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));
 
-    $error = NULL;
-    if ($errno = xmlrpc_errno()) {
-      acquia_agent_report_xmlrpc_error();
+    if (!empty($response['error'])) {
       // Set form error to prevent switching to the next page.
-      $this->setFormError('', $form_state);
+      $form_state->setErrorByName('acquia_identifier', $response['message']);
     }
-    elseif (!$data || !isset($data['result'])) {
-      $this->setFormError('', $form_state, $this->t('Server error, please submit again.'));
-    }
-    $result = $data['result'];
-    if (!empty($result['is_error'])) {
-      $this->setFormError('', $form_state, $this->t('Server error, please submit again.'));
-    }
-    elseif (isset($result['body']['error'])) {
-      $this->setFormError('', $form_state, $result['body']['error']);
-    }
-    elseif (empty($result['body']['subscription'])) {
-      $this->setFormError('acquia_identifier', $form_state, $this->t('No subscriptions were found.'));
+    elseif (empty($response)) {
+      // Subscription doesn't exist.
+      $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
     }
     else {
-      // Store subscription.
-      $form_state['sub'] = $result['body']['subscription'];
+      $storage = $form_state->getStorage();
+      // @todo: add subsription name - acquia.agent.subscription.name
+      $storage['subscription'] = '';
+      $form_state->setStorage($storage);
     }
   }
 
@@ -101,21 +117,23 @@ class CredentialForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
-    $config->set('key', $form_state['values']['acquia_key'])
-      ->set('identifier', $form_state['values']['acquia_identifier'])
-      ->set('subscription_name', $form_state['sub']['site_name'])
+    $config->set('key', $form_state->getValue('acquia_key'))
+      ->set('identifier', $form_state->getValue('acquia_identifier'))
+      // @todo: add subscription name
+//      ->set('subscription_name', $form_state->getValue('subscription'))
       ->save();
 
     // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
     // Our status gets updated locally via the return data.
-    $active = acquia_agent_check_subscription();
+    $subscription_class = new Subscription();
+    $subscription = $subscription_class->update();
 
     // Redirect to the path without the suffix.
-    $form_state['redirect'] = new Url('acquia_connector.settings');
+    $form_state->setRedirect('acquia_connector.settings');
 
-    cache_clear_all();
+    drupal_flush_all_caches();
 
-    if ($active && count($active) > 1) {
+    if ($subscription['active']) {
       drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Network.'));
     }
   }
