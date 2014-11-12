@@ -130,10 +130,10 @@ function acquia_connector_toolbar() {
  * @see update_calculate_project_data()
  */
 function acquia_connector_update_status_alter(&$projects) {
-  if (!$subscription = acquia_agent_has_update_service()) {
-    // Get subscription data or return if the service is not enabled.
-    return;
-  }
+  //if (!$subscription = acquia_agent_has_update_service()) {
+    //Get subscription data or return if the service is not enabled.
+    //return;
+  //}
 
   foreach ($projects as $project => $project_info) {
     if ($project == 'drupal') {
