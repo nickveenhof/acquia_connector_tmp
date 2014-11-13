@@ -2,16 +2,18 @@
 
 use Drupal\Core\Database\Database;
 use Drupal\acquia_connector\Subscription;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 
 /**
  * Implements hook_help().
  */
-function acquia_connector_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#acquia_connector':
+function acquia_connector_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.acquia_connector':
       $output = '<h2>' . t('Acquia Connector') . '</h2>';
       $output .= '<p>' . t("The Acquia Network Connector module allows you to connect your site to the Acquia Network and use its variety of services.") . '<p>';
-      $output .= '<p>' . t("<a href='!url'>Read more about the installation and use of the Acquia Network Connector module on the Acquia Library</a>.", array('!url' => url('https://docs.acquia.com/network/install/connector', array('external' => TRUE)))) . '</p>';
+      $output .= '<p>' . \Drupal::l(t('Read more about the installation and use of the Acquia Network Connector module on the Acquia Library'), Url::fromUri('https://docs.acquia.com/network/install/connector', array())) . '</p>';
       $output .= '<dl>';
       $output .= '<dt>Acquia SPI Custom Tests</dt>';
       $output .= '<dd>' . t('Acquia Insight supports custom tests for your site. See <strong>acquia_spi.api.php</strong> for information on the custom test hook and validate your tests for inclusion in outgoing SPI data with the Drush command, <strong>spi-test-validate</strong>.') . '</dt>';
