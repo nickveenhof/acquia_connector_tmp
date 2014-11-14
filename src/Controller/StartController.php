@@ -25,9 +25,7 @@ class StartController extends ControllerBase {
 
     $path = drupal_get_path('module', 'acquia_connector');
 
-    $build['#attached']['css'] = array(
-      $path . '/css/acquia_connector.css',
-    );
+    $build['#attached']['css'][$path . '/css/acquia_connector.admin.theme.css'] = array();
 
     $banner = array(
       '#theme' => 'image',
@@ -38,7 +36,9 @@ class StartController extends ControllerBase {
     $uri = Url::fromRoute('acquia_connector.setup', array(), array('absolute' => TRUE))->toString();
     $banner = \Drupal::l($banner, Url::fromUri($uri, array('html' => TRUE)));
 
-    $output  = '<div class="an-wrapper">';
+    $output = '<div class = "an-start-form">';
+    $output .= '<div id = "an-pg-container">';
+    $output .= '<div class="an-wrapper">';
     $output .= '<h2 id="an-info-header">' . $this->t('Acquia Network', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';
     $output .= '<p class="an-slogan">' . $this->t('A suite of products and services to create & maintain killer web experiences built on Drupal') . '</p>';
     $output .= '<div id="an-info-box">';
@@ -57,12 +57,13 @@ class StartController extends ControllerBase {
     $output .=     '<a href="http://www.acquia.com/drupal-support" target="_blank">' . _theme('image', array('uri' => $path . '/images/icon-support.png')) . '</a>';
     $output .=     '<p class="cell-p">' . $this->t("Experienced Drupalists are available to support you whenever you need it.") . '</p>';
     $output .=   '</div>';
-    $output .=   '<div class="an-pg-banner">';
-    $output .=     $banner;
-    $output .=   '</div>';
     $output .=  '</div>';
     $output .= '</div>';
-
+    $output .= '<div class="an-pg-banner">';
+    $output .=    $banner;
+    $output .= '</div>';
+    $output .= '</div>';
+    $output .= '</div>';
     $build['output'] = array(
       '#markup' => $output,
     );
