@@ -91,8 +91,6 @@ class CredentialForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $config = $this->config('acquia_connector.settings');
-
     $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));
 
     if (!empty($response['error'])) {
@@ -104,10 +102,7 @@ class CredentialForm extends ConfigFormBase {
       $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
     }
     else {
-      $storage = $form_state->getStorage();
-      // @todo: add subsription name - acquia.agent.subscription.name
-      $storage['subscription'] = '';
-      $form_state->setStorage($storage);
+      $form_state->setValue('subscription', $response['subscription_name']);
     }
   }
 
@@ -119,8 +114,7 @@ class CredentialForm extends ConfigFormBase {
 
     $config->set('key', $form_state->getValue('acquia_key'))
       ->set('identifier', $form_state->getValue('acquia_identifier'))
-      // @todo: add subscription name
-//      ->set('subscription_name', $form_state->getValue('subscription'))
+      ->set('subscription_name', $form_state->getValue('subscription'))
       ->save();
 
     // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
