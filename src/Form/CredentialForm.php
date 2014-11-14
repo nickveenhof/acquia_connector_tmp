@@ -102,7 +102,7 @@ class CredentialForm extends ConfigFormBase {
       $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
     }
     else {
-      $form_state->setValue('subscription', $response['name']);
+      $form_state->setValue('subscription', $response['subscription_name']);
     }
   }
 
