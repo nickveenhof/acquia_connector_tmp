@@ -102,15 +102,7 @@ class CredentialForm extends ConfigFormBase {
       $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
     }
     else {
-      // Get subscription name - acquia.agent.subscription.name
-      $response = $this->client->getSubscriptionName(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));
-
-      if (empty($response['error']) && !empty($response['subscription']['site_name'])) {
-        $form_state->setValue('subscription', $response['subscription']['site_name']);
-      }
-      else {
-        $form_state->setValue('subscription', '');
-      }
+      $form_state->setValue('subscription', $response['name']);
     }
   }
 
