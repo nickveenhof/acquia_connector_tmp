@@ -156,13 +156,14 @@ class SettingsForm extends ConfigFormBase {
     if (!empty($identifier) && !empty($key)) {
       $ssl_available = (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL'));
 
-      $form['connection']['#description'] = $this->t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
-
       $form['connection']['spi'] = array(
         '#prefix' => '<div class="acquia-spi">',
         '#suffix' => '</div>',
-        '#weight' => -1,
+        '#weight' => 0,
       );
+
+      $form['connection']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
+      $form['connection']['description']['#weight'] = '-1';
 
       $form['connection']['spi']['admin_priv'] = array(
         '#type' => 'checkbox',
@@ -186,6 +187,11 @@ class SettingsForm extends ConfigFormBase {
         '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
         '#disabled' => !$ssl_available,
       );
+      $form['connection']['acquia_dynamic_banner'] = array(
+        '#type' => 'checkbox',
+        '#title' => $this->t('Receive updates from Acquia Network'),
+        '#default_value' => $config->get('acquia_dynamic_banner'),
+      );
       $form['connection']['alter_variables'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Allow Insight to update list of approved variables.'),
@@ -200,6 +206,9 @@ class SettingsForm extends ConfigFormBase {
         '#title' => $this->t('Send via Drupal cron'),
         '#default_value' => $use_cron,
       );
+
+      $path = drupal_get_path('module', 'acquia_connector');
+      $form['#attached']['css'][$path . '/css/acquia_connector.admin.theme.css'] = array();
 
 //      $key = sha1($this->privateKey->get());
 //      $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
@@ -225,6 +234,7 @@ class SettingsForm extends ConfigFormBase {
     $config = \Drupal::config('acquia_connector.settings');
     $values = $form_state->getValues();
     $config->set('module_diff_data', $values['module_diff_data'])
+      ->set('acquia_dynamic_banner', $values['acquia_dynamic_banner'])
       ->set('admin_priv', $values['admin_priv'])
       ->set('send_node_user', $values['send_node_user'])
       ->set('send_watchdog', $values['send_watchdog'])
