@@ -135,3 +135,9 @@ div.an-pg-banner{
 fieldset .fieldset-legend {
     font-weight: bold;
 }
+
+div.an-wrapper{
+    display: table-cell;
+    vertical-align: top;
+    width: 100%;
+}
