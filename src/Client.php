@@ -91,6 +91,34 @@ class Client {
   }
 
   /**
+   * Get Acquia subscription Name from Acquia Network.
+   *
+   * @param string $id Network ID
+   * @param string $key Network Key
+   * @param array $body
+   *   (optional)
+   *
+   * @return array|false
+   */
+  public function getSubscriptionName($id, $key, array $body = array()) {
+    $body += array('identifier' => $id);
+    $authenticator =  $this->buildAuthenticator($key, $body);
+    $data = array(
+      'body' => $body,
+      'authenticator' => $authenticator,
+    );
+    try{
+      $response = $this->request('POST', '/agent-api/subscription/name/' . $id, $data);
+      // @todo: Add $response['authenticator'] on server-side
+//      if ($this->validateResponse($key, $response, $authenticator)) {
+        return $response['body'];
+//      }
+    }
+    catch (\Exception $e){}
+    return FALSE;
+  }
+
+  /**
    * Get Acquia subscription from Acquia Network.
    *
    * @param string $id Network ID
