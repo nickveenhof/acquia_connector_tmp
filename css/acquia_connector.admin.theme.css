@@ -131,3 +131,7 @@ div.an-pg-banner{
 .acquia-spi {
   padding-left: 1em;
 }
+
+fieldset .fieldset-legend {
+    font-weight: bold;
+}

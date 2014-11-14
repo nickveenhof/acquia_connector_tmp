@@ -159,10 +159,11 @@ class SettingsForm extends ConfigFormBase {
       $form['connection']['spi'] = array(
         '#prefix' => '<div class="acquia-spi">',
         '#suffix' => '</div>',
-        '#weight' => -1,
+        '#weight' => 0,
       );
 
-      $form['connection']['spi']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
+      $form['connection']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
+      $form['connection']['description']['#weight'] = '-1';
 
       $form['connection']['spi']['admin_priv'] = array(
         '#type' => 'checkbox',
@@ -186,7 +187,7 @@ class SettingsForm extends ConfigFormBase {
         '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
         '#disabled' => !$ssl_available,
       );
-      $form['connection']['spi']['acquia_dynamic_banner'] = array(
+      $form['connection']['acquia_dynamic_banner'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Receive updates from Acquia Network'),
         '#default_value' => $config->get('acquia_dynamic_banner'),
@@ -205,6 +206,9 @@ class SettingsForm extends ConfigFormBase {
         '#title' => $this->t('Send via Drupal cron'),
         '#default_value' => $use_cron,
       );
+
+      $path = drupal_get_path('module', 'acquia_connector');
+      $form['#attached']['css'][$path . '/css/acquia_connector.admin.theme.css'] = array();
 
 //      $key = sha1($this->privateKey->get());
 //      $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
