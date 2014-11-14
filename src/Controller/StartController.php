@@ -36,8 +36,8 @@ class StartController extends ControllerBase {
     $uri = Url::fromRoute('acquia_connector.setup', array(), array('absolute' => TRUE))->toString();
     $banner = \Drupal::l($banner, Url::fromUri($uri, array('html' => TRUE)));
 
-    $output = '<div class = "an-start-form">';
-    $output .= '<div id = "an-pg-container">';
+    $output = '<div class="an-start-form">';
+    $output .= '<div id="an-pg-container">';
     $output .= '<div class="an-wrapper">';
     $output .= '<h2 id="an-info-header">' . $this->t('Acquia Network', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';
     $output .= '<p class="an-slogan">' . $this->t('A suite of products and services to create & maintain killer web experiences built on Drupal') . '</p>';
