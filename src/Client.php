@@ -118,6 +118,44 @@ class Client {
   }
 
   /**
+   * Get Acquia subscription from Acquia Network.
+   *
+   * @param string $id Network ID
+   * @param string $key Network Key
+   * @param array $body
+   *   (optional)
+   *
+   * @return array|false
+   */
+  public function sendNspi($id, $key, array $body = array()) {
+    $body['identifier'] = $id;
+    // @todo: don't use simple method!
+//    $authenticator =  $this->buildAuthenticator($key, $body);
+    $authenticator =  $this->buildAuthenticator($key, array('identifier' => $id));
+    dpm($authenticator);
+    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
+    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
+    $ssl = isset($_SERVER["HTTPS"]) ? TRUE : FALSE;
+    $data = array(
+      'body' => $body,
+      'authenticator' => $authenticator,
+      'ip' => $ip,
+      'host' => $host,
+      'ssl' => $ssl,
+    );
+    dpm($data);
+
+    try{
+      $response = $this->request('POST', '/spi-api/site', $data);
+//      if ($this->validateResponse($key, $response, $authenticator)) {
+        return $response;
+//      }
+    }
+    catch (\Exception $e){}
+    return FALSE;
+  }
+
+  /**
    * Validate the response authenticator.
    *
    * @param string $key

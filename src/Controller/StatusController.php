@@ -8,6 +8,8 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Access\AccessInterface;
+use Drupal\Core\Access\AccessResultAllowed;
+use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Component\Utility\Url;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -38,7 +40,7 @@ class StatusController extends ControllerBase {
    */
   public function json() {
     // We don't want this page cached.
-    drupal_page_is_cacheable(FALSE);
+    \Drupal::service('page_cache_kill_switch')->trigger();
 
     $performance_config = $this->config('system.performance');
 
@@ -57,24 +59,25 @@ class StatusController extends ControllerBase {
   /**
    * Access callback for json() callback.
    */
-  public function access(Request $request) {
-    $query = $request->query->all();
+  public function access() {
+    $request = \Drupal::request();
+    $nonce = $request->get('nonce', FALSE);
     $connector_config = $this->config('acquia_connector.settings');
 
     // If we don't have all the query params, leave now.
-    if (!isset($query['key'], $query['nonce'])) {
-      return AccessInterface::KILL;
+    if (!$nonce) {
+      return AccessResultForbidden::forbidden();
     }
 
     $sub_data = $connector_config->get('subscription_data');
     $sub_uuid = $this->getIdFromSub($sub_data);
 
     if (!empty($sub_uuid)) {
-      $expected_hash = hash('sha1', "{$sub_uuid}:{$query['nonce']}");
+      $expected_hash = hash('sha1', "{$sub_uuid}:{$nonce}");
 
       // If the generated hash matches the hash from $_GET['key'], we're good.
-      if ($query['key'] === $expected_hash) {
-        return AccessInterface::ALLOW;
+      if ($request->get('key', FALSE) === $expected_hash) {
+        return AccessResultAllowed::allowed();
       }
     }
 
@@ -92,7 +95,7 @@ class StatusController extends ControllerBase {
       watchdog('acquia_agent', 'Site status request: @data', array('@data' => var_export($info, TRUE)));
     }
 
-    return AccessInterface::KILL;
+    return AccessResultForbidden::forbidden();
   }
 
   /**

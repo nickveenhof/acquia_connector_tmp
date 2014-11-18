@@ -167,6 +167,9 @@ function acquia_connector_update_status_alter(&$projects) {
   }
 }
 
+/******** start code to rewrite *********/
+
+
 /**
  * Implements hook_system_info_alter()
  */
@@ -181,32 +184,533 @@ function acquia_connector_system_info_alter(&$info) {
 //    $info['datestamp'] = 'acquia drupal';
 //  }
 }
+///**
+// * Gather full SPI data and send to Acquia Network.
+// *
+// * @param string $method Optional identifier for the method initiating request.
+// *   Values could be 'cron' or 'menu callback' or 'drush'.
+// * @return mixed FALSE if data not sent else NSPI result array
+// */
+//function acquia_connector_send_full_spi($method = '') {
+//  $spi = acquia_connector_spi_get();
+//
+//  if (!empty($method)) {
+//    $spi['send_method'] = $method;
+//  }
+//
+//  $result = acquia_spi_send_data($spi);
+//
+//  if ($result === FALSE) {
+//    return FALSE;
+//  }
+//
+//  acquia_spi_handle_server_response($result);
+//
+//  \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
+//
+//  return $result;
+//}
+
 /**
- * Gather full SPI data and send to Acquia Network.
+ * Gather site profile information about this site.
  *
- * @param string $method Optional identifier for the method initiating request.
- *   Values could be 'cron' or 'menu callback' or 'drush'.
- * @return mixed FALSE if data not sent else NSPI result array
+ * @return
+ *   An associative array keyed by types of information.
  */
-function acquia_connector_send_full_spi($method = '') {
-  $spi = acquia_spi_get();
+function acquia_connector_spi_get() {
+  // Get file hashes and compute serialized version.
+  list($hashes, $fileinfo) = acquia_connector_spi_file_hashes();
+  $hashes_string = serialize($hashes);
 
-  if (!empty($method)) {
-    $spi['send_method'] = $method;
+  // Get the Drupal version
+  $drupal_version = acquia_connector_spi_get_version_info();
+
+  $stored = acquia_connector_spi_data_store_get(array('platform'));
+  if (!empty($stored['platform'])) {
+    $platform = $stored['platform'];
+  }
+  else {
+    $platform = acquia_connector_get_platform();
+  }
+  $spi = array(
+    'spi_data_version' => ACQUIA_SPI_DATA_VERSION,
+    'site_key'       => sha1(Drupal::service('private_key')->get()),
+    'modules'        => acquia_connector_spi_get_modules(),
+    'platform'       => $platform,
+    'quantum'        => acquia_connector_spi_get_quantum(),
+//    'system_status'  => acquia_spi_get_system_status(),
+//    'failed_logins'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_failed_logins() : array(),
+//    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
+//    'watchdog_size'  => acquai_spi_get_watchdog_size(),
+//    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
+//    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
+//    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
+//    'extra_files'    => acquia_spi_check_files_present(),
+//    'ssl_login'      => acquia_spi_check_login(),
+    'file_hashes'    => $hashes,
+    'hashes_md5'     => md5($hashes_string),
+    'hashes_sha1'    => sha1($hashes_string),
+    'fileinfo'       => $fileinfo,
+    'distribution'   => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
+    'base_version'   => $drupal_version['base_version'],
+    'build_data'     => $drupal_version,
+//    'roles'          => drupal_json_encode(user_roles()),
+    'uid_0_present'  => acquia_connector_spi_uid_0_present(),
+  );
+
+//  $scheme = parse_url(variable_get('acquia_spi_server', 'https://nspi.acquia.com'), PHP_URL_SCHEME);
+//  $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
+//  if (variable_get('acquia_spi_ssl_override', FALSE)) {
+//    $via_ssl = TRUE;
+//  }
+
+  $additional_data = array();
+//  $security_review_results = acquia_spi_run_security_review();
+
+  // It's worth sending along node access control information even if there are
+  // no modules implementing it - some alerts are simpler if we know we don't
+  // have to worry about node access.
+
+  // Check for node grants modules.
+  $additional_data['node_grants_modules'] = module_implements("node_grants", TRUE);
+
+  // Check for node access modules.
+  $additional_data['node_access_modules'] = module_implements("node_access", TRUE);
+
+  if (!empty($security_review_results)) {
+    $additional_data['security_review'] = $security_review_results['security_review'];
   }
 
-  $result = acquia_spi_send_data($spi);
-
-  if ($result === FALSE) {
-    return FALSE;
+  // Collect all user-contributed custom tests that pass validation.
+//  $custom_tests_results = acquia_spi_test_collect();
+  if (!empty($custom_tests_results)) {
+    $additional_data['custom_tests'] = $custom_tests_results;
   }
 
-  acquia_spi_handle_server_response($result);
+//  $spi_data = module_invoke_all('acquia_spi_get');
+  if (!empty($spi_data)) {
+    foreach ($spi_data as $name => $data) {
+      if (is_string($name) && is_array($data)) {
+        $additional_data[$name] = $data;
+      }
+    }
+  }
 
-  \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
+  // Database updates required?
+  // Based on code from system.install
+  include_once DRUPAL_ROOT . '/includes/install.inc';
+//  drupal_load_updates();
 
+  $additional_data['pending_updates'] = FALSE;
+  $modules = system_rebuild_module_data();
+  uasort($modules, 'system_sort_modules_by_info_name');
+  foreach ($modules as $key => $module) {
+    $updates = drupal_get_schema_versions($key);
+    if ($updates !== FALSE) {
+      $default = drupal_get_installed_schema_version($key);
+      if (max($updates) > $default) {
+        $additional_data['pending_updates'] = TRUE;
+        break;
+      }
+    }
+  }
+  // @todo: remove me!
+  $additional_data['pending_updates'] = TRUE;
+
+  if (!empty($additional_data)) {
+    // JSON encode this additional data.
+    $spi['additional_data'] = $additional_data;
+  }
+
+  // @todo: Remove DEBUG
+  if (!$via_ssl) {
+    return $spi;
+  }
+  else {
+    // Values returned only over SSL
+    $spi_ssl = array(
+      'system_vars'  => acquia_connector_spi_get_variables_data(),
+      'settings_ra'  => acquia_spi_get_settings_permissions(),
+      'admin_count'  => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_admin_count() : '',
+      'admin_name'   => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_super_name() : '',
+    );
+
+    return array_merge($spi, $spi_ssl);
+  }
+}
+
+/**
+ * Get all system variables
+ *
+ * @return array()
+ */
+function acquia_connector_spi_get_variables_data() {
+  global $conf;
+  $data = array();
+  return $data;
+  $variables = array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
+  $spi_def_vars = variable_get('acquia_spi_def_vars', array());
+  $waived_spi_def_vars = variable_get('acquia_spi_def_waived_vars', array());
+  // Merge hard coded $variables with vars from SPI definition.
+  foreach($spi_def_vars as $var_name => $var) {
+    if (!in_array($var_name, $waived_spi_def_vars) && !in_array($var_name, $variables)) {
+      $variables[] = $var_name;
+    }
+  }
+  // Add comment settings for node types.
+  $types = node_type_get_types();
+  if (!empty($types)) {
+    foreach ($types as $name => $type) {
+      $variables[] = 'comment_' . $name;
+    }
+  }
+  foreach ($variables as $name) {
+    if (isset($conf[$name])) {
+      $data[$name] = $conf[$name];
+    }
+  }
+  // Exception handling.
+  if (module_exists('globalredirect') && function_exists('_globalredirect_get_settings')) {
+    // Explicitly get Global Redirect settings since it deletes its variable
+    // if the settings match the defaults.
+    $data['globalredirect_settings'] = _globalredirect_get_settings();
+  }
+  // Drush overrides cron_safe_threshold so extract DB value if sending via drush.
+  if (drupal_is_cli()) {
+    $cron_safe_threshold = acquia_spi_get_db_variable('cron_safe_threshold');
+    $data['cron_safe_threshold'] = !is_null($cron_safe_threshold) ? $cron_safe_threshold : DRUPAL_CRON_DEFAULT_THRESHOLD;
+  }
+  // Unset waived vars so they won't be sent to NSPI.
+  foreach($data as $var_name => $var) {
+    if (in_array($var_name, $waived_spi_def_vars)) {
+      unset($data[$var_name]);
+    }
+  }
+  // Collapse to JSON string to simplify transport.
+  return drupal_json_encode($data);
+}
+
+/**
+ * Check the presence of UID 0 in the users table.
+ *
+ * @return bool Whether UID 0 is present.
+ *
+ */
+function acquia_connector_spi_uid_0_present() {
+  return TRUE;
+  $count = db_query("SELECT uid FROM {users} WHERE uid = 0")->rowCount();
+  return $count == 1 ? TRUE : FALSE;
+}
+
+/**
+ * Gather information about nodes, users and comments.
+ *
+ * @return
+ *   An associative array.
+ */
+function acquia_connector_spi_get_quantum() {
+  $quantum = array();
+  // Get only published nodes.
+  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->countQuery()->execute()->fetchField();
+//  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+  // Get only active users.
+//  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();
+  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->countQuery()->execute()->fetchField();
+//  if (module_exists('comment')) {
+//    // Get only active comments.
+//    $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute()->fetchField();
+//  }
+
+  return $quantum;
+}
+
+/**
+ * Gather hashes of all important files, ignoring line ending and CVS Ids
+ *
+ * @param $excuded_dirs
+ *   Optional array of directory paths to be excluded.
+ *
+ * @return
+ *   An associative array keyed by filename of hashes.
+ */
+function acquia_connector_spi_file_hashes($exclude_dirs = array()) {
+  // The list of directories for the third parameter are the only ones that
+  // will be recursed into.  Thus, we avoid sending hashes for any others.
+  list($hashes, $fileinfo) = _acquia_connector_spi_generate_hashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'includes', 'misc', 'scripts'));
+  ksort($hashes);
+  // Add .htaccess file.
+  $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
+  if (is_file($htaccess)) {
+    $owner = fileowner($htaccess);
+    if (function_exists('posix_getpwuid')) {
+      $userinfo = posix_getpwuid($owner);
+      $owner = $userinfo['name'];
+    }
+    $fileinfo['.htaccess'] = 'mt:' . filemtime($htaccess) . '$p:' . substr(sprintf('%o', fileperms($htaccess)), -4) . '$o:' . $owner . '$s:' . filesize($htaccess);
+  }
+  return array($hashes, $fileinfo);
+}
+
+/**
+ * Recursive helper function for acquia_spi_file_hashes().
+ */
+function _acquia_connector_spi_generate_hashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir=NULL) {
+  $hashes = array();
+  $fileinfo = array();
+
+  // Ensure that we have not nested into another module's dir
+  if ($dir != $orig_dir && $module_break) {
+    if (is_dir($dir) && $handle = opendir($dir)) {
+      while ($file = readdir($handle)) {
+        if (stristr($file, '.module')) {
+          return;
+        }
+      }
+    }
+  }
+  if (isset($handle)) {
+    closedir($handle);
+  }
+
+  // Standard nesting function
+  if (is_dir($dir) && $handle = opendir($dir)) {
+    while ($file = readdir($handle)) {
+      if (!in_array($file, array('.', '..', 'CVS', '.svn'))) {
+        $path = $dir == '.' ? $file : "{$dir}/{$file}";
+        if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
+          list($sub_hashes, $sub_fileinfo) =  _acquia_connector_spi_generate_hashes($path, $exclude_dirs);
+          $hashes = array_merge($sub_hashes, $hashes);
+          $fileinfo = array_merge($sub_fileinfo, $fileinfo);
+          $hashes[$path] = acquia_connector_spi_hash_path($path);
+        }
+        elseif (acquia_connector_spi_is_manifest_type($file)) {
+          $hashes[$path] = acquia_connector_spi_hash_path($path);
+          $owner = fileowner($path);
+          if (function_exists('posix_getpwuid')) {
+            $userinfo = posix_getpwuid($owner);
+            $owner = $userinfo['name'];
+          }
+          $fileinfo[$path] = 'mt:' . filemtime($path) . '$p:' . substr(sprintf('%o', fileperms($path)), -4) . '$o:' . $owner . '$s:' . filesize($path);
+        }
+      }
+    }
+    closedir($handle);
+  }
+
+  return array($hashes, $fileinfo);
+}
+
+/**
+ * Determine if a path is a file type we care about for modificaitons.
+ */
+function acquia_connector_spi_is_manifest_type($path) {
+  $extensions = array(
+    'php' => 1,
+    'php4' => 1,
+    'php5' => 1,
+    'module' => 1,
+    'inc' => 1,
+    'install' => 1,
+    'test' => 1,
+    'theme' => 1,
+    'engine' => 1,
+    'profile' => 1,
+    'css' => 1,
+    'js' => 1,
+    'info' => 1,
+    'sh' => 1,
+    // SSL certificates
+    'pem' => 1,
+    'pl' => 1,
+    'pm' => 1,
+  );
+  $pathinfo = pathinfo($path);
+  return isset($pathinfo['extension']) && isset($extensions[$pathinfo['extension']]);
+}
+
+/**
+ * Calculate the sha1 hash for a path.
+ *
+ * @param $path
+ *   The name of the file or a directory.
+ * @return
+ *   bas64 encoded sha1 hash. 'hash' is an empty string for directories.
+ */
+function acquia_connector_spi_hash_path($path = '') {
+  $hash = '';
+  if (file_exists($path)) {
+    if (!is_dir($path)) {
+      $string = file_get_contents($path);
+      // Remove trailing whitespace
+      $string = rtrim($string);
+      // Replace all line endings and CVS/svn Id tags
+      $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$' . 'Id$', $string);
+      $string = preg_replace('/\r\n|\n|\r/', ' ', $string);
+      $hash =  base64_encode(pack("H*", sha1($string)));
+    }
+  }
+  return $hash;
+}
+
+/**
+ * Attempt to determine the version of Drupal being used.
+ * Note, there is better information on this in the common.inc file.
+ *
+ * @return array
+ *    An array containing some detail about the version
+ */
+function acquia_connector_spi_get_version_info() {
+  $store = acquia_connector_spi_data_store_get(array('platform'));
+  $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : $_SERVER;
+  $ver = array();
+
+  $ver['base_version'] = \Drupal::VERSION;
+  $install_root = $server['DOCUMENT_ROOT'] . base_path();
+  $ver['distribution']  = '';
+
+  // Determine if this puppy is Acquia Drupal
+//  acquia_agent_load_versions();
+//  if (IS_ACQUIA_DRUPAL) {
+//    $ver['distribution']   = 'Acquia Drupal';
+//    $ver['ad']['version']  = ACQUIA_DRUPAL_VERSION;
+//    $ver['ad']['series']   = ACQUIA_DRUPAL_SERIES;
+//    $ver['ad']['branch']   = ACQUIA_DRUPAL_BRANCH;
+//    $ver['ad']['revision'] = ACQUIA_DRUPAL_REVISION;
+//  }
+
+  // Determine if we are looking at Pressflow
+  if (defined('CACHE_EXTERNAL')) {
+    $ver['distribution']  = 'Pressflow';
+    $press_version_file = $install_root . './PRESSFLOW.txt';
+    if (is_file($press_version_file)) {
+      $ver['pr']['version'] = trim(file_get_contents($press_version_file));
+    }
+  }
+  // Determine if this is Open Atrium
+  elseif (is_dir($install_root . '/profiles/openatrium')) {
+    $ver['distribution']  = 'Open Atrium';
+    $version_file = $install_root . 'profiles/openatrium/VERSION.txt';
+    if (is_file($version_file)) {
+      $ver['oa']['version'] = trim(file_get_contents($version_file));
+    }
+  }
+  // Determine if this is Commons
+  elseif (is_dir($install_root . '/profiles/commons')) {
+    $ver['distribution']  = 'Commons';
+  }
+  // Determine if this is COD.
+  elseif (is_dir($install_root . '/profiles/cod')) {
+    $ver['distribution']  = 'COD';
+  }
+
+  return $ver;
+}
+
+/**
+ * Get SPI data out of local storage.
+ *
+ * @param array Array of keys to extract data for.
+ *
+ * @return array Stored data or false if no data is retrievable from storage.
+ */
+function acquia_connector_spi_data_store_get($keys) {
+  $store = array();
+  foreach ($keys as $key) {
+//    $cache = cache_get('acquia.spi.' . $key, 'cache');
+//    if ($cache && !empty($cache->data)) {
+//      $store[$key] = $cache->data;
+//    }
+  }
+  return $store;
+}
+
+/**
+ * Gather information about modules on the site.
+ *
+ * @return
+ *   An associative array keyed by filename of associative arrays with
+ *   information on the modules.
+ */
+function acquia_connector_spi_get_modules() {
+  // Only do a full rebuild of the module cache every 1 at the most
+//  $last_build = variable_get('acquia_spi_module_rebuild', 0);
+//  if ($last_build < REQUEST_TIME - 86400) {
+//    $modules = system_rebuild_module_data();
+//    variable_set('acquia_spi_module_rebuild', REQUEST_TIME);
+//  }
+//  else {
+//    $result = db_query("SELECT filename, name, type, status, schema_version, info FROM {system} WHERE type = 'module'");
+//    foreach ($result as $file) {
+//      $file->info = unserialize($file->info);
+//      $modules[$file->filename] = $file;
+//    }
+//  }
+
+  $modules = system_rebuild_module_data();
+  uasort($modules, 'system_sort_modules_by_info_name');
+
+  $result = array();
+  $keys_to_send = array('name', 'version', 'package', 'core');
+  foreach ($modules as $module_key => $module) {
+    $info = array();
+    $info['status'] = $module->status;
+    foreach ($keys_to_send as $key) {
+      $info[$key] = isset($module->info[$key]) ? $module->info[$key] : '';
+    }
+    $info['project'] = $module_key;
+    $info['filename'] = $module->subpath;
+
+//    // Determine which files belong to this module and hash them
+//    $module_path = explode('/', $file->filename);
+//    array_pop($module_path);
+//
+//    // We really only care about this module if it is in 'sites' folder.
+//    // Otherwise it is covered by the hash of the distro's modules
+//    if ($module_path[0]=='sites') {
+//      $contrib_path = implode('/', $module_path);
+//
+//      // Get a hash for this module's files. If we nest into another module, we'll return
+//      // and that other module will be covered by it's entry in the system table.
+//      //
+//      // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
+//      // too hard to tell an individual module appart from a project
+//      //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
+//      list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = _acquia_spi_generate_hashes($contrib_path);
+//    }
+//    else {
+      $info['module_data']['hashes'] = array();
+      $info['module_data']['fileinfo'] = array();
+//    }
+
+    $result[] = $info;
+  }
   return $result;
 }
+
+/**
+ * Act on specific elements of SPI update server response.
+ *
+ * @param array $spi_response Array response from acquia_spi_send_data().
+ */
+function acquia_connector_spi_handle_server_response($spi_response) {
+  // Check result for command to update SPI definition.
+//  $update = isset($spi_response['update_spi_definition']) ? $spi_response['update_spi_definition'] : FALSE;
+//  if ($update === TRUE) {
+//    acquia_spi_update_definition();
+//  }
+  // Check for set_variables command.
+//  $set_variables = isset($spi_response['set_variables']) ? $spi_response['set_variables'] : FALSE;
+//  if ($set_variables !== FALSE) {
+//    acquia_spi_set_variables($set_variables);
+//  }
+  // Log messages.
+  $messages = isset($spi_response['nspi_messages']) ? $spi_response['nspi_messages'] : FALSE;
+  if ($messages !== FALSE) {
+//    watchdog('acquia spi', 'SPI update server response messages: @messages', array('@messages' => implode(', ', $messages)));
+  }
+}
+
+/******** end code to rewrite *********/
 
 /**
  * Gather platform specific information.

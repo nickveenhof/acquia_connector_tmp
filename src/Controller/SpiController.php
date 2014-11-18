@@ -8,8 +8,12 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Access\AccessResultAllowed;
+use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\acquia_connector\Client;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class SpiController.
@@ -17,9 +21,50 @@ use Symfony\Component\HttpFoundation\Request;
 class SpiController extends ControllerBase {
 
   /**
+   * The Acquia client.
+   *
+   * @var \Drupal\acquia_connector\Client
+   */
+  protected $client;
+
+  /**
+   * Constructs a \Drupal\system\ConfigFormBase object.
+   *
+   * @param Client $client
+   */
+  public function __construct(Client $client) {
+    $this->client = $client;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('acquia_connector.client')
+    );
+  }
+
+  /**
+   * Get SPI data.
+   * @return array
+   */
+  public function get($method = '') {
+    $spi = acquia_connector_spi_get();
+
+    if (!empty($method)) {
+      $spi['send_method'] = $method;
+    }
+
+    return $spi;
+  }
+
+  /**
    * Send SPI data.
    */
+  //@todo: In routing.yml replace _content with _controller.ß
   public function send(Request $request) {
+    $config = $this->config('acquia_connector.settings');
     $method = ACQUIA_SPI_METHOD_CALLBACK;
 
     // Insight's set variable feature will pass method insight.
@@ -27,9 +72,27 @@ class SpiController extends ControllerBase {
       $method = ACQUIA_SPI_METHOD_INSIGHT;
     }
 
-    $response = acquia_connector_send_full_spi($method);
+    $spi = $this->get($method);
+//    dpm($spi);
 
-    if ($request->query->has('destination')) {
+    $response = $this->client->sendNspi($config->get('identifier'), $config->get('key'), $spi);
+
+//    $result = acquia_spi_send_data($spi);
+
+    dpm($response);
+//    if ($result === FALSE) {
+//      return FALSE;
+//    }
+
+    acquia_connector_spi_handle_server_response($response);
+
+    $config->set('cron_last', REQUEST_TIME);
+
+
+
+//    $response = acquia_connector_send_full_spi($method);
+
+    if ($request->get('destination')) {
       if (!empty($response)) {
         $message = array();
         if (isset($response['spi_data_received']) && $response['spi_data_received'] === TRUE) {
@@ -48,23 +111,26 @@ class SpiController extends ControllerBase {
         drupal_set_message($this->t('Error sending SPI data. Consult the logs for more information.'), 'error');
       }
 
-      $this->redirect('<front>');
+//      $this->redirect('<front>');
     }
+    // @todo: remove
+    return array();
   }
 
   /**
    * Access callback check for SPI send independent call.
    */
-  public function sendAccess(Request $request) {
+  public function sendAccess() {
+    $request = \Drupal::request();
     $acquia_key = \Drupal::config('acquia_connector.settings')->get('key');
 
-    if (!empty($acquia_key) && $request->query->has('key')) {
+    if (!empty($acquia_key) && $request->get('key')) {
       $key = sha1(\Drupal::service('private_key')->get());
-      if ($key === $request->query->get('key')) {
-        return TRUE;
+      if ($key === $request->get('key')) {
+        return AccessResultAllowed::allowed();
       }
     }
-    return FALSE;
+    return AccessResultForbidden::forbidden();
   }
 
   /**
