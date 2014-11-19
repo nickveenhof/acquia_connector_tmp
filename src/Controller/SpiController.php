@@ -71,7 +71,7 @@ class SpiController extends ControllerBase {
     $spi = array(
       'spi_data_version' => ACQUIA_SPI_DATA_VERSION,
       'site_key'       => sha1(\Drupal::service('private_key')->get()),
-      'modules'        => acquia_connector_spi_get_modules(),
+      'modules'        => $this->getModules(),
       'platform'       => $platform,
       'quantum'        => acquia_connector_spi_get_quantum(),
 //    'system_status'  => acquia_spi_get_system_status(),
@@ -433,6 +433,72 @@ class SpiController extends ControllerBase {
     }
 
     return $ret;
+  }
+
+
+  /**
+   * Gather information about modules on the site.
+   *
+   * @return array
+   *   An associative array keyed by filename of associative arrays with
+   *   information on the modules.
+   */
+  private function getModules() {
+    // @todo
+    // Only do a full rebuild of the module cache every 1 at the most
+//  $last_build = variable_get('acquia_spi_module_rebuild', 0);
+//  if ($last_build < REQUEST_TIME - 86400) {
+//    $modules = system_rebuild_module_data();
+//    variable_set('acquia_spi_module_rebuild', REQUEST_TIME);
+//  }
+//  else {
+//    $result = db_query("SELECT filename, name, type, status, schema_version, info FROM {system} WHERE type = 'module'");
+//    foreach ($result as $file) {
+//      $file->info = unserialize($file->info);
+//      $modules[$file->filename] = $file;
+//    }
+//  }
+
+    $modules = system_rebuild_module_data();
+    uasort($modules, 'system_sort_modules_by_info_name');
+
+    $result = array();
+    $keys_to_send = array('name', 'version', 'package', 'core');
+    foreach ($modules as $module_key => $module) {
+      $info = array();
+      $info['status'] = $module->status;
+      foreach ($keys_to_send as $key) {
+        $info[$key] = isset($module->info[$key]) ? $module->info[$key] : '';
+      }
+      $info['project'] = $module_key;
+      $info['filename'] = $module->subpath;
+
+      // @todo
+//    // Determine which files belong to this module and hash them
+//    $module_path = explode('/', $file->filename);
+//    array_pop($module_path);
+//
+//    // We really only care about this module if it is in 'sites' folder.
+//    // Otherwise it is covered by the hash of the distro's modules
+//    if ($module_path[0]=='sites') {
+//      $contrib_path = implode('/', $module_path);
+//
+//      // Get a hash for this module's files. If we nest into another module, we'll return
+//      // and that other module will be covered by it's entry in the system table.
+//      //
+//      // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
+//      // too hard to tell an individual module appart from a project
+//      //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
+//      list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = _acquia_spi_generate_hashes($contrib_path);
+//    }
+//    else {
+      $info['module_data']['hashes'] = array();
+      $info['module_data']['fileinfo'] = array();
+//    }
+
+      $result[] = $info;
+    }
+    return $result;
   }
 
   /**
