@@ -124,7 +124,7 @@ class SpiController extends ControllerBase {
       $additional_data['custom_tests'] = $custom_tests_results;
     }
 
-//  $spi_data = module_invoke_all('acquia_spi_get');
+    $spi_data = \Drupal::moduleHandler()->invokeAll('acquia_spi_get');
     if (!empty($spi_data)) {
       foreach ($spi_data as $name => $data) {
         if (is_string($name) && is_array($data)) {
@@ -135,8 +135,8 @@ class SpiController extends ControllerBase {
 
     // Database updates required?
     // Based on code from system.install
-    include_once DRUPAL_ROOT . '/includes/install.inc';
-//  drupal_load_updates();
+    include_once DRUPAL_ROOT . '/core/includes/install.inc';
+    drupal_load_updates();
 
     $additional_data['pending_updates'] = FALSE;
     $modules = system_rebuild_module_data();
