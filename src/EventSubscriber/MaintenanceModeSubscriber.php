@@ -7,6 +7,7 @@
 
 namespace Drupal\acquia_connector\EventSubscriber;
 
+use Drupal\acquia_connector\Controller;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
@@ -80,7 +81,7 @@ class MaintenanceModeSubscriber implements EventSubscriberInterface {
     $now = REQUEST_TIME;
 
     if ((($now - $last) > ($interval * 60))) {
-      $platform = acquia_connector_get_platform();
+      $platform = Controller\SpiController::getPlatform();
 
       // acquia_spi_data_store_set() replacement.
       $expire = REQUEST_TIME + (60*60*24);
