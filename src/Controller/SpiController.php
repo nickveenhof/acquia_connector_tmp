@@ -8,7 +8,9 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Database;
+use Drupal\Core\DrupalKernel;
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
@@ -92,14 +94,15 @@ class SpiController extends ControllerBase {
       'base_version'   => $drupal_version['base_version'],
       'build_data'     => $drupal_version,
       'roles'          => Json::encode(user_roles()),
-      'uid_0_present'  => acquia_connector_spi_uid_0_present(),
+      'uid_0_present'  => $this->getUidZerroIsPresent(),
     );
 
-//  $scheme = parse_url(variable_get('acquia_spi_server', 'https://nspi.acquia.com'), PHP_URL_SCHEME);
-//  $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
-//  if (variable_get('acquia_spi_ssl_override', FALSE)) {
-//    $via_ssl = TRUE;
-//  }
+    $scheme = parse_url(\Drupal::config('acquia_connector.settings')->get('network_address'), PHP_URL_SCHEME);
+    $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
+    // @todo: Implement acquia_spi_ssl_override!
+    if (\Drupal::config('acquia_connector.settings')->get('acquia_spi_ssl_override')) {
+      $via_ssl = TRUE;
+    }
 
     $additional_data = array();
 //  $security_review_results = acquia_spi_run_security_review();
@@ -167,16 +170,130 @@ class SpiController extends ControllerBase {
     else {
       // Values returned only over SSL
       $spi_ssl = array(
-        'system_vars' => acquia_connector_spi_get_variables_data(),
-        'settings_ra' => acquia_spi_get_settings_permissions(),
-        'admin_count' => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_admin_count() : '',
-        'admin_name' => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_super_name() : '',
+        // @todo getVariablesData
+        'system_vars' => $this->getVariablesData(),
+        'settings_ra' => $this->getSettingsPermissions(),
+        // @todo getAdminCount
+        'admin_count' => \Drupal::config('acquia_connector.settings')->get('admin_priv') ? $this->getAdminCount() : '',
+        'admin_name' => \Drupal::config('acquia_connector.settings')->get('admin_priv') ? $this->getSuperName() : '',
       );
 
       return array_merge($spi, $spi_ssl);
     }
   }
 
+
+  /**
+   * Get all system variables
+   *
+   * @return array()
+   */
+  private function getVariablesData() {
+    global $conf;
+    $data = array();
+    return $data;
+    $variables = array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
+    $spi_def_vars = variable_get('acquia_spi_def_vars', array());
+    $waived_spi_def_vars = variable_get('acquia_spi_def_waived_vars', array());
+    // Merge hard coded $variables with vars from SPI definition.
+    foreach($spi_def_vars as $var_name => $var) {
+      if (!in_array($var_name, $waived_spi_def_vars) && !in_array($var_name, $variables)) {
+        $variables[] = $var_name;
+      }
+    }
+    // Add comment settings for node types.
+    $types = node_type_get_types();
+    if (!empty($types)) {
+      foreach ($types as $name => $type) {
+        $variables[] = 'comment_' . $name;
+      }
+    }
+    foreach ($variables as $name) {
+      if (isset($conf[$name])) {
+        $data[$name] = $conf[$name];
+      }
+    }
+    // Exception handling.
+    if (module_exists('globalredirect') && function_exists('_globalredirect_get_settings')) {
+      // Explicitly get Global Redirect settings since it deletes its variable
+      // if the settings match the defaults.
+      $data['globalredirect_settings'] = _globalredirect_get_settings();
+    }
+    // Drush overrides cron_safe_threshold so extract DB value if sending via drush.
+    if (drupal_is_cli()) {
+      $cron_safe_threshold = acquia_spi_get_db_variable('cron_safe_threshold');
+      $data['cron_safe_threshold'] = !is_null($cron_safe_threshold) ? $cron_safe_threshold : DRUPAL_CRON_DEFAULT_THRESHOLD;
+    }
+    // Unset waived vars so they won't be sent to NSPI.
+    foreach($data as $var_name => $var) {
+      if (in_array($var_name, $waived_spi_def_vars)) {
+        unset($data[$var_name]);
+      }
+    }
+    // Collapse to JSON string to simplify transport.
+    return Json::encode($data);
+  }
+
+  /**
+  * Check the presence of UID 0 in the users table.
+  *
+  * @return bool Whether UID 0 is present.
+  */
+  private function getUidZerroIsPresent() {
+    $count = db_query("SELECT uid FROM {users} WHERE uid = 0")->fetchAll();
+    return (boolean) $count;
+  }
+
+  /**
+   * The number of users who have admin-level user roles.
+   *
+   * @return int
+   */
+  private function getAdminCount() {
+    // @todo
+    return '';
+//    $count = NULL;
+//    $sql = "SELECT COUNT(DISTINCT u.uid) as count
+//              FROM {users} u, {users_roles} ur, {role_permission} p
+//              WHERE u.uid = ur.uid
+//                AND ur.rid = p.rid
+//                AND u.status = 1
+//                AND (p.permission = 'administer permissions' OR p.permission = 'administer users')";
+//    $result = db_query($sql)->fetchObject();
+//
+//    return (isset($result->count) && is_numeric($result->count)) ? $result->count : NULL;
+  }
+
+  /**
+   * Determine if the super user has a weak name
+   *
+   * @return boolean
+   */
+  private function getSuperName() {
+    $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
+    return (boolean) $result;
+  }
+
+  /**
+   * Determines if settings.php is read-only
+   *
+   * @return boolean
+   */
+  private function getSettingsPermissions() {
+    $settings_permissions_read_only = TRUE;
+    $writes = array('2', '3', '6', '7'); // http://en.wikipedia.org/wiki/File_system_permissions
+    $settings_file = './' . DrupalKernel::findSitePath(\Drupal::request(), TRUE) . '/settings.php';
+    $permissions = Unicode::substr(sprintf('%o', fileperms($settings_file)), -4);
+
+    foreach ($writes as $bit) {
+      if (strpos($permissions, $bit)) {
+        $settings_permissions_read_only = FALSE;
+        break;
+      }
+    }
+
+    return $settings_permissions_read_only;
+  }
 
   /**
    * Gather hashes of all important files, ignoring line ending and CVS Ids
