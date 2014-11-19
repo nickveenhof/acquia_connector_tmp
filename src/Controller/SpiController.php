@@ -347,7 +347,7 @@ class SpiController extends ControllerBase {
       'system_type'       => php_uname('s'),
       // php_uname() only accepts one character, so we need to concatenate ourselves.
       'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
-      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? acquia_connector_get_platform_mysql_data() : array(),
+      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? $this->getPlatformMysqlData() : array(),
     );
 
     // Never send NULL (or FALSE?) - that causes hmac errors.
@@ -358,6 +358,81 @@ class SpiController extends ControllerBase {
     }
 
     return $platform;
+  }
+
+  /**
+   * Gather mysql specific information.
+   *
+   * @return array
+   *   An associative array keyed by a mysql information type.
+   */
+  private function getPlatformMysqlData() {
+    $connection = Database\Database::getConnection('default');
+    $result = $connection->query('SHOW GLOBAL STATUS', array(), array())->fetchAll();
+
+    $ret = array();
+    if (empty($result)) {
+      return $ret;
+    }
+
+    foreach ($result as $record) {
+      if (!isset($record->Variable_name)) {
+        continue;
+      }
+      switch ($record->Variable_name) {
+        case 'Table_locks_waited':
+          $ret['Table_locks_waited'] = $record->Value;
+          break;
+        case 'Slow_queries':
+          $ret['Slow_queries'] = $record->Value;
+          break;
+        case 'Qcache_hits':
+          $ret['Qcache_hits'] = $record->Value;
+          break;
+        case 'Qcache_inserts':
+          $ret['Qcache_inserts'] = $record->Value;
+          break;
+        case 'Qcache_queries_in_cache':
+          $ret['Qcache_queries_in_cache'] = $record->Value;
+          break;
+        case 'Qcache_lowmem_prunes':
+          $ret['Qcache_lowmem_prunes'] = $record->Value;
+          break;
+        case 'Open_tables':
+          $ret['Open_tables'] = $record->Value;
+          break;
+        case 'Opened_tables':
+          $ret['Opened_tables'] = $record->Value;
+          break;
+        case 'Select_scan':
+          $ret['Select_scan'] = $record->Value;
+          break;
+        case 'Select_full_join':
+          $ret['Select_full_join'] = $record->Value;
+          break;
+        case 'Select_range_check':
+          $ret['Select_range_check'] = $record->Value;
+          break;
+        case 'Created_tmp_disk_tables':
+          $ret['Created_tmp_disk_tables'] = $record->Value;
+          break;
+        case 'Created_tmp_tables':
+          $ret['Created_tmp_tables'] = $record->Value;
+          break;
+        case 'Handler_read_rnd_next':
+          $ret['Handler_read_rnd_next'] = $record->Value;
+          break;
+        case 'Sort_merge_passes':
+          $ret['Sort_merge_passes'] = $record->Value;
+          break;
+        case 'Qcache_not_cached':
+          $ret['Qcache_not_cached'] = $record->Value;
+          break;
+
+      }
+    }
+
+    return $ret;
   }
 
   /**
