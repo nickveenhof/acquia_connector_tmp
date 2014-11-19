@@ -15,6 +15,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\acquia_connector\Client;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Component\Serialization\Json;
 
 /**
  * Class SpiController.
@@ -90,7 +91,7 @@ class SpiController extends ControllerBase {
       'distribution'   => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
       'base_version'   => $drupal_version['base_version'],
       'build_data'     => $drupal_version,
-//    'roles'          => drupal_json_encode(user_roles()),
+      'roles'          => Json::encode(user_roles()),
       'uid_0_present'  => acquia_connector_spi_uid_0_present(),
     );
 
