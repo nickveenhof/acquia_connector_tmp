@@ -410,24 +410,6 @@ function acquia_connector_spi_hash_path($path = '') {
 }
 
 /**
- * Get SPI data out of local storage.
- *
- * @param array Array of keys to extract data for.
- *
- * @return array Stored data or false if no data is retrievable from storage.
- */
-function acquia_connector_spi_data_store_get($keys) {
-  $store = array();
-  foreach ($keys as $key) {
-//    $cache = cache_get('acquia.spi.' . $key, 'cache');
-//    if ($cache && !empty($cache->data)) {
-//      $store[$key] = $cache->data;
-//    }
-  }
-  return $store;
-}
-
-/**
  * Gather information about modules on the site.
  *
  * @return array

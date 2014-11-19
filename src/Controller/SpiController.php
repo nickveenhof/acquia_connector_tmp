@@ -60,7 +60,7 @@ class SpiController extends ControllerBase {
     // Get the Drupal version
     $drupal_version = $this->getVersionInfo();
 
-    $stored = acquia_connector_spi_data_store_get(array('platform'));
+    $stored = $this->dataStoreGet(array('platform'));
     if (!empty($stored['platform'])) {
       $platform = $stored['platform'];
     }
@@ -213,7 +213,7 @@ class SpiController extends ControllerBase {
    *    An array containing some detail about the version
    */
   private function getVersionInfo() {
-    $store = acquia_connector_spi_data_store_get(array('platform'));
+    $store = $this->dataStoreGet(array('platform'));
     $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : $_SERVER;
     $ver = array();
 
@@ -222,6 +222,7 @@ class SpiController extends ControllerBase {
     $ver['distribution']  = '';
 
     // Determine if this puppy is Acquia Drupal
+    // @todo: do something with next 5 defines.
 //    acquia_agent_load_versions();
     /**
      * Is this an Acquia Drupal install?
@@ -271,6 +272,24 @@ class SpiController extends ControllerBase {
     }
 
     return $ver;
+  }
+
+
+  /**
+   * Get SPI data out of local storage.
+   *
+   * @param array Array of keys to extract data for.
+   *
+   * @return array Stored data or false if no data is retrievable from storage.
+   */
+  private function dataStoreGet($keys) {
+    $store = array();
+    foreach ($keys as $key) {
+      if ($cache = \Drupal::cache()->get('acquia.spi.' . $key) && !empty($cache->data)) {
+        $store[$key] = $cache->data;
+      }
+    }
+    return $store;
   }
 
 
