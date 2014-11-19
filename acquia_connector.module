@@ -5,6 +5,18 @@ use Drupal\acquia_connector\Subscription;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 
+// Version of SPI data format.
+define('ACQUIA_SPI_DATA_VERSION', 2.1);
+
+/**
+ * Identifiers for the method of sending SPI data.
+ */
+define('ACQUIA_SPI_METHOD_CALLBACK', 'menu');
+define('ACQUIA_SPI_METHOD_CRON', 'cron');
+define('ACQUIA_SPI_METHOD_DRUSH', 'drush');
+define('ACQUIA_SPI_METHOD_CREDS', 'creds');
+define('ACQUIA_SPI_METHOD_INSIGHT', 'insight');
+
 /**
  * Implements hook_help().
  */
@@ -212,134 +224,6 @@ function acquia_connector_system_info_alter(&$info) {
 //}
 
 /**
- * Gather site profile information about this site.
- *
- * @return
- *   An associative array keyed by types of information.
- */
-function acquia_connector_spi_get() {
-  // Get file hashes and compute serialized version.
-  list($hashes, $fileinfo) = acquia_connector_spi_file_hashes();
-  $hashes_string = serialize($hashes);
-
-  // Get the Drupal version
-  $drupal_version = acquia_connector_spi_get_version_info();
-
-  $stored = acquia_connector_spi_data_store_get(array('platform'));
-  if (!empty($stored['platform'])) {
-    $platform = $stored['platform'];
-  }
-  else {
-    $platform = acquia_connector_get_platform();
-  }
-  $spi = array(
-    'spi_data_version' => ACQUIA_SPI_DATA_VERSION,
-    'site_key'       => sha1(Drupal::service('private_key')->get()),
-    'modules'        => acquia_connector_spi_get_modules(),
-    'platform'       => $platform,
-    'quantum'        => acquia_connector_spi_get_quantum(),
-//    'system_status'  => acquia_spi_get_system_status(),
-//    'failed_logins'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_failed_logins() : array(),
-//    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
-//    'watchdog_size'  => acquai_spi_get_watchdog_size(),
-//    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
-//    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
-//    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
-//    'extra_files'    => acquia_spi_check_files_present(),
-//    'ssl_login'      => acquia_spi_check_login(),
-    'file_hashes'    => $hashes,
-    'hashes_md5'     => md5($hashes_string),
-    'hashes_sha1'    => sha1($hashes_string),
-    'fileinfo'       => $fileinfo,
-    'distribution'   => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
-    'base_version'   => $drupal_version['base_version'],
-    'build_data'     => $drupal_version,
-//    'roles'          => drupal_json_encode(user_roles()),
-    'uid_0_present'  => acquia_connector_spi_uid_0_present(),
-  );
-
-//  $scheme = parse_url(variable_get('acquia_spi_server', 'https://nspi.acquia.com'), PHP_URL_SCHEME);
-//  $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
-//  if (variable_get('acquia_spi_ssl_override', FALSE)) {
-//    $via_ssl = TRUE;
-//  }
-
-  $additional_data = array();
-//  $security_review_results = acquia_spi_run_security_review();
-
-  // It's worth sending along node access control information even if there are
-  // no modules implementing it - some alerts are simpler if we know we don't
-  // have to worry about node access.
-
-  // Check for node grants modules.
-  $additional_data['node_grants_modules'] = module_implements("node_grants", TRUE);
-
-  // Check for node access modules.
-  $additional_data['node_access_modules'] = module_implements("node_access", TRUE);
-
-  if (!empty($security_review_results)) {
-    $additional_data['security_review'] = $security_review_results['security_review'];
-  }
-
-  // Collect all user-contributed custom tests that pass validation.
-//  $custom_tests_results = acquia_spi_test_collect();
-  if (!empty($custom_tests_results)) {
-    $additional_data['custom_tests'] = $custom_tests_results;
-  }
-
-//  $spi_data = module_invoke_all('acquia_spi_get');
-  if (!empty($spi_data)) {
-    foreach ($spi_data as $name => $data) {
-      if (is_string($name) && is_array($data)) {
-        $additional_data[$name] = $data;
-      }
-    }
-  }
-
-  // Database updates required?
-  // Based on code from system.install
-  include_once DRUPAL_ROOT . '/includes/install.inc';
-//  drupal_load_updates();
-
-  $additional_data['pending_updates'] = FALSE;
-  $modules = system_rebuild_module_data();
-  uasort($modules, 'system_sort_modules_by_info_name');
-  foreach ($modules as $key => $module) {
-    $updates = drupal_get_schema_versions($key);
-    if ($updates !== FALSE) {
-      $default = drupal_get_installed_schema_version($key);
-      if (max($updates) > $default) {
-        $additional_data['pending_updates'] = TRUE;
-        break;
-      }
-    }
-  }
-  // @todo: remove me!
-  $additional_data['pending_updates'] = TRUE;
-
-  if (!empty($additional_data)) {
-    // JSON encode this additional data.
-    $spi['additional_data'] = $additional_data;
-  }
-
-  // @todo: Remove DEBUG
-  if (!$via_ssl) {
-    return $spi;
-  }
-  else {
-    // Values returned only over SSL
-    $spi_ssl = array(
-      'system_vars'  => acquia_connector_spi_get_variables_data(),
-      'settings_ra'  => acquia_spi_get_settings_permissions(),
-      'admin_count'  => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_admin_count() : '',
-      'admin_name'   => variable_get('acquia_spi_admin_priv', 1) ? acquia_spi_get_super_name() : '',
-    );
-
-    return array_merge($spi, $spi_ssl);
-  }
-}
-
-/**
  * Get all system variables
  *
  * @return array()
@@ -422,33 +306,6 @@ function acquia_connector_spi_get_quantum() {
 //  }
 
   return $quantum;
-}
-
-/**
- * Gather hashes of all important files, ignoring line ending and CVS Ids
- *
- * @param $excuded_dirs
- *   Optional array of directory paths to be excluded.
- *
- * @return
- *   An associative array keyed by filename of hashes.
- */
-function acquia_connector_spi_file_hashes($exclude_dirs = array()) {
-  // The list of directories for the third parameter are the only ones that
-  // will be recursed into.  Thus, we avoid sending hashes for any others.
-  list($hashes, $fileinfo) = _acquia_connector_spi_generate_hashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'includes', 'misc', 'scripts'));
-  ksort($hashes);
-  // Add .htaccess file.
-  $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
-  if (is_file($htaccess)) {
-    $owner = fileowner($htaccess);
-    if (function_exists('posix_getpwuid')) {
-      $userinfo = posix_getpwuid($owner);
-      $owner = $userinfo['name'];
-    }
-    $fileinfo['.htaccess'] = 'mt:' . filemtime($htaccess) . '$p:' . substr(sprintf('%o', fileperms($htaccess)), -4) . '$o:' . $owner . '$s:' . filesize($htaccess);
-  }
-  return array($hashes, $fileinfo);
 }
 
 /**
@@ -553,60 +410,6 @@ function acquia_connector_spi_hash_path($path = '') {
 }
 
 /**
- * Attempt to determine the version of Drupal being used.
- * Note, there is better information on this in the common.inc file.
- *
- * @return array
- *    An array containing some detail about the version
- */
-function acquia_connector_spi_get_version_info() {
-  $store = acquia_connector_spi_data_store_get(array('platform'));
-  $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : $_SERVER;
-  $ver = array();
-
-  $ver['base_version'] = \Drupal::VERSION;
-  $install_root = $server['DOCUMENT_ROOT'] . base_path();
-  $ver['distribution']  = '';
-
-  // Determine if this puppy is Acquia Drupal
-//  acquia_agent_load_versions();
-//  if (IS_ACQUIA_DRUPAL) {
-//    $ver['distribution']   = 'Acquia Drupal';
-//    $ver['ad']['version']  = ACQUIA_DRUPAL_VERSION;
-//    $ver['ad']['series']   = ACQUIA_DRUPAL_SERIES;
-//    $ver['ad']['branch']   = ACQUIA_DRUPAL_BRANCH;
-//    $ver['ad']['revision'] = ACQUIA_DRUPAL_REVISION;
-//  }
-
-  // Determine if we are looking at Pressflow
-  if (defined('CACHE_EXTERNAL')) {
-    $ver['distribution']  = 'Pressflow';
-    $press_version_file = $install_root . './PRESSFLOW.txt';
-    if (is_file($press_version_file)) {
-      $ver['pr']['version'] = trim(file_get_contents($press_version_file));
-    }
-  }
-  // Determine if this is Open Atrium
-  elseif (is_dir($install_root . '/profiles/openatrium')) {
-    $ver['distribution']  = 'Open Atrium';
-    $version_file = $install_root . 'profiles/openatrium/VERSION.txt';
-    if (is_file($version_file)) {
-      $ver['oa']['version'] = trim(file_get_contents($version_file));
-    }
-  }
-  // Determine if this is Commons
-  elseif (is_dir($install_root . '/profiles/commons')) {
-    $ver['distribution']  = 'Commons';
-  }
-  // Determine if this is COD.
-  elseif (is_dir($install_root . '/profiles/cod')) {
-    $ver['distribution']  = 'COD';
-  }
-
-  return $ver;
-}
-
-/**
  * Get SPI data out of local storage.
  *
  * @param array Array of keys to extract data for.
@@ -627,7 +430,7 @@ function acquia_connector_spi_data_store_get($keys) {
 /**
  * Gather information about modules on the site.
  *
- * @return
+ * @return array
  *   An associative array keyed by filename of associative arrays with
  *   information on the modules.
  */
