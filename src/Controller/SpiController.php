@@ -109,10 +109,10 @@ class SpiController extends ControllerBase {
     // have to worry about node access.
 
     // Check for node grants modules.
-    $additional_data['node_grants_modules'] = module_implements("node_grants", TRUE);
+    $additional_data['node_grants_modules'] = \Drupal::moduleHandler()->getImplementations('node_grants');
 
     // Check for node access modules.
-    $additional_data['node_access_modules'] = module_implements("node_access", TRUE);
+    $additional_data['node_access_modules'] = \Drupal::moduleHandler()->getImplementations('node_access');
 
     if (!empty($security_review_results)) {
       $additional_data['security_review'] = $security_review_results['security_review'];
