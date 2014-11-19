@@ -287,28 +287,6 @@ function acquia_connector_spi_uid_0_present() {
 }
 
 /**
- * Gather information about nodes, users and comments.
- *
- * @return
- *   An associative array.
- */
-function acquia_connector_spi_get_quantum() {
-  $quantum = array();
-  // Get only published nodes.
-  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->countQuery()->execute()->fetchField();
-//  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
-  // Get only active users.
-//  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();
-  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->countQuery()->execute()->fetchField();
-//  if (module_exists('comment')) {
-//    // Get only active comments.
-//    $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute()->fetchField();
-//  }
-
-  return $quantum;
-}
-
-/**
  * Recursive helper function for acquia_spi_file_hashes().
  */
 function _acquia_connector_spi_generate_hashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir=NULL) {

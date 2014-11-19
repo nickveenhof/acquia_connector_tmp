@@ -73,7 +73,7 @@ class SpiController extends ControllerBase {
       'site_key'       => sha1(\Drupal::service('private_key')->get()),
       'modules'        => $this->getModules(),
       'platform'       => $platform,
-      'quantum'        => acquia_connector_spi_get_quantum(),
+      'quantum'        => $this->getQuantum(),
 //    'system_status'  => acquia_spi_get_system_status(),
 //    'failed_logins'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_failed_logins() : array(),
 //    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
@@ -150,8 +150,6 @@ class SpiController extends ControllerBase {
         }
       }
     }
-    // @todo: remove me!
-    $additional_data['pending_updates'] = TRUE;
 
     if (!empty($additional_data)) {
       // JSON encode this additional data.
@@ -347,7 +345,7 @@ class SpiController extends ControllerBase {
       'system_type'       => php_uname('s'),
       // php_uname() only accepts one character, so we need to concatenate ourselves.
       'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
-      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? $this->getPlatformMysqlData() : array(),
+      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? SpiController::getPlatformMysqlData() : array(),
     );
 
     // Never send NULL (or FALSE?) - that causes hmac errors.
@@ -499,6 +497,31 @@ class SpiController extends ControllerBase {
       $result[] = $info;
     }
     return $result;
+  }
+
+  /**
+   * Gather information about nodes, users and comments.
+   *
+   * @return array
+   *   An associative array.
+   */
+  private function getQuantum() {
+    $quantum = array();
+    // @todo
+    // Get only published nodes.
+    $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->countQuery()->execute()->fetchField();
+//  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+    // @todo
+    // Get only active users.
+//  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();
+    $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->countQuery()->execute()->fetchField();
+    // @todo
+//  if (module_exists('comment')) {
+//    // Get only active comments.
+//    $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute()->fetchField();
+//  }
+
+    return $quantum;
   }
 
   /**
