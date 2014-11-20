@@ -52,6 +52,10 @@ class SpiController extends ControllerBase {
   /**
    * Gather site profile information about this site.
    *
+   * @param string $method
+   *   Optional identifier for the method initiating request.
+   *   Values could be 'cron' or 'menu callback' or 'drush'.
+   *
    * @return array
    *   An associative array keyed by types of information.
    */
@@ -97,10 +101,10 @@ class SpiController extends ControllerBase {
       'uid_0_present'  => $this->getUidZerroIsPresent(),
     );
 
-    $scheme = parse_url(\Drupal::config('acquia_connector.settings')->get('network_address'), PHP_URL_SCHEME);
+    $scheme = parse_url($this->config('acquia_connector.settings')->get('network_address'), PHP_URL_SCHEME);
     $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
     // @todo: Implement acquia_spi_ssl_override!
-    if (\Drupal::config('acquia_connector.settings')->get('acquia_spi_ssl_override')) {
+    if ($this->config('acquia_connector.settings')->get('acquia_spi_ssl_override')) {
       $via_ssl = TRUE;
     }
 
@@ -174,8 +178,8 @@ class SpiController extends ControllerBase {
         'system_vars' => $this->getVariablesData(),
         'settings_ra' => $this->getSettingsPermissions(),
         // @todo getAdminCount
-        'admin_count' => \Drupal::config('acquia_connector.settings')->get('admin_priv') ? $this->getAdminCount() : '',
-        'admin_name' => \Drupal::config('acquia_connector.settings')->get('admin_priv') ? $this->getSuperName() : '',
+        'admin_count' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getAdminCount() : '',
+        'admin_name' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getSuperName() : '',
       );
 
       return array_merge($spi, $spi_ssl);
@@ -745,7 +749,9 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Send SPI data.
+   * Gather full SPI data and send to Acquia Network.
+   *
+   * @return mixed FALSE if data not sent else NSPI result array
    */
   //@todo: In routing.yml replace _content with _controller.ß
   public function send(Request $request) {
@@ -769,7 +775,7 @@ class SpiController extends ControllerBase {
 //      return FALSE;
 //    }
 
-    acquia_connector_spi_handle_server_response($response);
+    $this->handleServerResponse($response);
 
     $config->set('cron_last', REQUEST_TIME);
 
@@ -802,12 +808,157 @@ class SpiController extends ControllerBase {
     return array();
   }
 
+
+  /**
+   * Act on specific elements of SPI update server response.
+   *
+   * @param array $spi_response Array response from SpiController->send().
+   */
+  private function handleServerResponse($spi_response) {
+    // Check result for command to update SPI definition.
+    $update = isset($spi_response['body']['update_spi_definition']) ? $spi_response['body']['update_spi_definition'] : FALSE;
+    if ($update === TRUE) {
+      // @todo: refactor
+      $this->updateDefinition();
+    }
+    // Check for set_variables command.
+    $set_variables = isset($spi_response['body']['set_variables']) ? $spi_response['body']['set_variables'] : FALSE;
+    if ($set_variables !== FALSE) {
+      // @todo: refactor
+      $this->setVariables($set_variables);
+    }
+    // Log messages.
+    $messages = isset($spi_response['body']['nspi_messages']) ? $spi_response['body']['nspi_messages'] : FALSE;
+    if ($messages !== FALSE) {
+      \Drupal::logger('acquia spi')->notice('SPI update server response messages: @messages', array('@messages' => implode(', ', $messages)));
+    }
+  }
+
+  /**
+   * Set variables from NSPI response.
+   *
+   * @param  array $set_variables Variables to be set.
+   * @return NULL
+   */
+  private function setVariables($set_variables) {
+    // @todo: refactor
+    return;
+    if (empty($set_variables)) {
+      return;
+    }
+    $saved = array();
+    $ignored = variable_get('acquia_spi_ignored_set_variables', array());
+
+    if (!variable_get('acquia_spi_set_variables_override', 0)) {
+      $ignored[] = 'acquia_spi_set_variables_automatic';
+    }
+    // Some variables can never be set.
+    $ignored = array_merge($ignored, array('drupal_private_key', 'site_mail', 'site_name', 'maintenance_mode', 'user_register'));
+    // Variables that can be automatically set.
+    $whitelist = acquia_spi_approved_set_variables();
+    foreach($set_variables as $key => $value) {
+      // Approved variables get set immediately unless ignored.
+      if (in_array($key, $whitelist) && !in_array($key, $ignored)) {
+        $saved[] = $key;
+        variable_set($key, $value);
+      }
+    }
+    if (!empty($saved)) {
+      variable_set('acquia_spi_saved_variables', array('variables' => $saved, 'time' => time()));
+      watchdog('acquia spi', 'Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)), WATCHDOG_INFO);
+    }
+    else {
+      watchdog('acquia spi', 'Did not save any variables from the Acquia Network.', array(), WATCHDOG_INFO);
+    }
+  }
+
+  /**
+   * Checks if NSPI server has an updated SPI data definition.
+   * If it does, then this function updates local copy of SPI definition data.
+   *
+   * @return boolean
+   *   True if SPI definition data has been updated
+   */
+  private function updateDefinition() {
+    $core_version = substr(\Drupal::VERSION, 0, 1);
+    $spi_def_end_point = $this->config('acquia_connector.settings')->get('spi.server');
+    $spi_def_end_point .= '/spi_def/get/' . $core_version;
+    // @todo: refactor
+    return;
+    $options = array(
+      'method' => 'GET',
+      'headers' => array('Content-type' => 'application/json'),
+      'data' => drupal_http_build_query(array('spi_data_version' => ACQUIA_SPI_DATA_VERSION))
+    );
+    $response = drupal_http_request($spi_def_end_point, $options);
+    if ($response->code != 200 || !isset($response->data)) {
+      \Drupal::logger('acquia spi')->error('Failed to obtain latest SPI data definition. HTTP response: @response', array('@response' => var_export($response, TRUE)));
+      return FALSE;
+    }
+    else {
+      $response_data = drupal_json_decode($response->data);
+      $expected_data_types = array(
+        'drupal_version' => 'string',
+        'timestamp' => 'string',
+        'acquia_spi_variables' => 'array',
+      );
+      // Make sure that $response_data contains everything expected.
+      foreach($expected_data_types as $key => $values) {
+        if (!array_key_exists($key, $response_data) || gettype($response_data[$key]) != $expected_data_types[$key]) {
+          \Drupal::logger('acquia spi')->error('Received SPI data definition does not match expected pattern while checking "@key". Received and expected data: @data', array('@key' => $key, '@data' => var_export(array_merge(array('expected_data' => $expected_data_types), array('response_data' => $response_data)), 1), TRUE));
+          return FALSE;
+        }
+      }
+      if ($response_data['drupal_version'] != $core_version) {
+        \Drupal::logger('acquia spi')->notice('Received SPI data definition does not match with current version of your Drupal installation. Data received for Drupal @version', array('@version' => $response_data['drupal_version']));
+        return FALSE;
+      }
+    }
+
+    // NSPI response is in expected format.
+    if ((int) $response_data['timestamp'] > (int) $this->config('acquia_connector.settings')->get('spi.def_timestamp', 0)) {
+      // Compare stored variable names to incoming and report on update.
+      $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars', array());
+      $new_vars = $response_data['acquia_spi_variables'];
+      $new_optional_vars = 0;
+      foreach($new_vars as $new_var_name => $new_var) {
+        // Count if received from NSPI optional variable is not present in old local SPI definition
+        // or if it already was in old SPI definition, but was not optional
+        if ($new_var['optional'] && !array_key_exists($new_var_name, $old_vars) ||
+          $new_var['optional'] && isset($old_vars[$new_var_name]) && !$old_vars[$new_var_name]['optional']) {
+          $new_optional_vars++;
+        }
+      }
+      // Clean up waived vars that are not exposed by NSPI anymore.
+      $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars', array());
+      $changed_bool = FALSE;
+      foreach($waived_spi_def_vars as $key => $waived_var) {
+        if (!in_array($waived_var, $new_vars)) {
+          unset($waived_spi_def_vars[$key]);
+          $changed_bool = TRUE;
+        }
+      }
+      if ($changed_bool) {
+        $this->config('acquia_connector.settings')->set('spi.def_waived_vars', $waived_spi_def_vars);
+      }
+      // Finally, save SPI definition data.
+      if ($new_optional_vars > 0) {
+        $this->config('acquia_connector.settings')->set('spi.new_optional_data', 1);
+      }
+      $this->config('acquia_connector.settings')->set('spi.def_timestamp', $response_data['timestamp']);
+      $this->config('acquia_connector.settings')->set('spi.def_vars', $response_data['acquia_spi_variables']);
+      $this->config('acquia_connector.settings')->save();
+      return TRUE;
+    }
+    return FALSE;
+  }
+
   /**
    * Access callback check for SPI send independent call.
    */
   public function sendAccess() {
     $request = \Drupal::request();
-    $acquia_key = \Drupal::config('acquia_connector.settings')->get('key');
+    $acquia_key = $this->config('acquia_connector.settings')->get('key');
 
     if (!empty($acquia_key) && $request->get('key')) {
       $key = sha1(\Drupal::service('private_key')->get());
@@ -854,7 +1005,7 @@ class SpiController extends ControllerBase {
               // Only log if we're performing a full validation check.
               if ($log) {
                 drupal_set_message($this->t("Custom test validation failed for !test in !module and has been logged: @message for parameter '!param_name'; current value '!value'.", $variables), 'error');
-                watchdog('acquia spi test', "<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables, WATCHDOG_WARNING);
+                \Drupal::logger('acquia spi test')->notice("<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables);
               }
             }
           }

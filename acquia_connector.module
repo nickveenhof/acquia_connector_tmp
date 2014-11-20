@@ -196,55 +196,6 @@ function acquia_connector_system_info_alter(&$info) {
 //    $info['datestamp'] = 'acquia drupal';
 //  }
 }
-///**
-// * Gather full SPI data and send to Acquia Network.
-// *
-// * @param string $method Optional identifier for the method initiating request.
-// *   Values could be 'cron' or 'menu callback' or 'drush'.
-// * @return mixed FALSE if data not sent else NSPI result array
-// */
-//function acquia_connector_send_full_spi($method = '') {
-//  $spi = acquia_connector_spi_get();
-//
-//  if (!empty($method)) {
-//    $spi['send_method'] = $method;
-//  }
-//
-//  $result = acquia_spi_send_data($spi);
-//
-//  if ($result === FALSE) {
-//    return FALSE;
-//  }
-//
-//  acquia_spi_handle_server_response($result);
-//
-//  \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
-//
-//  return $result;
-//}
-
-/**
- * Act on specific elements of SPI update server response.
- *
- * @param array $spi_response Array response from acquia_spi_send_data().
- */
-function acquia_connector_spi_handle_server_response($spi_response) {
-  // Check result for command to update SPI definition.
-//  $update = isset($spi_response['update_spi_definition']) ? $spi_response['update_spi_definition'] : FALSE;
-//  if ($update === TRUE) {
-//    acquia_spi_update_definition();
-//  }
-  // Check for set_variables command.
-//  $set_variables = isset($spi_response['set_variables']) ? $spi_response['set_variables'] : FALSE;
-//  if ($set_variables !== FALSE) {
-//    acquia_spi_set_variables($set_variables);
-//  }
-  // Log messages.
-  $messages = isset($spi_response['nspi_messages']) ? $spi_response['nspi_messages'] : FALSE;
-  if ($messages !== FALSE) {
-//    watchdog('acquia spi', 'SPI update server response messages: @messages', array('@messages' => implode(', ', $messages)));
-  }
-}
 
 /******** end code to rewrite *********/
 
