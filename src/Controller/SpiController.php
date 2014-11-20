@@ -307,7 +307,7 @@ class SpiController extends ControllerBase {
   private function getFileHashes($exclude_dirs = array()) {
     // The list of directories for the third parameter are the only ones that
     // will be recursed into.  Thus, we avoid sending hashes for any others.
-    list($hashes, $fileinfo) = _acquia_connector_spi_generate_hashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'includes', 'misc', 'scripts'));
+    list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'includes', 'misc', 'scripts'));
     ksort($hashes);
     // Add .htaccess file.
     $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
@@ -320,6 +320,108 @@ class SpiController extends ControllerBase {
       $fileinfo['.htaccess'] = 'mt:' . filemtime($htaccess) . '$p:' . substr(sprintf('%o', fileperms($htaccess)), -4) . '$o:' . $owner . '$s:' . filesize($htaccess);
     }
     return array($hashes, $fileinfo);
+  }
+
+  /**
+   * Recursive helper function for getFileHashes().
+   */
+  private function generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir=NULL) {
+    $hashes = array();
+    $fileinfo = array();
+
+    // Ensure that we have not nested into another module's dir
+    if ($dir != $orig_dir && $module_break) {
+      if (is_dir($dir) && $handle = opendir($dir)) {
+        while ($file = readdir($handle)) {
+          if (stristr($file, '.module')) {
+            return;
+          }
+        }
+      }
+    }
+    if (isset($handle)) {
+      closedir($handle);
+    }
+
+    // Standard nesting function
+    if (is_dir($dir) && $handle = opendir($dir)) {
+      while ($file = readdir($handle)) {
+        if (!in_array($file, array('.', '..', 'CVS', '.svn'))) {
+          $path = $dir == '.' ? $file : "{$dir}/{$file}";
+          if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
+            list($sub_hashes, $sub_fileinfo) =  $this->generateHashes($path, $exclude_dirs);
+            $hashes = array_merge($sub_hashes, $hashes);
+            $fileinfo = array_merge($sub_fileinfo, $fileinfo);
+            $hashes[$path] = $this->hashPath($path);
+          }
+          elseif ($this->isManifestType($file)) {
+            $hashes[$path] = $this->hashPath($path);
+            $owner = fileowner($path);
+            if (function_exists('posix_getpwuid')) {
+              $userinfo = posix_getpwuid($owner);
+              $owner = $userinfo['name'];
+            }
+            $fileinfo[$path] = 'mt:' . filemtime($path) . '$p:' . substr(sprintf('%o', fileperms($path)), -4) . '$o:' . $owner . '$s:' . filesize($path);
+          }
+        }
+      }
+      closedir($handle);
+    }
+
+    return array($hashes, $fileinfo);
+  }
+
+
+  /**
+   * Determine if a path is a file type we care about for modificaitons.
+   */
+  private function isManifestType($path) {
+    $extensions = array(
+      'php' => 1,
+      'php4' => 1,
+      'php5' => 1,
+      'module' => 1,
+      'inc' => 1,
+      'install' => 1,
+      'test' => 1,
+      'theme' => 1,
+      'engine' => 1,
+      'profile' => 1,
+      'css' => 1,
+      'js' => 1,
+      'info' => 1,
+      'sh' => 1,
+      // SSL certificates
+      'pem' => 1,
+      'pl' => 1,
+      'pm' => 1,
+    );
+    $pathinfo = pathinfo($path);
+    return isset($pathinfo['extension']) && isset($extensions[$pathinfo['extension']]);
+  }
+
+  /**
+   * Calculate the sha1 hash for a path.
+   *
+   * @param string $path
+   *   The name of the file or a directory.
+   * @return string
+   *   bas64 encoded sha1 hash. 'hash' is an empty string for directories.
+   */
+  private function hashPath($path = '') {
+    $hash = '';
+    if (file_exists($path)) {
+      if (!is_dir($path)) {
+        $string = file_get_contents($path);
+        // Remove trailing whitespace
+        $string = rtrim($string);
+        // Replace all line endings and CVS/svn Id tags
+        $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$' . 'Id$', $string);
+        $string = preg_replace('/\r\n|\n|\r/', ' ', $string);
+        $hash =  base64_encode(pack("H*", sha1($string)));
+      }
+    }
+    return $hash;
   }
 
   /**
