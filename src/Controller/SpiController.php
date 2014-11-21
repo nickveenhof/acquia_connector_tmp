@@ -83,7 +83,7 @@ class SpiController extends ControllerBase {
       'quantum'        => $this->getQuantum(),
       'system_status'  => $this->getSystemStatus(),
       'failed_logins'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getFailedLogins() : array(),
-//    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
+      '404s'           => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->get404s() : array(),
 //    'watchdog_size'  => acquai_spi_get_watchdog_size(),
 //    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
 //    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
@@ -184,6 +184,38 @@ class SpiController extends ControllerBase {
 
       return array_merge($spi, $spi_ssl);
     }
+  }
+
+  /**
+   * Grabs the last 404 errors in logs, excluding the checks we run for drupal files like README
+   *
+   * @return array
+   *   An array of the pages not found and some associated data
+   */
+  private function get404s() {
+    $data = array();
+    $row = 0;
+
+    if (\Drupal::moduleHandler()->moduleExists('dblog')) {
+      $result = db_select('watchdog', 'w')
+        ->fields('w', array('message', 'hostname', 'referer', 'timestamp'))
+        ->condition('w.type', 'page not found', '=')
+        ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
+        ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
+        ->orderBy('w.timestamp', 'DESC')
+        ->range(0, 10)
+        ->execute();
+
+      foreach ($result as $record) {
+        $data[$row]['message'] = $record->message;
+        $data[$row]['hostname'] = $record->hostname;
+        $data[$row]['referer'] = $record->referer;
+        $data[$row]['timestamp'] = $record->timestamp;
+        $row++;
+      }
+    }
+
+    return $data;
   }
 
   /**
