@@ -88,7 +88,7 @@ class SpiController extends ControllerBase {
       'watchdog_size'  => $this->getWatchdogSize(),
       'watchdog_data'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getWatchdogData() : array(),
       'last_nodes'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
-//    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
+      'last_users'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastUsers() : array(),
 //    'extra_files'    => acquia_spi_check_files_present(),
 //    'ssl_login'      => acquia_spi_check_login(),
       'file_hashes'    => $hashes,
@@ -185,6 +185,33 @@ class SpiController extends ControllerBase {
 
       return array_merge($spi, $spi_ssl);
     }
+  }
+
+  /**
+   * Get last 15 users created. Useful for determining if your site is compromised.
+   *
+   * @return array
+   *   The details of last 15 users created.
+   */
+  function getLastUsers() {
+    $last_five_users = array();
+    $result = db_select('users_field_data', 'u')
+      ->fields('u', array('uid', 'name', 'mail', 'created'))
+      ->condition('u.created', REQUEST_TIME - 3600, '>')
+      ->orderBy('created', 'DESC')
+      ->range(0, 15)
+      ->execute();
+
+    $count = 0;
+    foreach ($result as $record) {
+      $last_five_users[$count]['uid'] = $record->uid;
+      $last_five_users[$count]['name'] = $record->name;
+      $last_five_users[$count]['email'] = $record->mail;
+      $last_five_users[$count]['created'] = $record->created;
+      $count++;
+    }
+//TODO is this what we really want?
+    return $last_five_users;
   }
 
   /**
