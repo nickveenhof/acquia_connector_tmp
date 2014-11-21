@@ -84,7 +84,7 @@ class SpiController extends ControllerBase {
       'system_status'  => $this->getSystemStatus(),
       'failed_logins'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getFailedLogins() : array(),
       '404s'           => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->get404s() : array(),
-//    'watchdog_size'  => acquai_spi_get_watchdog_size(),
+      'watchdog_size'  => $this->getWatchdogSize(),
 //    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
 //    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
 //    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
@@ -187,6 +187,19 @@ class SpiController extends ControllerBase {
   }
 
   /**
+   * Get the number of rows in watchdog
+   *
+   * @return int
+   *
+   */
+  function getWatchdogSize() {
+    if (\Drupal::moduleHandler()->moduleExists('dblog')) {
+      return db_select('watchdog', 'w')->fields('w', array('wid'))->countQuery()->execute()->fetchField();
+    }
+  }
+
+
+  /**
    * Grabs the last 404 errors in logs, excluding the checks we run for drupal files like README
    *
    * @return array
@@ -238,7 +251,7 @@ class SpiController extends ControllerBase {
         ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
         ->orderBy('w.timestamp', 'DESC')
         ->range(0, 10)
-        ->execute()->fetchAll();
+        ->execute();
 
       foreach ($result as $record) {
         $variables = unserialize($record->variables);
