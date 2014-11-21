@@ -89,7 +89,7 @@ class SpiController extends ControllerBase {
       'watchdog_data'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getWatchdogData() : array(),
       'last_nodes'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
       'last_users'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastUsers() : array(),
-//    'extra_files'    => acquia_spi_check_files_present(),
+      'extra_files'    => $this->checkFilesPresent(),
 //    'ssl_login'      => acquia_spi_check_login(),
       'file_hashes'    => $hashes,
       'hashes_md5'     => md5($hashes_string),
@@ -188,12 +188,36 @@ class SpiController extends ControllerBase {
   }
 
   /**
+   * Check to see if the unneeded release files with Drupal are removed
+   *
+   * @param n/a
+   *
+   * @return int 1|0
+   *   True if they are removed, false if they aren't
+   */
+  private function checkFilesPresent() {
+    $store = $this->dataStoreGet(array('platform'));
+    $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : \Drupal::request()->server->all();
+    $files_exist = FALSE;
+    $files_to_remove = array('CHANGELOG.txt', 'COPYRIGHT.txt', 'INSTALL.mysql.txt', 'INSTALL.pgsql.txt', 'INSTALL.txt', 'LICENSE.txt',
+      'MAINTAINERS.txt', 'README.txt', 'UPGRADE.txt', 'PRESSFLOW.txt', 'install.php');
+
+    foreach ($files_to_remove as $file) {
+      $path = $server['DOCUMENT_ROOT'] . base_path() . $file;
+      if (file_exists($path))
+        $files_exist = TRUE;
+    }
+
+    return $files_exist ? 1 : 0;
+  }
+
+  /**
    * Get last 15 users created. Useful for determining if your site is compromised.
    *
    * @return array
    *   The details of last 15 users created.
    */
-  function getLastUsers() {
+  private function getLastUsers() {
     $last_five_users = array();
     $result = db_select('users_field_data', 'u')
       ->fields('u', array('uid', 'name', 'mail', 'created'))
@@ -252,7 +276,7 @@ class SpiController extends ControllerBase {
    * @return array
    *
    */
-  function getWatchdogData() {
+  private function getWatchdogData() {
     $wd = array();
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
       $result = db_select('watchdog', 'w')
@@ -276,7 +300,7 @@ class SpiController extends ControllerBase {
    * @return int
    *
    */
-  function getWatchdogSize() {
+  private function getWatchdogSize() {
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
       return db_select('watchdog', 'w')->fields('w', array('wid'))->countQuery()->execute()->fetchField();
     }
@@ -681,7 +705,7 @@ class SpiController extends ControllerBase {
    */
   private function getVersionInfo() {
     $store = $this->dataStoreGet(array('platform'));
-    $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : $_SERVER;
+    $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : \Drupal::request()->server->all();
     $ver = array();
 
     $ver['base_version'] = \Drupal::VERSION;
@@ -766,7 +790,7 @@ class SpiController extends ControllerBase {
    * @return array
    *   An associative array keyed by a platform information type.
    */
-  public function getPlatform() {
+  private function getPlatform() {
     $server = \Drupal::request()->server;
     // Database detection depends on the structure starting with the database
     $db_class = '\Drupal\Core\Database\Driver\\' . Database\Database::getConnection()->driver() . '\Install\Tasks';
