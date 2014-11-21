@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\acquia_connector\Client;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Logger\RfcLogLevel;
 
 /**
  * Class SpiController.
@@ -85,7 +86,7 @@ class SpiController extends ControllerBase {
       'failed_logins'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getFailedLogins() : array(),
       '404s'           => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->get404s() : array(),
       'watchdog_size'  => $this->getWatchdogSize(),
-//    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
+      'watchdog_data'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getWatchdogData() : array(),
 //    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
 //    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
 //    'extra_files'    => acquia_spi_check_files_present(),
@@ -184,6 +185,33 @@ class SpiController extends ControllerBase {
 
       return array_merge($spi, $spi_ssl);
     }
+  }
+
+  /**
+   * Get the latest (last hour) critical and emergency warnings from watchdog
+   * These errors are 'severity' 0 and 2.
+   *
+   * @param n/a
+   *
+   * @return array
+   *
+   */
+  function getWatchdogData() {
+    $wd = array();
+    if (\Drupal::moduleHandler()->moduleExists('dblog')) {
+      $result = db_select('watchdog', 'w')
+        ->fields('w', array('wid', 'severity', 'type', 'message', 'timestamp'))
+        ->condition('w.severity', array(RfcLogLevel::EMERGENCY, RfcLogLevel::CRITICAL), 'IN')
+        ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
+        ->execute();
+
+      while ($record = $result->fetchAssoc()) {
+        dpm($record);
+        $wd[$record['severity']] = $record;
+      }
+    }
+
+    return $wd;
   }
 
   /**
