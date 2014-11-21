@@ -837,7 +837,7 @@ class SpiController extends ControllerBase {
    * @return array
    *   An associative array keyed by a platform information type.
    */
-  private function getPlatform() {
+  public function getPlatform() {
     $server = \Drupal::request()->server;
     // Database detection depends on the structure starting with the database
     $db_class = '\Drupal\Core\Database\Driver\\' . Database\Database::getConnection()->driver() . '\Install\Tasks';
