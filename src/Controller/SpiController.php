@@ -81,7 +81,7 @@ class SpiController extends ControllerBase {
       'modules'        => $this->getModules(),
       'platform'       => $platform,
       'quantum'        => $this->getQuantum(),
-//    'system_status'  => acquia_spi_get_system_status(),
+      'system_status'  => $this->getSystemStatus(),
 //    'failed_logins'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_failed_logins() : array(),
 //    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
 //    'watchdog_size'  => acquai_spi_get_watchdog_size(),
@@ -186,6 +186,86 @@ class SpiController extends ControllerBase {
     }
   }
 
+  /**
+   * This function is a trimmed version of Drupal's system_status function
+   *
+   * @return array
+   */
+  function getSystemStatus() {
+    $data = array();
+
+    $profile = drupal_get_profile();
+    if ($profile != 'standard') {
+      $info = system_get_info('module', $profile);
+      $data['install_profile'] = array(
+        'title' => 'Install profile',
+        'value' => t('%profile_name (%profile-%version)', array(
+          '%profile_name' => $info['name'],
+          '%profile' => $profile,
+          '%version' => $info['version'],
+        )),
+      );
+    }
+    $data['php'] = array(
+      'title' => 'PHP',
+      'value' => phpversion(),
+    );
+    $conf_dir = TRUE;
+    $settings = TRUE;
+    $dir = DrupalKernel::findSitePath(\Drupal::request(), TRUE);
+    if (is_writable($dir) || is_writable($dir . '/settings.php')) {
+      $value = 'Not protected';
+      if (is_writable($dir)) {
+        $conf_dir = FALSE;
+      }
+      elseif (is_writable($dir . '/settings.php')) {
+        $settings = FALSE;
+      }
+    }
+    else {
+      $value = 'Protected';
+    }
+    $data['settings.php'] = array(
+      'title' => 'Configuration file',
+      'value' => $value,
+      'conf_dir' => $conf_dir,
+      'settings' => $settings,
+    );
+    $cron_last = $cron_last = \Drupal::state()->get('system.cron_last');
+    if (!is_numeric($cron_last)) {
+      $cron_last = \Drupal::state()->get('install_time', 0);
+    }
+    $data['cron'] = array(
+      'title' => 'Cron maintenance tasks',
+      'value' => t('Last run !time ago', array('!time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last))),
+      'cron_last' => $cron_last,
+    );
+    if (!empty($GLOBALS['update_free_access'])) {
+      $data['update access'] = array(
+        'value' => 'Not protected',
+        'protected' => FALSE,
+      );
+    }
+    else {
+      $data['update access'] = array(
+        'value' => 'Protected',
+        'protected' => TRUE,
+      );
+    }
+    $data['update access']['title'] = 'Access to update.php';
+    if (!\Drupal::moduleHandler()->moduleExists('update')) {
+      $data['update status'] = array(
+        'value' => 'Not enabled',
+      );
+    }
+    else {
+      $data['update status'] = array(
+        'value' => 'Enabled',
+      );
+    }
+    $data['update status']['title'] = 'Update notifications';
+    return $data;
+  }
 
   /**
    * Get all system variables
