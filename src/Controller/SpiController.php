@@ -90,7 +90,8 @@ class SpiController extends ControllerBase {
       'last_nodes'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
       'last_users'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastUsers() : array(),
       'extra_files'    => $this->checkFilesPresent(),
-//    'ssl_login'      => acquia_spi_check_login(),
+      // @todo
+      'ssl_login'      => $this->checkLogin(),
       'file_hashes'    => $hashes,
       'hashes_md5'     => md5($hashes_string),
       'hashes_sha1'    => sha1($hashes_string),
@@ -185,6 +186,52 @@ class SpiController extends ControllerBase {
 
       return array_merge($spi, $spi_ssl);
     }
+  }
+
+  /**
+   * Checks to see if SSL login is required
+   *
+   * @param n/a
+   *
+   * @return int 1|0
+   */
+  private function checkLogin() {
+    $login_safe = 0;
+    // @todo
+//    if (module_exists('securepages')) {
+//      if (drupal_match_path('user/login', variable_get('securepages_pages', ''))) {
+//        $login_safe = 1;
+//      }
+//      if (drupal_match_path('user/login', variable_get('securepages_ignore', ''))) {
+//        $login_safe = 0;
+//      }
+//      if (!variable_get('securepages_secure', FALSE) || !variable_get('securepages_enable', FALSE)) {
+//        $login_safe = 0;
+//      }
+//    }
+//    elseif (module_exists('securelogin')) {
+//      // All the required forms should be enabled.
+//      $required_forms = array(
+//        'securelogin_form_user_login',
+//        'securelogin_form_user_login_block',
+//        'securelogin_form_user_pass',
+//        'securelogin_form_user_profile_form',
+//        'securelogin_form_user_register_form',
+//      );
+//      $forms_safe = TRUE;
+//      foreach ($required_forms as $form_variable) {
+//        if (!variable_get($form_variable, TRUE)) {
+//          $forms_safe = FALSE;
+//          break;
+//        }
+//      }
+//      // $conf['https'] should be false for expected behavior
+//      if ($forms_safe && !variable_get('https', FALSE))  {
+//        $login_safe = 1;
+//      }
+//    }
+
+    return $login_safe;
   }
 
   /**
