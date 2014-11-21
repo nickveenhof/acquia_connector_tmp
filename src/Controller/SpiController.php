@@ -82,7 +82,7 @@ class SpiController extends ControllerBase {
       'platform'       => $platform,
       'quantum'        => $this->getQuantum(),
       'system_status'  => $this->getSystemStatus(),
-//    'failed_logins'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_failed_logins() : array(),
+      'failed_logins'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getFailedLogins() : array(),
 //    '404s'           => variable_get('acquia_spi_send_watchdog', 1) ? acquai_spi_get_404s() : array(),
 //    'watchdog_size'  => acquai_spi_get_watchdog_size(),
 //    'watchdog_data'  => variable_get('acquia_spi_send_watchdog', 1) ? acquia_spi_get_watchdog_data() : array(),
@@ -187,11 +187,43 @@ class SpiController extends ControllerBase {
   }
 
   /**
+   * Get the information on failed logins in the last cron interval
+   *
+   * @param n/a
+   *
+   * @return array
+   *
+   */
+  private function getFailedLogins() {
+    $last_logins = array();
+    $cron_interval = $this->config('acquia_connector.settings')->get('spi.cron_interval', 8*60*60);
+
+    if (\Drupal::moduleHandler()->moduleExists('dblog')) {
+      $result = db_select('watchdog', 'w')
+        ->fields('w', array('message', 'variables', 'timestamp'))
+        ->condition('w.message', 'login attempt failed%', 'LIKE')
+        ->condition('w.timestamp', REQUEST_TIME - $cron_interval, '>')
+        ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
+        ->orderBy('w.timestamp', 'DESC')
+        ->range(0, 10)
+        ->execute()->fetchAll();
+
+      foreach ($result as $record) {
+        $variables = unserialize($record->variables);
+        if (!empty($variables['%user'])) {
+          $last_logins['failed'][$record->timestamp] = String::checkPlain($variables['%user']);
+        }
+      }
+    }
+    return $last_logins;
+  }
+
+  /**
    * This function is a trimmed version of Drupal's system_status function
    *
    * @return array
    */
-  function getSystemStatus() {
+  private function getSystemStatus() {
     $data = array();
 
     $profile = drupal_get_profile();
