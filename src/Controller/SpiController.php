@@ -87,7 +87,7 @@ class SpiController extends ControllerBase {
       '404s'           => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->get404s() : array(),
       'watchdog_size'  => $this->getWatchdogSize(),
       'watchdog_data'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getWatchdogData() : array(),
-//    'last_nodes'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_nodes() : array(),
+      'last_nodes'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
 //    'last_users'     => variable_get('acquia_spi_send_node_user', 1) ? acquai_spi_get_last_users() : array(),
 //    'extra_files'    => acquia_spi_check_files_present(),
 //    'ssl_login'      => acquia_spi_check_login(),
@@ -105,7 +105,7 @@ class SpiController extends ControllerBase {
     $scheme = parse_url($this->config('acquia_connector.settings')->get('network_address'), PHP_URL_SCHEME);
     $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
     // @todo: Implement acquia_spi_ssl_override!
-    if ($this->config('acquia_connector.settings')->get('acquia_spi_ssl_override')) {
+    if ($this->config('acquia_connector.settings')->get('spi.ssl_override')) {
       $via_ssl = TRUE;
     }
 
@@ -185,6 +185,35 @@ class SpiController extends ControllerBase {
 
       return array_merge($spi, $spi_ssl);
     }
+  }
+
+  /**
+   * Get last 15 nodes created--this can be useful to determine if you have some
+   * sort of spamme on your site
+   *
+   * @param n/a
+   *
+   * @return array of the details of last 15 nodes created
+   */
+  private function getLastNodes() {
+    $last_five_nodes = array();
+    $result = db_select('node_field_data', 'n')
+      ->fields('n', array('title', 'type', 'nid', 'created', 'langcode'))
+      ->condition('n.created', REQUEST_TIME - 3600, '>')
+      ->orderBy('n.created', 'DESC')
+      ->range(0, 15)
+      ->execute();
+
+    $count = 0;
+    foreach ($result as $record) {
+      $last_five_nodes[$count]['url'] = \Drupal::service('path.alias_manager')->getAliasByPath('node/' . $record->nid, $record->langcode);;
+      $last_five_nodes[$count]['title'] = $record->title;
+      $last_five_nodes[$count]['type'] = $record->type;
+      $last_five_nodes[$count]['created'] = $record->created;
+      $count++;
+    }
+
+    return $last_five_nodes;
   }
 
   /**
@@ -380,7 +409,10 @@ class SpiController extends ControllerBase {
   private function getVariablesData() {
     global $conf;
     $data = array();
-    return $data;
+    // @todo: remove test data
+    $data =  array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
+
+    return Json::encode($data);
     $variables = array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
     $spi_def_vars = variable_get('acquia_spi_def_vars', array());
     $waived_spi_def_vars = variable_get('acquia_spi_def_waived_vars', array());
