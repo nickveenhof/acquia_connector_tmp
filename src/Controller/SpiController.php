@@ -11,6 +11,7 @@ use Drupal\Core\Database;
 use Drupal\Core\DrupalKernel;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
@@ -773,48 +774,120 @@ class SpiController extends ControllerBase {
   }
 
   /**
+   * Load configs for all enabled modules.
+   *
+   * @return array
+   */
+  private function getAllConfigs() {
+    $result = array();
+    $names = \Drupal::configFactory()->listAll();
+    foreach ($names as $key => $config_name) {
+      $result[$config_name] = \Drupal::config($config_name)->get();
+    }
+    return $result;
+  }
+
+  /**
    * Get all system variables
    *
    * @return array()
    */
   private function getVariablesData() {
-    global $conf;
     $data = array();
     // @todo: remove test data
-    $data =  array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
-
-    return Json::encode($data);
-    $variables = array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
-    $spi_def_vars = variable_get('acquia_spi_def_vars', array());
-    $waived_spi_def_vars = variable_get('acquia_spi_def_waived_vars', array());
+    $variables =  array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
+    // @todo: Share $mapping with $this->setVariables();
+    $mapping = array(
+      'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'),
+      'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'),
+      'acquia_spi_module_diff_data' => array('acquia_connector.settings', 'spi', 'module_diff_data'),
+      'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'),
+      'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'),
+      'cache_backends' => array(),// @todo
+      'cache_default_class' => array(),// @todo
+      'cache_inc' => array(),// @todo
+      'cron_safe_threshold' => array(),// @todo
+      'googleanalytics_cache' => array(),// @todo
+      'error_level' => array('system.logging', 'error_level'),
+      'preprocess_js' => array('system.performance', 'js', 'preprocess'),
+      'page_cache_maximum_age' => array('system.performance', 'cache', 'page', 'max_age'),
+      'block_cache' => array(),// @todo
+      'preprocess_css' => array('system.performance', 'css', 'preprocess'),
+      'page_compression' => array('system.performance', 'response', 'zgip'),
+      'cache' => array('system.performance', 'cache'),
+      'cache_lifetime' => array(),// @todo
+      'cron_last' => array(),// @todo
+      'clean_url' => array(),// @todo
+      'redirect_global_clean' => array(),// @todo
+      'theme_zen_settings' => array(),// @todo
+      'site_offline' => array(),// @todo
+      'site_name' => array('system.site', 'name'),
+      'user_register' => array('user.settings', 'register'),
+      'user_signatures' => array('user.settings', 'signatures'),
+      'user_admin_role' => array('user.settings', 'admin_role'),
+      'user_email_verification' => array('user.settings', 'verify_mail'),
+      'user_cancel_method' => array('user.settings', 'cancel_method'),
+      'filter_fallback_format' => array('filter.settings', 'fallback_format'),
+      'dblog_row_limit' => array('dblog.settings', 'row_limit'),
+      'date_default_timezone' => array('system.date', 'timezone', 'default'),
+      'file_default_scheme' => array('system.file', 'default_scheme'),
+      'install_profile' => array(),// @todo
+      'maintenance_mode' => array(),// @todo
+      'update_last_check' => array(),// @todo
+      'site_default_country' => array('system.date', 'country', 'default'),
+      'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
+      'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),
+      'acquia_spi_ignored_set_variables' => array('acquia_connector.settings', 'spi', 'ignored_set_variables'),
+      'acquia_spi_set_variables_override' => array('acquia_connector.settings', 'spi', 'set_variables_override'),
+      // @todo: Good variables to add
+      'fast_404' => array('system.performance', 'fast_404', 'enabled'),
+      'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
+    );
+    $allConfigData = $this->getAllConfigs();
+    dpm('<h2>All site config variables.</h2>');
+    dpm($allConfigData); // @todo - remove dpm
+    $spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_vars');
+    $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars');
     // Merge hard coded $variables with vars from SPI definition.
     foreach($spi_def_vars as $var_name => $var) {
       if (!in_array($var_name, $waived_spi_def_vars) && !in_array($var_name, $variables)) {
         $variables[] = $var_name;
       }
     }
+    // @todo
     // Add comment settings for node types.
-    $types = node_type_get_types();
-    if (!empty($types)) {
-      foreach ($types as $name => $type) {
-        $variables[] = 'comment_' . $name;
-      }
-    }
+//    $types = node_type_get_types();
+//    if (!empty($types)) {
+//      foreach ($types as $name => $type) {
+//        $variables[] = 'comment_' . $name;
+//      }
+//    }
     foreach ($variables as $name) {
-      if (isset($conf[$name])) {
-        $data[$name] = $conf[$name];
+      if (!empty($mapping[$name])) {
+        $key_exists = NULL;
+        $value = Utility\NestedArray::getValue($allConfigData, $mapping[$name], $key_exists);
+        if ($key_exists) {
+          dpm('YES!:' . $name . ' = ' . print_r($value, 1)); // @todo: remove dpm
+          $data[$name] = $value;
+        }
+      }
+      else {
+        // @todo: log errors
+        dpm('ops: ' . $name);
       }
     }
     // Exception handling.
-    if (module_exists('globalredirect') && function_exists('_globalredirect_get_settings')) {
+    if (\Drupal::moduleHandler()->moduleExists('globalredirect') && function_exists('_globalredirect_get_settings')) {
       // Explicitly get Global Redirect settings since it deletes its variable
       // if the settings match the defaults.
-      $data['globalredirect_settings'] = _globalredirect_get_settings();
+      // @todo
+//      $data['globalredirect_settings'] = _globalredirect_get_settings();
     }
     // Drush overrides cron_safe_threshold so extract DB value if sending via drush.
-    if (drupal_is_cli()) {
-      $cron_safe_threshold = acquia_spi_get_db_variable('cron_safe_threshold');
-      $data['cron_safe_threshold'] = !is_null($cron_safe_threshold) ? $cron_safe_threshold : DRUPAL_CRON_DEFAULT_THRESHOLD;
+    if (PHP_SAPI === 'cli') {
+      // @todo
+//      $cron_safe_threshold = acquia_spi_get_db_variable('cron_safe_threshold');
+//      $data['cron_safe_threshold'] = !is_null($cron_safe_threshold) ? $cron_safe_threshold : DRUPAL_CRON_DEFAULT_THRESHOLD;
     }
     // Unset waived vars so they won't be sent to NSPI.
     foreach($data as $var_name => $var) {
@@ -1406,7 +1479,6 @@ class SpiController extends ControllerBase {
     // Check result for command to update SPI definition.
     $update = isset($spi_response['body']['update_spi_definition']) ? $spi_response['body']['update_spi_definition'] : FALSE;
     if ($update === TRUE) {
-      // @todo: refactor
       $this->updateDefinition();
     }
     // Check for set_variables command.
@@ -1469,22 +1541,20 @@ class SpiController extends ControllerBase {
    */
   private function updateDefinition() {
     $core_version = substr(\Drupal::VERSION, 0, 1);
-    $spi_def_end_point = $this->config('acquia_connector.settings')->get('spi.server');
-    $spi_def_end_point .= '/spi_def/get/' . $core_version;
-    // @todo: refactor
-    return;
-    $options = array(
-      'method' => 'GET',
-      'headers' => array('Content-type' => 'application/json'),
-      'data' => drupal_http_build_query(array('spi_data_version' => ACQUIA_SPI_DATA_VERSION))
-    );
-    $response = drupal_http_request($spi_def_end_point, $options);
-    if ($response->code != 200 || !isset($response->data)) {
-      \Drupal::logger('acquia spi')->error('Failed to obtain latest SPI data definition. HTTP response: @response', array('@response' => var_export($response, TRUE)));
+    // @todo: review settings variables.
+//    $spi_def_end_point = $this->config('acquia_connector.settings')->get('spi.server');
+//    $spi_def_end_point = $this->config('acquia_connector.settings')->get('network_address');
+    $spi_def_end_point = '/spi_def/get/' . $core_version;
+
+    $response = $this->client->getDefinition($spi_def_end_point);
+    dpm($response);
+
+    if (!$response) {
+      \Drupal::logger('acquia spi')->error('Failed to obtain latest SPI data definition.');
       return FALSE;
     }
     else {
-      $response_data = drupal_json_decode($response->data);
+      $response_data = $response;
       $expected_data_types = array(
         'drupal_version' => 'string',
         'timestamp' => 'string',
@@ -1504,7 +1574,7 @@ class SpiController extends ControllerBase {
     }
 
     // NSPI response is in expected format.
-    if ((int) $response_data['timestamp'] > (int) $this->config('acquia_connector.settings')->get('spi.def_timestamp', 0)) {
+    if ((int) $response_data['timestamp'] > (int) $this->config('acquia_connector.settings')->get('spi.def_timestamp')) {
       // Compare stored variable names to incoming and report on update.
       $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars', array());
       $new_vars = $response_data['acquia_spi_variables'];

@@ -155,6 +155,16 @@ class Client {
     return FALSE;
   }
 
+  public function getDefinition($apiEndpoint) {
+    try{
+      $response = $this->request('GET', $apiEndpoint, $data);
+      return $response;
+    }
+    catch (\Exception $e){
+    }
+    return FALSE;
+  }
+
   /**
    * Validate the response authenticator.
    *
@@ -184,6 +194,19 @@ class Client {
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
     switch ($method) {
+      case 'GET':
+        try {
+          $options = array(
+            'headers' => $this->headers,
+            'json' => json_encode($data),
+          );
+
+          $response = $this->client->get($uri, $options);
+        }
+        catch (ClientException $e) {
+          drupal_set_message($e->getMessage(), 'error');
+        }
+        break;
       case 'POST':
         try {
           $options = array(
@@ -197,6 +220,7 @@ class Client {
         catch (ClientException $e) {
           drupal_set_message($e->getMessage(), 'error');
         }
+        break;
     }
     // @todo support response code
     if (!empty($response)) {
