@@ -130,7 +130,8 @@ class SpiController extends ControllerBase {
     }
 
     // Collect all user-contributed custom tests that pass validation.
-//    $custom_tests_results = acquia_spi_test_collect();
+    // @todo: double check
+    $custom_tests_results = $this->testCollect();
     if (!empty($custom_tests_results)) {
       $additional_data['custom_tests'] = $custom_tests_results;
     }
@@ -189,6 +190,33 @@ class SpiController extends ControllerBase {
       return array_merge($spi, $spi_ssl);
     }
   }
+
+  /**
+   * Collects all user-contributed test results that pass validation.
+   *
+   * @return array $custom_data
+   *  An associative array containing properly formatted user-contributed tests.
+   *
+   */
+  private function testCollect() {
+    $custom_data = array();
+
+    // Collect all custom data provided by hook_insight_custom_data().
+    $collections = \Drupal::moduleHandler()->invokeAll('acquia_spi_test');
+
+    foreach ($collections as $test_name => $test_params) {
+      // @todo: double check!
+      $result = $this->testValidate(array($test_name => $test_params));
+
+      if ($result['result']) {
+        $custom_data[$test_name] = $test_params;
+      }
+    }
+
+    return $custom_data;
+  }
+
+  // @todo: move Security review into separate class
 
   /**
    * Run some checks from the Security Review module.
