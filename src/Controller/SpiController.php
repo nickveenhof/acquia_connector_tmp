@@ -9,6 +9,7 @@ namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Database;
 use Drupal\Core\DrupalKernel;
+use Drupal\node\Entity\NodeType;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility;
@@ -794,7 +795,6 @@ class SpiController extends ControllerBase {
    */
   private function getVariablesData() {
     $data = array();
-    // @todo: remove test data
     $variables =  array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
     // @todo: Share $mapping with $this->setVariables();
     $mapping = array(
@@ -804,9 +804,9 @@ class SpiController extends ControllerBase {
       'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'),
       'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'),
       'cache_backends' => array(),// @todo
-      'cache_default_class' => array(),// @todo
+      'cache_default_class' => array('cache_classes', 'cache'),// @todo: test it
       'cache_inc' => array(),// @todo
-      'cron_safe_threshold' => array(),// @todo
+      'cron_safe_threshold' => array('system.cron', 'threshold', 'autorun'),
       'googleanalytics_cache' => array(),// @todo
       'error_level' => array('system.logging', 'error_level'),
       'preprocess_js' => array('system.performance', 'js', 'preprocess'),
@@ -817,7 +817,7 @@ class SpiController extends ControllerBase {
       'cache' => array('system.performance', 'cache'),
       'cache_lifetime' => array(),// @todo
       'cron_last' => array(),// @todo
-      'clean_url' => array(),// @todo
+      'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
       'redirect_global_clean' => array(),// @todo
       'theme_zen_settings' => array(),// @todo
       'site_offline' => array(),// @todo
@@ -831,8 +831,8 @@ class SpiController extends ControllerBase {
       'dblog_row_limit' => array('dblog.settings', 'row_limit'),
       'date_default_timezone' => array('system.date', 'timezone', 'default'),
       'file_default_scheme' => array('system.file', 'default_scheme'),
-      'install_profile' => array(),// @todo
-      'maintenance_mode' => array(),// @todo
+      'install_profile' => array(),// @todo: @see https://www.drupal.org/node/2235431
+      'maintenance_mode' => array(),// @todo: Not variable. \Drupal::state()->get('system.maintenance_mode'). Remove form vaiables.
       'update_last_check' => array(),// @todo
       'site_default_country' => array('system.date', 'country', 'default'),
       'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
@@ -843,9 +843,8 @@ class SpiController extends ControllerBase {
       'fast_404' => array('system.performance', 'fast_404', 'enabled'),
       'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
     );
+
     $allConfigData = $this->getAllConfigs();
-    dpm('<h2>All site config variables.</h2>');
-    dpm($allConfigData); // @todo - remove dpm
     $spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_vars');
     $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars');
     // Merge hard coded $variables with vars from SPI definition.
@@ -854,14 +853,16 @@ class SpiController extends ControllerBase {
         $variables[] = $var_name;
       }
     }
-    // @todo
+
+    // @todo - implement comments settings for D8
     // Add comment settings for node types.
-//    $types = node_type_get_types();
-//    if (!empty($types)) {
-//      foreach ($types as $name => $type) {
+    $types = NodeType::loadMultiple();
+    if (!empty($types)) {
+      foreach ($types as $name => $NodeType) {
+        dpm('Node type: ' . $NodeType->type);
 //        $variables[] = 'comment_' . $name;
-//      }
-//    }
+      }
+    }
     foreach ($variables as $name) {
       if (!empty($mapping[$name])) {
         $key_exists = NULL;
@@ -873,28 +874,34 @@ class SpiController extends ControllerBase {
       }
       else {
         // @todo: log errors
-        dpm('ops: ' . $name);
+        dpm('Variable is not implemented: ' . $name);
       }
     }
+
     // Exception handling.
-    if (\Drupal::moduleHandler()->moduleExists('globalredirect') && function_exists('_globalredirect_get_settings')) {
-      // Explicitly get Global Redirect settings since it deletes its variable
-      // if the settings match the defaults.
-      // @todo
+    // @todo: Move outside variables.
+    $data['maintenance_mode'] = \Drupal::state()->get('system.maintenance_mode');
+    // @todo - the module highly unstable!
+//    if (\Drupal::moduleHandler()->moduleExists('globalredirect') && function_exists('_globalredirect_get_settings')) {
+//      // Explicitly get Global Redirect settings since it deletes its variable
+//      // if the settings match the defaults.
 //      $data['globalredirect_settings'] = _globalredirect_get_settings();
-    }
+//    }
+
     // Drush overrides cron_safe_threshold so extract DB value if sending via drush.
-    if (PHP_SAPI === 'cli') {
-      // @todo
+    // @todo research it for D8
+//    if (PHP_SAPI === 'cli') {
 //      $cron_safe_threshold = acquia_spi_get_db_variable('cron_safe_threshold');
 //      $data['cron_safe_threshold'] = !is_null($cron_safe_threshold) ? $cron_safe_threshold : DRUPAL_CRON_DEFAULT_THRESHOLD;
-    }
+//    }
+
     // Unset waived vars so they won't be sent to NSPI.
     foreach($data as $var_name => $var) {
       if (in_array($var_name, $waived_spi_def_vars)) {
         unset($data[$var_name]);
       }
     }
+
     // Collapse to JSON string to simplify transport.
     return Json::encode($data);
   }
@@ -1541,9 +1548,6 @@ class SpiController extends ControllerBase {
    */
   private function updateDefinition() {
     $core_version = substr(\Drupal::VERSION, 0, 1);
-    // @todo: review settings variables.
-//    $spi_def_end_point = $this->config('acquia_connector.settings')->get('spi.server');
-//    $spi_def_end_point = $this->config('acquia_connector.settings')->get('network_address');
     $spi_def_end_point = '/spi_def/get/' . $core_version;
 
     $response = $this->client->getDefinition($spi_def_end_point);
