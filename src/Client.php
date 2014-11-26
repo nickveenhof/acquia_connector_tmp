@@ -107,6 +107,36 @@ class Client {
       'body' => $body,
       'authenticator' => $authenticator,
     );
+
+/*    // There is an identifier and key, so attempt communication.
+    $subscription = array();
+    $subscription['timestamp'] = REQUEST_TIME;
+
+    // Include version number information.
+    $this->loadVersions();
+    if (IS_ACQUIA_DRUPAL) {
+      $params['version']  = ACQUIA_DRUPAL_VERSION;
+      $params['series']   = ACQUIA_DRUPAL_SERIES;
+      $params['branch']   = ACQUIA_DRUPAL_BRANCH;
+      $params['revision'] = ACQUIA_DRUPAL_REVISION;
+    }
+    // Include Acquia Search module version number.
+    if (\Drupal::moduleHandler()->moduleExists('acquia_search')) {
+      foreach (array('acquia_search', 'apachesolr') as $name) {
+        $info = system_get_info('module', $name);
+        // Send the version, or at least the core compatibility as a fallback.
+        $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
+      }
+    }
+    // Include Acquia Search for Search API module version number.
+    if (\Drupal::moduleHandler()->moduleExists('search_api_acquia')) {
+      foreach (array('search_api_acquia', 'search_api', 'search_api_solr') as $name) {
+        $info = system_get_info('module', $name);
+        // Send the version, or at least the core compatibility as a fallback.
+        $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
+      }
+    }*/
+
     try{
       $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
       if ($this->validateResponse($key, $response, $authenticator)) {

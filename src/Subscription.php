@@ -6,6 +6,7 @@
  */
 
 namespace Drupal\acquia_connector;
+use Drupal\acquia_connector\Client;
 
 class Subscription {
 
@@ -85,11 +86,19 @@ class Subscription {
    * Helper function to check if the site has an active subscription.
    */
   public function isActive() {
-    $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
-
+    $active = FALSE;
     // Subscription cannot be active if we have no credentials.
-    return $this->hasCredentials() && !empty($subscription['active']);
+    if($this->hasCredentials()){
+      $config = \Drupal::config('acquia_connector.settings');
+      $subscription = $config->get('subscription_data');
 
+      // Make sure we have data at least once per day.
+      if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
+      //'no_heartbeat' => 1
+      $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
+      }
+      $active = !empty($subscription['active']);
+    }
+    return $active;
   }
-
 }

@@ -1,12 +1,41 @@
 <?php
 
+
+/**
+* @file
+  * Install, update, and uninstall functions for the Update Manager module.
+ */
+
+use Drupal\Core\Url;
+use Drupal\acquia_connector\Controller\SpiController;
+use Drupal\acquia_connector\Controller\TestStatusController;
+use Drupal\acquia_connector\Subscription;
+
 /**
  * Implements hook_requirements().
+ *
+ * @return array
+ *   An array describing the status of the site regarding available updates. If
+ *   there is no update data, only one record will be returned, indicating that
+ *   the status of core can't be determined. If data is available, there will be
+ *   two records: one for core, and another for all of contrib (assuming there
+ *   are any contributed modules or themes enabled on the site). In addition to
+ *   the fields expected by hook_requirements ('value', 'severity', and
+ *   optionally 'description'), this array will contain a 'reason' attribute,
+ *   which is an integer constant to indicate why the given status is being
+ *   returned (UPDATE_NOT_SECURE, UPDATE_NOT_CURRENT, or UPDATE_UNKNOWN). This
+ *   is used for generating the appropriate email notification messages during
+ *   update_cron(), and might be useful for other modules that invoke
+ *   update_requirements() to find out if the site is up to date or not.
+ *
+ * @see _update_message_text()
+ * @see _update_cron_notify()
  */
-function acquia_agent_requirements($phase) {
+function acquia_connector_requirements($phase) {
   $requirements = array();
-  $has_credentials = acquia_agent_has_credentials();
-  $is_active = acquia_agent_subscription_is_active();
+  $credentials = new Subscription();
+  $has_credentials = $credentials->hasCredentials();
+  $is_active = $credentials->isActive();
 
   switch ($phase) {
     case 'runtime':
@@ -14,12 +43,13 @@ function acquia_agent_requirements($phase) {
       // or we know they have credentials but not active (not set up yet) or
       // we have credentials but an inactive subscription (either bad
       // credentials or expired subscription).
+
       if ($is_active) {
         $requirements['acquia_subscription_status'] = array(
           'title' => t('Acquia Network subscription status'),
           'severity' => REQUIREMENT_OK,
           'value' => t('Active'),
-          'description' => t('You can <a href="@refresh-status">manually refresh the subscription status</a>.', array('@refresh-status' => url('admin/config/system/acquia-agent/refresh-status', array('query' => drupal_get_destination())))),
+          'description' => t('You can <a href="@refresh-status">manually refresh the subscription status</a>.', array('@refresh-status' => Url::fromUri('base://admin/config/system/acquia-connector/refresh-status', array())->toString())),
         );
       }
       elseif (!$has_credentials) {
@@ -27,19 +57,56 @@ function acquia_agent_requirements($phase) {
           'title' => t('Acquia Network subscription status'),
           'severity' => REQUIREMENT_WARNING,
           'value' => t('Unknown'),
-          'description' => t('You did not complete your signup to the Acquia Network. You can provide the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page or try to <a href="@refresh-status">manually refresh the subscription status</a>.', array('@settings' => url('admin/config/system/acquia-agent'), '@refresh-status' => url('admin/config/system/acquia-agent/refresh-status', array('query' => drupal_get_destination()))))
+          'description' => t('You did not complete your signup to the Acquia Network. You can provide the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page or try to <a href="@refresh-status">manually refresh the subscription status</a>.', array('@settings' => Url::fromUri('base://admin/config/system/acquia-connector', array())->toString(), '@refresh-status' => Url::fromUri('base://admin/config/system/acquia-connector/refresh-status', array())->toString()))
         );
       }
       else {
-        $subscription = variable_get('acquia_subscription_data', array('active' => FALSE));
+        $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
         $href = isset($subscription['href']) ? $subscription['href'] . '/health' : 'http://acquia.com/network';
         $requirements['acquia_subscription_status'] = array(
           'title' => t('Acquia Network subscription status'),
           'severity' => REQUIREMENT_WARNING,
           'value' => t('Inactive'),
-          'description' => t('Your subscription is expired or you are using an invalid identifier and key pair. You can check the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page. Check <a href="@acquia-network">your subscription on the Acquia Network</a> for further status information.', array('@settings' => url('admin/config/system/acquia-agent'), '@acquia-network' => $href)),
+          'description' => t('Your subscription is expired or you are using an invalid identifier and key pair. You can check the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page. Check <a href="@acquia-network">your subscription on the Acquia Network</a> for further status information.', array('@settings' => Url::fromUri('base://admin/config/system/acquia-connector', array())->toString(), '@acquia-network' => $href)),
         );
       }
+
+      // Acquia SPI custom tests status.
+      $variables = array(
+        '@help'     => Url::fromUri('base://admin/help/acquia_connector', array('absolute' => TRUE))->toString(),
+        '@validate' => Url::fromUri('base://system/acquia-spi-custom-test-validate', array('absolute' => TRUE))->toString(),
+      );
+
+      $modules = \Drupal::moduleHandler()->getImplementations('acquia_spi_test');
+      if (empty($modules)) {
+        $description = 'No custom tests were detected in any module.<br/>';
+        $value       = 'Not implemented (<a href="@help">more information</a>)';
+        $severity    = REQUIREMENT_OK;
+      }
+      else {
+        $status = new TestStatusController();
+        $result = $status->testStatus();
+        if (!empty($result)) {
+          $modules = implode(', ', array_keys($result));
+          $description = 'Custom tests within the following module(s) have failed validation and will not be sent: %modules. <br/>Please check the error logs for more information regarding how to pass validation or <a href="@validate">perform another validation check</a>. (A validation check can also be performed via the Drush command, "spi-test-validate.")';
+          $value       = 'Failed (<a href="@help">more information</a>)';
+          $severity    = REQUIREMENT_ERROR;
+        }
+        else {
+          $modules     = implode(', ', $modules);
+          $description = 'Custom test data is structured properly and is sending from: %modules';
+          $value       = 'Passed';
+          $severity    = REQUIREMENT_OK;
+        }
+
+        $variables['%modules'] = $modules;
+      }
+      $requirements['acquia_spi_test'] = array(
+        'title'       => t('Acquia Network SPI Custom Tests'),
+        'description' => t($description, $variables),
+        'value'       => t($value, $variables),
+        'severity'    => $severity,
+      );
     break;
   }
 
