@@ -1451,7 +1451,7 @@ class SpiController extends ControllerBase {
     $this->handleServerResponse($response);
 
 //    $response = acquia_connector_send_full_spi($method);
-    if (!$request->get('destination')) {
+    if ($request->get('destination')) {
       if (!empty($response)) {
         $message = array();
         if (isset($response['spi_data_received']) && $response['spi_data_received'] === TRUE) {
