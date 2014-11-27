@@ -17,11 +17,14 @@ use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteMatch;
 use Drupal\acquia_connector\Client;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\acquia_connector\Controller\TestStatusController;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
  * Class SpiController.
@@ -1423,7 +1426,6 @@ class SpiController extends ControllerBase {
    *
    * @return mixed FALSE if data not sent else NSPI result array
    */
-  //@todo: In routing.yml replace _content with _controller.ß
   public function send(Request $request) {
     $config = $this->config('acquia_connector.settings');
     $method = ACQUIA_SPI_METHOD_CALLBACK;
@@ -1445,15 +1447,11 @@ class SpiController extends ControllerBase {
 //      return FALSE;
 //    }
 
+    $config->set('cron_last', REQUEST_TIME)->save();
     $this->handleServerResponse($response);
 
-    $config->set('cron_last', REQUEST_TIME);
-
-
-
 //    $response = acquia_connector_send_full_spi($method);
-
-    if ($request->get('destination')) {
+    if (!$request->get('destination')) {
       if (!empty($response)) {
         $message = array();
         if (isset($response['spi_data_received']) && $response['spi_data_received'] === TRUE) {
@@ -1471,11 +1469,10 @@ class SpiController extends ControllerBase {
       else {
         drupal_set_message($this->t('Error sending SPI data. Consult the logs for more information.'), 'error');
       }
-
-//      $this->redirect('<front>');
+      $route_match = $route = RouteMatch::createFromRequest($request);
+      return $this->redirect($route_match->getRouteName(), $route_match->getRawParameters()->all());
     }
-    // @todo: remove
-    return array();
+    throw new ServiceUnavailableHttpException(3, t('Error sending SPI data. Consult the logs for more information.'));
   }
 
 
