@@ -96,7 +96,6 @@ class SpiController extends ControllerBase {
       'last_nodes'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
       'last_users'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastUsers() : array(),
       'extra_files'    => $this->checkFilesPresent(),
-      // @todo
       'ssl_login'      => $this->checkLogin(),
       'file_hashes'    => $hashes,
       'hashes_md5'     => md5($hashes_string),
@@ -111,7 +110,6 @@ class SpiController extends ControllerBase {
 
     $scheme = parse_url($this->config('acquia_connector.settings')->get('network_address'), PHP_URL_SCHEME);
     $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
-    // @todo: Implement acquia_spi_ssl_override!
     if ($this->config('acquia_connector.settings')->get('spi.ssl_override')) {
       $via_ssl = TRUE;
     }
@@ -136,7 +134,6 @@ class SpiController extends ControllerBase {
     }
 
     // Collect all user-contributed custom tests that pass validation.
-    // @todo: double check
     $custom_tests_results = $this->testCollect();
     if (!empty($custom_tests_results)) {
       $additional_data['custom_tests'] = $custom_tests_results;
@@ -185,7 +182,6 @@ class SpiController extends ControllerBase {
     else {
       // Values returned only over SSL
       $spi_ssl = array(
-        // @todo getVariablesData
         'system_vars' => $this->getVariablesData(),
         'settings_ra' => $this->getSettingsPermissions(),
         // @todo getAdminCount
@@ -211,7 +207,6 @@ class SpiController extends ControllerBase {
     $collections = \Drupal::moduleHandler()->invokeAll('acquia_spi_test');
 
     foreach ($collections as $test_name => $test_params) {
-      // @todo: double check!
       $status = new TestStatusController();
       $result = $status->testValidate(array($test_name => $test_params));
 
@@ -348,7 +343,6 @@ class SpiController extends ControllerBase {
    */
   private function securityReviewGetChecks() {
     // Use Security Review's checks if available.
-    // @todo: Check is it work for D8
     if (\Drupal::moduleHandler()->moduleExists('security_review') && function_exists('security_review_security_checks')) {
       return \Drupal::moduleHandler()->invokeAll('security_checks');
     }
@@ -477,8 +471,8 @@ class SpiController extends ControllerBase {
    */
   private function checkLogin() {
     $login_safe = 0;
-    // @todo
-//    if (module_exists('securepages')) {
+    // @todo: securepages not ported yet.
+    if (\Drupal::moduleHandler()->moduleExists('securepages')) {
 //      if (drupal_match_path('user/login', variable_get('securepages_pages', ''))) {
 //        $login_safe = 1;
 //      }
@@ -488,28 +482,34 @@ class SpiController extends ControllerBase {
 //      if (!variable_get('securepages_secure', FALSE) || !variable_get('securepages_enable', FALSE)) {
 //        $login_safe = 0;
 //      }
-//    }
-//    elseif (module_exists('securelogin')) {
-//      // All the required forms should be enabled.
-//      $required_forms = array(
-//        'securelogin_form_user_login',
-//        'securelogin_form_user_login_block',
-//        'securelogin_form_user_pass',
-//        'securelogin_form_user_profile_form',
-//        'securelogin_form_user_register_form',
-//      );
-//      $forms_safe = TRUE;
-//      foreach ($required_forms as $form_variable) {
-//        if (!variable_get($form_variable, TRUE)) {
-//          $forms_safe = FALSE;
-//          break;
-//        }
-//      }
-//      // $conf['https'] should be false for expected behavior
-//      if ($forms_safe && !variable_get('https', FALSE))  {
-//        $login_safe = 1;
-//      }
-//    }
+    }
+    elseif (\Drupal::moduleHandler()->moduleExists('securelogin')) {
+      $secureLoginConfig = $this->config('securelogin.settings')->get();
+      if ($secureLoginConfig['all_forms']) {
+        $forms_safe = TRUE;
+      }
+      else {
+        // All the required forms should be enabled.
+        $required_forms = array(
+          'form_user_login_form',
+          'form_user_form',
+          'form_user_register_form',
+          'form_user_pass_reset',
+          'form_user_pass',
+        );
+        $forms_safe = TRUE;
+        foreach ($required_forms as $form_variable) {
+          if (!$secureLoginConfig[$form_variable]) {
+            $forms_safe = FALSE;
+            break;
+          }
+        }
+      }
+      // \Drupal::request()->isSecure() ($conf['https'] in D7) should be false for expected behavior
+      if ($forms_safe && !\Drupal::request()->isSecure())  {
+        $login_safe = 1;
+      }
+    }
 
     return $login_safe;
   }
@@ -613,7 +613,6 @@ class SpiController extends ControllerBase {
         ->execute();
 
       while ($record = $result->fetchAssoc()) {
-        dpm($record);
         $wd[$record['severity']] = $record;
       }
     }
@@ -676,7 +675,7 @@ class SpiController extends ControllerBase {
    */
   private function getFailedLogins() {
     $last_logins = array();
-    $cron_interval = $this->config('acquia_connector.settings')->get('spi.cron_interval', 8*60*60);
+    $cron_interval = $this->config('acquia_connector.settings')->get('spi.cron_interval');
 
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
       $result = db_select('watchdog', 'w')
@@ -821,7 +820,7 @@ class SpiController extends ControllerBase {
       'page_compression' => array('system.performance', 'response', 'zgip'),
       'cache' => array('system.performance', 'cache'),
       'cache_lifetime' => array(),// @todo
-      'cron_last' => array(),// @todo
+      'cron_last' => array(),           // Not variable. \Drupal::state()->get('system.cron_last').
       'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
       'redirect_global_clean' => array(),// @todo
       'theme_zen_settings' => array(),// @todo
@@ -837,8 +836,8 @@ class SpiController extends ControllerBase {
       'date_default_timezone' => array('system.date', 'timezone', 'default'),
       'file_default_scheme' => array('system.file', 'default_scheme'),
       'install_profile' => array(),// @todo: @see https://www.drupal.org/node/2235431
-      'maintenance_mode' => array(),// @todo: Not variable. \Drupal::state()->get('system.maintenance_mode'). Remove form vaiables.
-      'update_last_check' => array(),// @todo
+      'maintenance_mode' => array(),    // Not variable. \Drupal::state()->get('system.maintenance_mode').
+      'update_last_check' => array(),   // Not variable. \Drupal::state()->get('update.last_check').
       'site_default_country' => array('system.date', 'country', 'default'),
       'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
       'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),
@@ -884,8 +883,9 @@ class SpiController extends ControllerBase {
     }
 
     // Exception handling.
-    // @todo: Move outside variables.
+    $data['cron_last'] = \Drupal::state()->get('system.cron_last');
     $data['maintenance_mode'] = \Drupal::state()->get('system.maintenance_mode');
+    $data['update_last_check'] = \Drupal::state()->get('update.last_check');
     // @todo - the module highly unstable!
 //    if (\Drupal::moduleHandler()->moduleExists('globalredirect') && function_exists('_globalredirect_get_settings')) {
 //      // Explicitly get Global Redirect settings since it deletes its variable
@@ -927,7 +927,7 @@ class SpiController extends ControllerBase {
    * @return int
    */
   private function getAdminCount() {
-    // @todo
+    // @todo get admin count.
     return '';
 //    $count = NULL;
 //    $sql = "SELECT COUNT(DISTINCT u.uid) as count
@@ -1339,7 +1339,7 @@ class SpiController extends ControllerBase {
    *   information on the modules.
    */
   private function getModules() {
-    // @todo
+    // @todo add cache if possible.
     // Only do a full rebuild of the module cache every 1 at the most
 //  $last_build = variable_get('acquia_spi_module_rebuild', 0);
 //  if ($last_build < REQUEST_TIME - 86400) {
@@ -1366,34 +1366,82 @@ class SpiController extends ControllerBase {
         $info[$key] = isset($module->info[$key]) ? $module->info[$key] : '';
       }
       $info['project'] = $module_key;
-      $info['filename'] = $module->subpath;
+      $info['filename'] = $module->getPathname();
 
-      // @todo
-//    // Determine which files belong to this module and hash them
-//    $module_path = explode('/', $file->filename);
-//    array_pop($module_path);
-//
-//    // We really only care about this module if it is in 'sites' folder.
-//    // Otherwise it is covered by the hash of the distro's modules
-//    if ($module_path[0]=='sites') {
-//      $contrib_path = implode('/', $module_path);
-//
-//      // Get a hash for this module's files. If we nest into another module, we'll return
-//      // and that other module will be covered by it's entry in the system table.
-//      //
-//      // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
-//      // too hard to tell an individual module appart from a project
-//      //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
-//      list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = _acquia_spi_generate_hashes($contrib_path);
-//    }
-//    else {
-      $info['module_data']['hashes'] = array();
-      $info['module_data']['fileinfo'] = array();
-//    }
+      // Determine which files belong to this module and hash them
+      $module_path = explode('/', $info['filename']);
+      array_pop($module_path);
+
+      // We really only care about this module if it is in 'sites' or in 'modules' folder.
+      // Otherwise it is covered by the hash of the distro's modules
+      if ($module_path[0] == 'sites' || $module_path[0] == 'modules') {
+        $contrib_path = implode('/', $module_path);
+
+        // Get a hash for this module's files. If we nest into another module, we'll return
+        // and that other module will be covered by it's entry in the system table.
+        //
+        // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
+        // too hard to tell an individual module appart from a project
+        //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
+        list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = $this->_generateHashes($contrib_path);
+      }
+      else {
+        $info['module_data']['hashes'] = array();
+        $info['module_data']['fileinfo'] = array();
+      }
 
       $result[] = $info;
     }
     return $result;
+  }
+
+  /**
+   * Recursive helper function for acquia_spi_file_hashes().
+   */
+  private function _generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir = NULL) {
+    $hashes = array();
+    $fileinfo = array();
+
+    // Ensure that we have not nested into another module's dir
+    if ($dir != $orig_dir && $module_break) {
+      if (is_dir($dir) && $handle = opendir($dir)) {
+        while ($file = readdir($handle)) {
+          if (stristr($file, '.module')) {
+            return;
+          }
+        }
+      }
+    }
+    if (isset($handle)) {
+      closedir($handle);
+    }
+
+    // Standard nesting function
+    if (is_dir($dir) && $handle = opendir($dir)) {
+      while ($file = readdir($handle)) {
+        if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git'))) {
+          $path = $dir == '.' ? $file : "{$dir}/{$file}";
+          if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
+            list($sub_hashes, $sub_fileinfo) =  $this->_generateHashes($path, $exclude_dirs);
+            $hashes = array_merge($sub_hashes, $hashes);
+            $fileinfo = array_merge($sub_fileinfo, $fileinfo);
+            $hashes[$path] = $this->hashPath($path);
+          }
+          elseif ($this->isManifestType($file)) {
+            $hashes[$path] = $this->hashPath($path);
+            $owner = fileowner($path);
+            if (function_exists('posix_getpwuid')) {
+              $userinfo = posix_getpwuid($owner);
+              $owner = $userinfo['name'];
+            }
+            $fileinfo[$path] = 'mt:' . filemtime($path) . '$p:' . substr(sprintf('%o', fileperms($path)), -4) . '$o:' . $owner . '$s:' . filesize($path);
+          }
+        }
+      }
+      closedir($handle);
+    }
+
+    return array($hashes, $fileinfo);
   }
 
   /**
@@ -1404,19 +1452,17 @@ class SpiController extends ControllerBase {
    */
   private function getQuantum() {
     $quantum = array();
-    // @todo
+
     // Get only published nodes.
-    $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->countQuery()->execute()->fetchField();
-//  $quantum['nodes'] = db_select('node', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
-    // @todo
+    $quantum['nodes'] = db_select('node_field_data', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+
     // Get only active users.
-//  $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();
-    $quantum['users'] = db_select('users', 'u')->fields('u', array('uid'))->countQuery()->execute()->fetchField();
-    // @todo
-//  if (module_exists('comment')) {
-//    // Get only active comments.
-//    $quantum['comments'] = db_select('comment', 'c')->fields('c', array('cid'))->condition('c.status', COMMENT_PUBLISHED)->countQuery()->execute()->fetchField();
-//  }
+    $quantum['users'] = db_select('users_field_data', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();
+
+    if (\Drupal::moduleHandler()->moduleExists('comment')) {
+      // Get only active comments.
+      $quantum['comments'] = db_select('comment_field_data', 'c')->fields('c', array('cid'))->condition('c.status', 1)->countQuery()->execute()->fetchField();
+    }
 
     return $quantum;
   }
@@ -1490,7 +1536,6 @@ class SpiController extends ControllerBase {
     // Check for set_variables command.
     $set_variables = isset($spi_response['body']['set_variables']) ? $spi_response['body']['set_variables'] : FALSE;
     if ($set_variables !== FALSE) {
-      // @todo: refactor
       $this->setVariables($set_variables);
     }
     // Log messages.
