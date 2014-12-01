@@ -47,7 +47,7 @@ class StatusController extends ControllerBase {
     $data = array(
       'version' => '1.0',
       'data' => array(
-        'maintenance_mode' => (bool) $this->state()->get('system.maintenance_mode', FALSE),
+        'maintenance_mode' => (bool) $this->state()->get('system.maintenance_mode'),
         'cache' => $performance_config->get('cache.page.use_internal'),
         'block_cache' => FALSE,
       ),
@@ -92,7 +92,7 @@ class StatusController extends ControllerBase {
         'request' => $request->request->all(),
       );
 
-      watchdog('acquia_agent', 'Site status request: @data', array('@data' => var_export($info, TRUE)));
+      \Drupal::logger('acquia_agent')->notice('Site status request: @data', array('@data' => var_export($info, TRUE)));
     }
 
     return AccessResultForbidden::forbidden();
