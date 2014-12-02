@@ -76,7 +76,7 @@ function acquia_connector_requirements($phase) {
           'title' => t('Acquia Network SPI'),
           'severity' => $severity,
           'value' => $value,
-          'description' => t($description, array('!interval' => $interval, '!config-page' => $config_url, '!spi-send' => Url::fromUri('base://system/acquia-connector-send', array('query' => array('destination' => 'admin/reports/status', 'key' => $key)))->toString())),
+          'description' => t($description, array('!interval' => $interval, '!config-page' => $config_url, '!spi-send' => Url::fromRoute('acquia_connector.send', array(), array('query' => array('destination' => 'admin/reports/status', 'key' => $key)))->toString())),
         );
       }
       //SPI STATUS

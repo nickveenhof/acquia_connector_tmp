@@ -38,6 +38,53 @@ class SpiController extends ControllerBase {
    */
   protected $client;
 
+  protected $mapping = array(
+    'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'),
+    'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'),
+    'acquia_spi_module_diff_data' => array('acquia_connector.settings', 'spi', 'module_diff_data'),
+    'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'),
+    'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'),
+    'cache_backends' => array(),// @todo
+    'cache_default_class' => array('cache_classes', 'cache'),// @todo: test it
+    'cache_inc' => array(),// @todo
+    'cron_safe_threshold' => array('system.cron', 'threshold', 'autorun'),
+    'googleanalytics_cache' => array(),// @todo
+    'error_level' => array('system.logging', 'error_level'),
+    'preprocess_js' => array('system.performance', 'js', 'preprocess'),
+    'page_cache_maximum_age' => array('system.performance', 'cache', 'page', 'max_age'),
+    'block_cache' => array(),// @todo
+    'preprocess_css' => array('system.performance', 'css', 'preprocess'),
+    'page_compression' => array('system.performance', 'response', 'zgip'),
+    'cache' => array('system.performance', 'cache'),
+    'cache_lifetime' => array(),// @todo
+    'cron_last' => array('state', 'system.cron_last'),                  // Not variable. \Drupal::state()->get('system.cron_last').
+    'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
+    'redirect_global_clean' => array(),// @todo
+    'theme_zen_settings' => array(),// @todo
+    'site_offline' => array(),// @todo
+    'site_name' => array('system.site', 'name'),
+    'user_register' => array('user.settings', 'register'),
+    'user_signatures' => array('user.settings', 'signatures'),
+    'user_admin_role' => array('user.settings', 'admin_role'),
+    'user_email_verification' => array('user.settings', 'verify_mail'),
+    'user_cancel_method' => array('user.settings', 'cancel_method'),
+    'filter_fallback_format' => array('filter.settings', 'fallback_format'),
+    'dblog_row_limit' => array('dblog.settings', 'row_limit'),
+    'date_default_timezone' => array('system.date', 'timezone', 'default'),
+    'file_default_scheme' => array('system.file', 'default_scheme'),
+    'install_profile' => array(),// @todo: @see https://www.drupal.org/node/2235431
+    'maintenance_mode' => array('state', 'system.maintenance_mode'),    // Not variable. \Drupal::state()->get('system.maintenance_mode').
+    'update_last_check' => array('state', 'update.last_check'),         // Not variable. \Drupal::state()->get('update.last_check').
+    'site_default_country' => array('system.date', 'country', 'default'),
+    'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
+    'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),
+    'acquia_spi_ignored_set_variables' => array('acquia_connector.settings', 'spi', 'ignored_set_variables'),
+    'acquia_spi_set_variables_override' => array('acquia_connector.settings', 'spi', 'set_variables_override'),
+    // @todo: Good variables to add
+    'fast_404' => array('system.performance', 'fast_404', 'enabled'),
+    'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
+  );
+
   /**
    * Constructs a \Drupal\system\ConfigFormBase object.
    *
@@ -800,53 +847,6 @@ class SpiController extends ControllerBase {
   private function getVariablesData() {
     $data = array();
     $variables =  array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
-    // @todo: Share $mapping with $this->setVariables();
-    $mapping = array(
-      'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'),
-      'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'),
-      'acquia_spi_module_diff_data' => array('acquia_connector.settings', 'spi', 'module_diff_data'),
-      'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'),
-      'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'),
-      'cache_backends' => array(),// @todo
-      'cache_default_class' => array('cache_classes', 'cache'),// @todo: test it
-      'cache_inc' => array(),// @todo
-      'cron_safe_threshold' => array('system.cron', 'threshold', 'autorun'),
-      'googleanalytics_cache' => array(),// @todo
-      'error_level' => array('system.logging', 'error_level'),
-      'preprocess_js' => array('system.performance', 'js', 'preprocess'),
-      'page_cache_maximum_age' => array('system.performance', 'cache', 'page', 'max_age'),
-      'block_cache' => array(),// @todo
-      'preprocess_css' => array('system.performance', 'css', 'preprocess'),
-      'page_compression' => array('system.performance', 'response', 'zgip'),
-      'cache' => array('system.performance', 'cache'),
-      'cache_lifetime' => array(),// @todo
-      'cron_last' => array(),           // Not variable. \Drupal::state()->get('system.cron_last').
-      'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
-      'redirect_global_clean' => array(),// @todo
-      'theme_zen_settings' => array(),// @todo
-      'site_offline' => array(),// @todo
-      'site_name' => array('system.site', 'name'),
-      'user_register' => array('user.settings', 'register'),
-      'user_signatures' => array('user.settings', 'signatures'),
-      'user_admin_role' => array('user.settings', 'admin_role'),
-      'user_email_verification' => array('user.settings', 'verify_mail'),
-      'user_cancel_method' => array('user.settings', 'cancel_method'),
-      'filter_fallback_format' => array('filter.settings', 'fallback_format'),
-      'dblog_row_limit' => array('dblog.settings', 'row_limit'),
-      'date_default_timezone' => array('system.date', 'timezone', 'default'),
-      'file_default_scheme' => array('system.file', 'default_scheme'),
-      'install_profile' => array(),// @todo: @see https://www.drupal.org/node/2235431
-      'maintenance_mode' => array(),    // Not variable. \Drupal::state()->get('system.maintenance_mode').
-      'update_last_check' => array(),   // Not variable. \Drupal::state()->get('update.last_check').
-      'site_default_country' => array('system.date', 'country', 'default'),
-      'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
-      'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),
-      'acquia_spi_ignored_set_variables' => array('acquia_connector.settings', 'spi', 'ignored_set_variables'),
-      'acquia_spi_set_variables_override' => array('acquia_connector.settings', 'spi', 'set_variables_override'),
-      // @todo: Good variables to add
-      'fast_404' => array('system.performance', 'fast_404', 'enabled'),
-      'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
-    );
 
     $allConfigData = $this->getAllConfigs();
     $spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_vars');
@@ -868,12 +868,20 @@ class SpiController extends ControllerBase {
       }
     }
     foreach ($variables as $name) {
-      if (!empty($mapping[$name])) {
-        $key_exists = NULL;
-        $value = Utility\NestedArray::getValue($allConfigData, $mapping[$name], $key_exists);
-        if ($key_exists) {
-          dpm('YES!:' . $name . ' = ' . print_r($value, 1)); // @todo: remove dpm
-          $data[$name] = $value;
+      if (!empty($this->mapping[$name])) {
+        // state
+        if ($this->mapping[$name][0] == 'state' and !empty($this->mapping[$name][1])) {
+          dpm('YES! (state):' . $name . ' = ' . print_r(\Drupal::state()->get($this->mapping[$name][1]), 1)); // @todo: remove dpm
+          $data[$name] = \Drupal::state()->get($this->mapping[$name][1]);
+        }
+        // variable
+        else {
+          $key_exists = NULL;
+          $value = Utility\NestedArray::getValue($allConfigData, $this->mapping[$name], $key_exists);
+          if ($key_exists) {
+            dpm('YES! (variable):' . $name . ' = ' . print_r($value, 1)); // @todo: remove dpm
+            $data[$name] = $value;
+          }
         }
       }
       else {
@@ -883,9 +891,9 @@ class SpiController extends ControllerBase {
     }
 
     // Exception handling.
-    $data['cron_last'] = \Drupal::state()->get('system.cron_last');
-    $data['maintenance_mode'] = \Drupal::state()->get('system.maintenance_mode');
-    $data['update_last_check'] = \Drupal::state()->get('update.last_check');
+//    $data['cron_last'] = \Drupal::state()->get('system.cron_last');
+//    $data['maintenance_mode'] = \Drupal::state()->get('system.maintenance_mode');
+//    $data['update_last_check'] = \Drupal::state()->get('update.last_check');
     // @todo - the module highly unstable!
 //    if (\Drupal::moduleHandler()->moduleExists('globalredirect') && function_exists('_globalredirect_get_settings')) {
 //      // Explicitly get Global Redirect settings since it deletes its variable
@@ -1552,34 +1560,70 @@ class SpiController extends ControllerBase {
    * @return NULL
    */
   private function setVariables($set_variables) {
-    // @todo: refactor
-    return;
+    dpm('----set variables----');
+    dpm($set_variables);
+    \Drupal::logger('acquia spi')->notice('SPI set variables: @messages', array('@messages' => implode(', ', $set_variables)));
     if (empty($set_variables)) {
       return;
     }
     $saved = array();
-    $ignored = variable_get('acquia_spi_ignored_set_variables', array());
+    $ignored = $this->config('acquia_connector.settings')->get('spi.ignored_set_variables');
 
-    if (!variable_get('acquia_spi_set_variables_override', 0)) {
+    if (!$this->config('acquia_connector.settings')->get('spi.set_variables_override')) {
       $ignored[] = 'acquia_spi_set_variables_automatic';
     }
     // Some variables can never be set.
     $ignored = array_merge($ignored, array('drupal_private_key', 'site_mail', 'site_name', 'maintenance_mode', 'user_register'));
     // Variables that can be automatically set.
-    $whitelist = acquia_spi_approved_set_variables();
+    // @todo: invalid data already exists in config - research!
+    $whitelist = $this->config('acquia_connector.settings')->get('spi.set_variables_automatic');
+    // @todo: move into default settings, remove DEBUG!
+    if (1 || empty($whitelist)) {
+      $whitelist = array('acquia_spi_set_variables_automatic', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'image_allow_insecure_derivatives', 'googleanalytics_cache', 'acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron');
+    }
     foreach($set_variables as $key => $value) {
       // Approved variables get set immediately unless ignored.
-      if (in_array($key, $whitelist) && !in_array($key, $ignored)) {
-        $saved[] = $key;
-        variable_set($key, $value);
+      if (1 || in_array($key, $whitelist) && !in_array($key, $ignored)) {
+        if (!empty($this->mapping[$key])) {
+          // state
+          if ($this->mapping[$key][0] == 'state' and !empty($this->mapping[$key][1])) {
+            dpm('Set Variable (state):' . $key . ' = ' . print_r(\Drupal::state()->get($this->mapping[$name][1]), 1)); // @todo: remove dpm
+            \Drupal::state()->set($this->mapping[$key][1], $value);
+            $saved[] = $key;
+          }
+          // variable
+          else {
+            dpm('Set Variable (variable):' . $key . ' = ' . print_r($value, 1)); // @todo: remove dpm
+            $mapping_row_copy = $this->mapping[$key];
+            $config_name = array_shift($mapping_row_copy);
+            $variable_name = implode('.', $mapping_row_copy);
+            $this->config($config_name)->set($variable_name, $value);
+            $this->config($config_name)->save();
+            $saved[] = $key;
+          }
+        }
+        // todo: for future D8 implementation. "config.name:variable.name"
+        elseif (preg_match('/^([^\s]+):([^\s]+)$/ui', $key, $regs)) {
+          $config_name = $regs[1];
+          $variable_name = $regs[2];
+          $this->config($config_name)->set($variable_name, $value);
+          $this->config($config_name)->save();
+          $saved[] = $key;
+          dpm('Set Variable (variable):' . $key . ' = ' . print_r($value, 1)); // @todo: remove dpm
+        }
+        else {
+          // @todo: log errors
+          dpm('Variable is not implemented (set): ' . $key);
+        }
       }
     }
     if (!empty($saved)) {
-      variable_set('acquia_spi_saved_variables', array('variables' => $saved, 'time' => time()));
-      watchdog('acquia spi', 'Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)), WATCHDOG_INFO);
+      $this->config('acquia_connector.settings')->set('spi.saved_variables', array('variables' => $saved, 'time' => time()));
+      $this->config('acquia_connector.settings')->save();
+      \Drupal::logger('acquia spi')->notice('Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)));
     }
     else {
-      watchdog('acquia spi', 'Did not save any variables from the Acquia Network.', array(), WATCHDOG_INFO);
+      \Drupal::logger('acquia spi')->notice('Did not save any variables from the Acquia Network.', array());
     }
   }
 

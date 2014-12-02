@@ -187,7 +187,7 @@ class Client {
 
   public function getDefinition($apiEndpoint) {
     try{
-      $response = $this->request('GET', $apiEndpoint, $data);
+      $response = $this->request('GET', $apiEndpoint, array());
       return $response;
     }
     catch (\Exception $e){

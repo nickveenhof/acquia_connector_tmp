@@ -62,7 +62,7 @@ acquia_connector.migrate_check:
     _permission: 'access content'
 
 acquia_connector.send:
-  path: '/system/acquia-connector-send'
+  path: '/system/acquia-spi-send'
   defaults:
     _controller: '\Drupal\acquia_connector\Controller\SpiController::send'
     _title: 'Acquia SPI send'
