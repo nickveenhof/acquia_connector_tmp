@@ -7,6 +7,7 @@
 
 namespace Drupal\acquia_connector\Controller;
 
+use Drupal\acquia_connector\Subscription;
 use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
@@ -27,10 +28,11 @@ class StatusController extends ControllerBase {
     // Refresh subscription information, so we are sure about our update status.
     // We send a heartbeat here so that all of our status information gets
     // updated locally via the return data.
-    acquia_agent_check_subscription();
+    $status = new Subscription();
+    $status->update();
 
     // Return to the setting pages (or destination).
-    $this->redirect('acquia_connector.settings');
+    return $this->redirect('system.status');
   }
 
   /**
