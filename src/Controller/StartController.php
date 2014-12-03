@@ -44,17 +44,35 @@ class StartController extends ControllerBase {
     $output .= '<div id="an-info-box">';
     $output .=   '<div class="cell with-arrow an-left">';
     $output .=     '<h2 class="cell-title"><i>' . $this->t('Answers you need') . '</i></h2>';
-    $output .=     '<a href="http://library.acquia.com/" target="_blank">' . _theme('image', array('uri' => $path . '/images/icon-library.png')) . '</a>';
+    $image = array(
+      '#theme' => 'image',
+      '#attributes' => array(
+        'src' => Url::fromUri('base://' . $path . '/images/icon-library.png', array('absolute' => TRUE))->toString(),
+      ),
+    );
+    $output .=     '<a href="http://library.acquia.com/" target="_blank">' . render($image) . '</a>';
     $output .=     '<p class="cell-p">' . $this->t("Tap the collective knowledge of Acquia’s technical support team & partners.") . '</p>';
     $output .=   '</div>';
     $output .=   '<div class="cell with-arrow an-center">';
     $output .=     '<h2 class="cell-title"><i>' . $this->t('Tools to extend your site') . '</i></h2>';
-    $output .=     '<a href="http://www.acquia.com/products-services/acquia-network/cloud-services" target="_blank">' . _theme('image', array('uri' => $path . '/images/icon-tools.png')) . '</a>';
+    $image = array(
+      '#theme' => 'image',
+      '#attributes' => array(
+        'src' => Url::fromUri('base://' . $path . '/images/icon-tools.png', array('absolute' => TRUE))->toString(),
+      ),
+    );
+    $output .=     '<a href="http://www.acquia.com/products-services/acquia-network/cloud-services" target="_blank">' . render($image) . '</a>';
     $output .=     '<p class="cell-p">' . $this->t('Enhance and extend your site with an array of <a href="@services" target="_blank">services</a> from Acquia & our partners.', array('@services' => 'http://www.acquia.com/products-services/acquia-network/cloud-services')) . '</p>';
     $output .=   '</div>';
     $output .=   '<div class="cell an-right">';
     $output .=     '<h2 class="cell-title"><i>' . $this->t('Support when you want it') . '</i></h2>';
-    $output .=     '<a href="http://www.acquia.com/drupal-support" target="_blank">' . _theme('image', array('uri' => $path . '/images/icon-support.png')) . '</a>';
+    $image = array(
+      '#theme' => 'image',
+      '#attributes' => array(
+        'src' => Url::fromUri('base://' . $path . '/images/icon-support.png', array('absolute' => TRUE))->toString(),
+      ),
+    );
+    $output .=     '<a href="http://www.acquia.com/drupal-support" target="_blank">' . render($image) . '</a>';
     $output .=     '<p class="cell-p">' . $this->t("Experienced Drupalists are available to support you whenever you need it.") . '</p>';
     $output .=   '</div>';
     $output .=  '</div>';

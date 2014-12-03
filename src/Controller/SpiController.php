@@ -1526,6 +1526,7 @@ class SpiController extends ControllerBase {
       $route_match = $route = RouteMatch::createFromRequest($request);
       return $this->redirect($route_match->getRouteName(), $route_match->getRawParameters()->all());
     }
+    return array();
     throw new ServiceUnavailableHttpException(3, t('Error sending SPI data. Consult the logs for more information.'));
   }
 
@@ -1575,12 +1576,7 @@ class SpiController extends ControllerBase {
     // Some variables can never be set.
     $ignored = array_merge($ignored, array('drupal_private_key', 'site_mail', 'site_name', 'maintenance_mode', 'user_register'));
     // Variables that can be automatically set.
-    // @todo: invalid data already exists in config - research!
     $whitelist = $this->config('acquia_connector.settings')->get('spi.set_variables_automatic');
-    // @todo: move into default settings, remove DEBUG!
-    if (1 || empty($whitelist)) {
-      $whitelist = array('acquia_spi_set_variables_automatic', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'image_allow_insecure_derivatives', 'googleanalytics_cache', 'acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron');
-    }
     foreach($set_variables as $key => $value) {
       // Approved variables get set immediately unless ignored.
       if (1 || in_array($key, $whitelist) && !in_array($key, $ignored)) {
