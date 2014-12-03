@@ -36,13 +36,14 @@ function acquia_connector_requirements($phase) {
   $config = Drupal::config('acquia_connector.settings');
   $last_sent = $config->get('cron_last'); //variable_get('acquia_spi_cron_last', 0);
   $use_cron = $config->get('use_cron'); //variable_get('acquia_spi_use_cron', 1);
-  $credentials = new Subscription();
-  $has_credentials = $credentials->hasCredentials();
-  $is_active = $credentials->isActive();
 
   switch ($phase) {
     case 'runtime':
       //SEND DATA TO NSPI
+      $credentials = new Subscription();
+      $has_credentials = $credentials->hasCredentials();
+      $is_active = $credentials->isActive();
+
       if ($has_credentials) {
         $key = sha1(Drupal::service('private_key')->get());
         $config_url = $description = $interval = '';
