@@ -879,8 +879,11 @@ class SpiController extends ControllerBase {
           $key_exists = NULL;
           $value = Utility\NestedArray::getValue($allConfigData, $this->mapping[$name], $key_exists);
           if ($key_exists) {
-            dpm('YES! (variable):' . $name . ' = ' . print_r($value, 1)); // @todo: remove dpm
             $data[$name] = $value;
+          }
+          else {
+            dpm('YES! (variable - not set):' . $name . ' = 0' ); // @todo: remove dpm
+            $data[$name] = 0;
           }
         }
       }
