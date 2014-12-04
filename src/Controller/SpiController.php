@@ -16,6 +16,7 @@ use Drupal\Component\Utility;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Site\Settings;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Drupal\Core\Routing\RouteMatch;
@@ -38,6 +39,7 @@ class SpiController extends ControllerBase {
    */
   protected $client;
 
+  // @todo: Implement class for mapping.
   protected $mapping = array(
     'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'),
     'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'),
@@ -72,7 +74,7 @@ class SpiController extends ControllerBase {
     'dblog_row_limit' => array('dblog.settings', 'row_limit'),
     'date_default_timezone' => array('system.date', 'timezone', 'default'),
     'file_default_scheme' => array('system.file', 'default_scheme'),
-    'install_profile' => array(),// @todo: @see https://www.drupal.org/node/2235431
+    'install_profile' => array('callback'),// @todo: @see https://www.drupal.org/node/2235431
     'maintenance_mode' => array('state', 'system.maintenance_mode'),    // Not variable. \Drupal::state()->get('system.maintenance_mode').
     'update_last_check' => array('state', 'update.last_check'),         // Not variable. \Drupal::state()->get('update.last_check').
     'site_default_country' => array('system.date', 'country', 'default'),
@@ -84,6 +86,17 @@ class SpiController extends ControllerBase {
     'fast_404' => array('system.performance', 'fast_404', 'enabled'),
     'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
   );
+
+  /**
+   * @param string $variable
+   */
+  private function mappingCallback($variable) {
+    switch ($variable) {
+      case 'install_profile':
+        return Settings::get('install_profile');
+    }
+    return NULL;
+  }
 
   /**
    * Constructs a \Drupal\system\ConfigFormBase object.
@@ -874,6 +887,9 @@ class SpiController extends ControllerBase {
           dpm('YES! (state):' . $name . ' = ' . print_r(\Drupal::state()->get($this->mapping[$name][1]), 1)); // @todo: remove dpm
           $data[$name] = \Drupal::state()->get($this->mapping[$name][1]);
         }
+        elseif($this->mapping[$name][0] == 'callback') {
+          $data[$name] = $this->mappingCallback($name);
+        }
         // variable
         else {
           $key_exists = NULL;
@@ -1599,6 +1615,9 @@ class SpiController extends ControllerBase {
             dpm('Set Variable (state):' . $key . ' = ' . print_r(\Drupal::state()->get($this->mapping[$name][1]), 1)); // @todo: remove dpm
             \Drupal::state()->set($this->mapping[$key][1], $value);
             $saved[] = $key;
+          }
+          elseif($this->mapping[$key][0] == 'callback') {
+            // @todo implemets setter
           }
           // variable
           else {
