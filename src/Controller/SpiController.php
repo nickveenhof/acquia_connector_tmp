@@ -61,7 +61,7 @@ class SpiController extends ControllerBase {
     'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
     'redirect_global_clean' => array(),// @todo
     'theme_zen_settings' => array(),// @todo
-    'site_offline' => array(),// @todo
+    'site_offline' => array('state', 'system.maintenance_mode'),  // @todo duplicate of the maintenance_mode variable.
     'site_name' => array('system.site', 'name'),
     'user_register' => array('user.settings', 'register'),
     'user_signatures' => array('user.settings', 'signatures'),
