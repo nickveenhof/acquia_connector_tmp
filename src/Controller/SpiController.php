@@ -55,7 +55,7 @@ class SpiController extends ControllerBase {
     'block_cache' => array(),// @todo
     'preprocess_css' => array('system.performance', 'css', 'preprocess'),
     'page_compression' => array('system.performance', 'response', 'zgip'),
-    'cache' => array('system.performance', 'cache'),
+    'cache' => array('system.performance', 'cache', 'page', 'use_internal'),
     'cache_lifetime' => array(),// @todo
     'cron_last' => array('state', 'system.cron_last'),                  // Not variable. \Drupal::state()->get('system.cron_last').
     'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
@@ -1478,10 +1478,34 @@ class SpiController extends ControllerBase {
   /**
    * Gather full SPI data and send to Acquia Network.
    *
+   * @param string $method Optional identifier for the method initiating request.
+   *   Values could be 'cron' or 'menu callback' or 'drush'.
+   * @return mixed FALSE if data not sent else NSPI result array
+   */
+  public function sendFullSpi($method = '') {
+    $spi = self::get($method);
+    $config = $this->config('acquia_connector.settings');
+
+    $response = $this->client->sendNspi($config->get('identifier'), $config->get('key'), $spi);
+
+    // @todo: remove dpm.
+    dpm($response);
+    if ($response === FALSE) {
+      return FALSE;
+    }
+
+    $config->set('cron_last', REQUEST_TIME)->save();
+    $this->handleServerResponse($response);
+
+    return $response;
+  }
+
+  /**
+   * Gather full SPI data and send to Acquia Network.
+   *
    * @return mixed FALSE if data not sent else NSPI result array
    */
   public function send(Request $request) {
-    $config = $this->config('acquia_connector.settings');
     $method = ACQUIA_SPI_METHOD_CALLBACK;
 
     // Insight's set variable feature will pass method insight.
@@ -1489,22 +1513,8 @@ class SpiController extends ControllerBase {
       $method = ACQUIA_SPI_METHOD_INSIGHT;
     }
 
-    $spi = $this->get($method);
-//    dpm($spi);
+    $response = $this->sendFullSpi($method);
 
-    $response = $this->client->sendNspi($config->get('identifier'), $config->get('key'), $spi);
-
-//    $result = acquia_spi_send_data($spi);
-
-    dpm($response);
-//    if ($result === FALSE) {
-//      return FALSE;
-//    }
-
-    $config->set('cron_last', REQUEST_TIME)->save();
-    $this->handleServerResponse($response);
-
-//    $response = acquia_connector_send_full_spi($method);
     if ($request->get('destination')) {
       if (!empty($response)) {
         $message = array();
@@ -1527,7 +1537,7 @@ class SpiController extends ControllerBase {
       return $this->redirect($route_match->getRouteName(), $route_match->getRawParameters()->all());
     }
     return array();
-    throw new ServiceUnavailableHttpException(3, t('Error sending SPI data. Consult the logs for more information.'));
+//    throw new ServiceUnavailableHttpException(3, t('Error sending SPI data. Consult the logs for more information.'));
   }
 
 

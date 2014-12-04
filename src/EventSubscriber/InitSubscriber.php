@@ -11,6 +11,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\PathMatcher;
+use Drupal\acquia_connector\Subscription;
 
 /**
  * Init (i.e., hook_init()) subscriber that displays a message asking you to join
@@ -72,8 +73,9 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    $credentials = new Subscription();
     // Check that there are no Acquia credentials currently set up.
-    if (acquia_agent_has_credentials()) {
+    if ($credentials->hasCredentials()) {
       return;
     }
 

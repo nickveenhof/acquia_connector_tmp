@@ -108,11 +108,11 @@ class Client {
       'authenticator' => $authenticator,
     );
 
-/*    // There is an identifier and key, so attempt communication.
+    // There is an identifier and key, so attempt communication.
     $subscription = array();
     $subscription['timestamp'] = REQUEST_TIME;
 
-    // Include version number information.
+    /*// Include version number information.
     $this->loadVersions();
     if (IS_ACQUIA_DRUPAL) {
       $params['version']  = ACQUIA_DRUPAL_VERSION;
@@ -140,7 +140,7 @@ class Client {
     try{
       $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
       if ($this->validateResponse($key, $response, $authenticator)) {
-        return $response['body'];
+        return $subscription + $response['body'];
       }
     }
     catch (\Exception $e){}

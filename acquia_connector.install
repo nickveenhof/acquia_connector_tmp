@@ -7,7 +7,6 @@
  */
 
 use Drupal\Core\Url;
-use Drupal\acquia_connector\Controller\SpiController;
 use Drupal\acquia_connector\Controller\TestStatusController;
 use Drupal\acquia_connector\Subscription;
 
@@ -33,13 +32,13 @@ use Drupal\acquia_connector\Subscription;
  */
 function acquia_connector_requirements($phase) {
   $requirements = array();
-  $config = Drupal::config('acquia_connector.settings');
-  $last_sent = $config->get('cron_last'); //variable_get('acquia_spi_cron_last', 0);
-  $use_cron = $config->get('use_cron'); //variable_get('acquia_spi_use_cron', 1);
 
   switch ($phase) {
     case 'runtime':
       //SEND DATA TO NSPI
+      $config = \Drupal::config('acquia_connector.settings');
+      $use_cron = $config->get('use_cron'); //variable_get('acquia_spi_use_cron', 1);
+      $last_sent = $config->get('cron_last', 0); //variable_get('acquia_spi_cron_last', 0);
       $credentials = new Subscription();
       $has_credentials = $credentials->hasCredentials();
       $is_active = $credentials->isActive();
@@ -102,7 +101,7 @@ function acquia_connector_requirements($phase) {
         );
       }
       else {
-        $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+        $subscription = $config->get('subscription_data');
         $href = isset($subscription['href']) ? $subscription['href'] . '/health' : 'http://acquia.com/network';
         $requirements['acquia_subscription_status'] = array(
           'title' => t('Acquia Network subscription status'),
@@ -155,13 +154,14 @@ function acquia_connector_requirements($phase) {
 }
 
 /**
- * Implements hook_init().
+ * Implements hook_install().
  */
 function acquia_connector_install() {
   $config = \Drupal::config('acquia_connector.settings');
+  $credentials = new Subscription();
   // Auto-connect with Acquia Cloud credentials if there's not currently a
   // connection or credentials set.
-  if (!acquia_agent_has_credentials() && !$config->get('subscription_data')
+  if (!$credentials->hasCredentials() && !$config->get('subscription_data')
     && $config->get('ah.network_key') && $config->get('ah.network_identifier')) {
 
     // @todo Use settings for AH stuff instead?
@@ -169,9 +169,7 @@ function acquia_connector_install() {
       ->set('key', $config->get('ah.network_key'))
       ->save();
 
-    $activated = acquia_agent_check_subscription();
-
-    if ($activated) {
+    if ($credentials->update()) {
       $text = t('Your site has been automatically connected to the Acquia Network. <a href="!url">Change subscription</a>', array('!url' => url('admin/config/system/acquia-agent/setup')));
       drupal_set_message($text, 'status', FALSE);
     }

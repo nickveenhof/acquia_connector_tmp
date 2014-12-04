@@ -1,6 +1,6 @@
 <?php
 
-use Drupal\Core\Database\Database;
+use Drupal\acquia_connector\Controller;
 use Drupal\acquia_connector\Subscription;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
@@ -69,19 +69,20 @@ function acquia_connector_form_system_modules_alter(&$form, &$form_state) {
  */
 function acquia_connector_cron() {
   // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
-  acquia_agent_check_subscription();
+  $subscription = new Subscription();
+  $subscription->update();
 
   $config = \Drupal::config('acquia_connector.settings');
 
   // Get the last time we processed data.
-  $last = \Drupal::state('acquia_connector.cron_last', 0);
+  $last = $config->get('cron_last');
 
   // 30 minute interval for sending site profile.
   $interval = $config->get('cron_interval');
 
   // Determine if the required interval has passed.
   if ($config->get('use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
-    acquia_connector_send_full_spi(ACQUIA_SPI_METHOD_CRON);
+    \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CRON);
   }
 }
 
@@ -198,55 +199,3 @@ function acquia_connector_system_info_alter(&$info) {
 }
 
 /******** end code to rewrite *********/
-
-/**
- * Helper function to check if an identifer and key exist.
- */
-function acquia_agent_has_credentials() {
-  $config = \Drupal::config('acquia_agent.credentials');
-  return (bool) ($config->get('identifier') && $config->get('key'));
-}
-
-/**
- * Get subscription status from the Acquia Network, and store the result.
- *
- * This check also sends a heartbeat to the Acquia Network unless
- * $params['no_heartbeat'] == 1.
- *
- * @return FALSE, integer (xmlrpc error number), or subscription data
- */
-function acquia_agent_check_subscription($params = array()) {
-  $config = \Drupal::config('acquia_connector.settings');
-  $current_subscription = $config->get('subscription_data');
-  $subscription = FALSE;
-  $active = FALSE;
-  if (!acquia_agent_has_credentials()) {
-    // If there is not an identifier or key, delete any old subscription data.
-    $config->clear('subscription_data');
-  }
-  else {
-    // Get our subscription data
-    $subscription = acquia_agent_get_subscription($params);
-    if (is_numeric($subscription)) {
-      switch ($subscription) {
-        case SUBSCRIPTION_NOT_FOUND:
-        case SUBSCRIPTION_EXPIRED:
-          // Fall through since these values are stored and used by
-          // acquia_search_acquia_subscription_status()
-          break;
-        default:
-          // Likely server error (503) or connection timeout (-110) so leave
-          // current subscription in place. _acquia_agent_request() logged an
-          // error message.
-          return $current_subscription;
-      }
-    }
-    $config->set('subscription_data', $subscription);
-    // Check if our main subscription is active
-    if ($subscription) {
-      $active = acquia_agent_subscription_is_active();
-    }
-  }
-  \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$active, $subscription]);
-  return $subscription;
-}

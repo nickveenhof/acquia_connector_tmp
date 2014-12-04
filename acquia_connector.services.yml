@@ -8,5 +8,5 @@ services:
     class: Drupal\acquia_connector\Client
     arguments: ['@http_client', '@config.factory']
   acquia_connector.spi:
-    class: Drupal\acquia_connector\SpiController
-    arguments: ['@http_client']
+    class: Drupal\acquia_connector\Controller\SpiController
+    arguments: ['@acquia_connector.client']
