@@ -961,23 +961,22 @@ class SpiController extends ControllerBase {
     $get_roles = Role::loadMultiple();
     unset($get_roles[DRUPAL_ANONYMOUS_RID]);
     $permission = array('administer permissions', 'administer users');
-    foreach($permission as $key => $value){
-      $filtered_roles = array_filter($get_roles, function($role) use ($value) {
+    foreach ($permission as $key => $value) {
+      $filtered_roles = array_filter($get_roles, function ($role) use ($value) {
         return $role->hasPermission($value);
       });
-      foreach($filtered_roles as $role_name => $data){
+      foreach ($filtered_roles as $role_name => $data) {
         $roles_name[] = $role_name;
       }
     }
 
-    if(is_array($roles_name)) {
+    if (is_array($roles_name)) {
       $roles_name_unique = array_unique($roles_name);
+      $query = db_select('users_roles', 'ur');
+      $query->fields('ur', array('uid'));
+      $query->condition('ur.rid', $roles_name_unique, 'IN');
+      $count = $query->countQuery()->execute()->fetchField();
     }
-
-    $query = db_select('users_roles', 'ur');
-    $query->fields('ur', array('uid'));
-    $query->condition('ur.rid', $roles_name_unique,'IN');
-    $count = $query->countQuery()->execute()->fetchField();
 
     return (isset($count) && is_numeric($count)) ? $count : NULL;
   }
