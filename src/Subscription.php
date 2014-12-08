@@ -35,6 +35,7 @@ class Subscription {
    * $params['no_heartbeat'] == 1.
    *
    * @return FALSE, integer (error number), or subscription data.
+   * D7: acquia_agent_check_subscription
    */
   public function update($params = array()) {
     $config = \Drupal::config('acquia_connector.settings');

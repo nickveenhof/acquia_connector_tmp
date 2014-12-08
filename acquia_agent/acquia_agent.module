@@ -5,107 +5,6 @@
  *   Acquia Agent securely sends information to Acquia Network.
  */
 
-/**
- * Get subscription status from the Acquia Network, and store the result.
- *
- * This check also sends a heartbeat to the Acquia Network unless
- * $params['no_heartbeat'] == 1.
- *
- * @return FALSE, integer (xmlrpc error number), or subscription data
- */
-function acquia_agent_check_subscription($params = array()) {
-  $current_subscription = acquia_agent_settings('acquia_subscription_data');
-  $subscription = FALSE;
-  $active = FALSE;
-  $config = \Drupal::config('acquia_connector.settings');
-  if (!acquia_agent_has_credentials()) {
-    // If there is not an identifier or key, delete any old subscription data.
-    $config->clear('subscription_data');
-  }
-  else {
-    // Get our subscription data
-    $subscription = acquia_agent_get_subscription($params);
-    if (is_numeric($subscription)) {
-      switch ($subscription) {
-        case SUBSCRIPTION_NOT_FOUND:
-        case SUBSCRIPTION_EXPIRED:
-          // Fall through since these values are stored and used by
-          // acquia_search_acquia_subscription_status()
-          break;
-        default:
-          // Likely server error (503) or connection timeout (-110) so leave
-          // current subscription in place. _acquia_agent_request() logged an
-          // error message.
-          return $current_subscription;
-      }
-    }
-    $config->set('subscription_data', $subscription);
-    // Check if our main subscription is active
-    if ($subscription) {
-      $active = acquia_agent_subscription_is_active();
-    }
-  }
-  module_invoke_all('acquia_subscription_status', $active, $subscription);
-  return $subscription;
-}
-
-/**
- * Get subscription status from the Acquia Network
- *
- * This check also sends a heartbeat to the Acquia Network unless
- * $params['no_heartbeat'] == 1.
- *
- * @return FALSE, integer (xmlrpc error number), or subscription data
- */
-function acquia_agent_get_subscription($params = array(), $identifier = NULL, $key = NULL, $acquia_network_address = NULL) {
-  // There is an identifier and key, so attempt communication.
-  $subscription = array();
-  $subscription['timestamp'] = REQUEST_TIME;
-
-  // Include version number information.
-  acquia_agent_load_versions();
-  if (IS_ACQUIA_DRUPAL) {
-    $params['version']  = ACQUIA_DRUPAL_VERSION;
-    $params['series']   = ACQUIA_DRUPAL_SERIES;
-    $params['branch']   = ACQUIA_DRUPAL_BRANCH;
-    $params['revision'] = ACQUIA_DRUPAL_REVISION;
-  }
-  // Include Acquia Search module version number.
-  if (module_exists('acquia_search')) {
-    foreach (array('acquia_search', 'apachesolr') as $name) {
-      $info = system_get_info('module', $name);
-      // Send the version, or at least the core compatibility as a fallback.
-      $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-    }
-  }
-  // Include Acquia Search for Search API module version number.
-  if (module_exists('search_api_acquia')) {
-    foreach (array('search_api_acquia', 'search_api', 'search_api_solr') as $name) {
-      $info = system_get_info('module', $name);
-      // Send the version, or at least the core compatibility as a fallback.
-      $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-    }
-  }
-
-  // Retrieve our subscription details
-  $data = acquia_agent_call('acquia.agent.subscription', $params, $identifier, $key, $acquia_network_address);
-
-  // Check for errors
-  if ($errno = xmlrpc_errno()) {
-    return $errno;
-  }
-  elseif (acquia_agent_valid_response($data, $key)) {
-    // Add the response to our subscription array
-    $subscription += $data['result']['body'];
-  }
-  else {
-    watchdog('acquia agent', 'HMAC validation error: <pre>@data</pre>', array('@data' => var_export($data, TRUE)), WATCHDOG_ERROR);
-    return FALSE;
-  }
-
-  return $subscription;
-}
-
 function acquia_agent_report_xmlrpc_error() {
   drupal_set_message(t('Error: @message (@errno)', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno())), 'error');
 }
@@ -432,31 +331,6 @@ function _acquia_agent_authenticator($params = array(), $identifier = NULL, $key
   $authenticator['hash'] = _acquia_agent_hmac($key, $time, $nonce, $params);
   $authenticator['nonce'] = $nonce;
   return $authenticator;
-}
-
-/**
- * Calculates a HMAC-SHA1 according to RFC2104 (http://www.ietf.org/rfc/rfc2104.txt).
- * With addition of xmlrpc params.
- */
-function _acquia_agent_hmac($key, $time, $nonce, $params) {
-  if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
-    $encoded_params = serialize($params);
-    $string = $time . ':' . $nonce . ':' . $key . ':' . $encoded_params;
-
-    return base64_encode(
-      pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) .
-      pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
-      $string)))));
-  }
-  elseif ($params['rpc_version'] == 2) {
-    $encoded_params = json_encode($params);
-    $string = $time . ':' . $nonce . ':' . $encoded_params;
-    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-  }
-  else {
-    $string = $time . ':' . $nonce;
-    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-  }
 }
 
 /**

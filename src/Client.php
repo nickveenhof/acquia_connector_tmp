@@ -99,6 +99,7 @@ class Client {
    *   (optional)
    *
    * @return array|false
+   * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
     $body += array('identifier' => $id);
@@ -295,6 +296,7 @@ class Client {
    * @param string $nonce
    * @param array $params
    * @return string
+   * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
 

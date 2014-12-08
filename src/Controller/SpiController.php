@@ -125,6 +125,7 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An associative array keyed by types of information.
+   * D7: acquia_spi_get
    */
   public function get($method = '') {
 
@@ -258,7 +259,7 @@ class SpiController extends ControllerBase {
    *
    * @return array $custom_data
    *  An associative array containing properly formatted user-contributed tests.
-   *
+   * D7: acquia_spi_test_collect
    */
   private function testCollect() {
     $custom_data = array();
@@ -282,6 +283,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Run some checks from the Security Review module.
+   * D7: acquia_spi_run_security_review
    */
   private function runSecurityReview() {
     if (!$this->securityReviewCompatible()) {
@@ -514,6 +516,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Helper function checks for conflict with full Security Review module.
+   * D7: _acquia_spi_security_review_compatible
    */
   private function securityReviewCompatible() {
     if (\Drupal::moduleHandler()->moduleExists('security_review')) {
@@ -528,6 +531,7 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return int 1|0
+   * D7: acquia_spi_check_login
    */
   private function checkLogin() {
     $login_safe = 0;
@@ -1134,6 +1138,7 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *    An array containing some detail about the version
+   * D7: acquia_spi_get_version_info
    */
   private function getVersionInfo() {
     $store = $this->dataStoreGet(array('platform'));
@@ -1204,6 +1209,7 @@ class SpiController extends ControllerBase {
    * @param array Array of keys to extract data for.
    *
    * @return array Stored data or false if no data is retrievable from storage.
+   * D7: acquia_spi_data_store_get
    */
   private function dataStoreGet($keys) {
     $store = array();
@@ -1564,6 +1570,7 @@ class SpiController extends ControllerBase {
    * Act on specific elements of SPI update server response.
    *
    * @param array $spi_response Array response from SpiController->send().
+   * D7: acquia_spi_handle_server_response
    */
   private function handleServerResponse($spi_response) {
     // Check result for command to update SPI definition.
@@ -1661,6 +1668,7 @@ class SpiController extends ControllerBase {
    *
    * @return boolean
    *   True if SPI definition data has been updated
+   * D7: acquia_spi_update_definition
    */
   private function updateDefinition() {
     $core_version = substr(\Drupal::VERSION, 0, 1);
