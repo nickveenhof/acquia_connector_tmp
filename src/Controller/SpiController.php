@@ -26,6 +26,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\acquia_connector\Controller\TestStatusController;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
+use Drupal\user\Entity\Role;
 
 /**
  * Class SpiController.
@@ -245,7 +246,6 @@ class SpiController extends ControllerBase {
       $spi_ssl = array(
         'system_vars' => $this->getVariablesData(),
         'settings_ra' => $this->getSettingsPermissions(),
-        // @todo getAdminCount
         'admin_count' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getAdminCount() : '',
         'admin_name' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getSuperName() : '',
       );
@@ -958,18 +958,28 @@ class SpiController extends ControllerBase {
    * @return int
    */
   private function getAdminCount() {
-    // @todo get admin count.
-    return '';
-//    $count = NULL;
-//    $sql = "SELECT COUNT(DISTINCT u.uid) as count
-//              FROM {users} u, {users_roles} ur, {role_permission} p
-//              WHERE u.uid = ur.uid
-//                AND ur.rid = p.rid
-//                AND u.status = 1
-//                AND (p.permission = 'administer permissions' OR p.permission = 'administer users')";
-//    $result = db_query($sql)->fetchObject();
-//
-//    return (isset($result->count) && is_numeric($result->count)) ? $result->count : NULL;
+    $get_roles = Role::loadMultiple();
+    unset($get_roles[DRUPAL_ANONYMOUS_RID]);
+    $permission = array('administer permissions', 'administer users');
+    foreach($permission as $key => $value){
+      $filtered_roles = array_filter($get_roles, function($role) use ($value) {
+        return $role->hasPermission($value);
+      });
+      foreach($filtered_roles as $role_name => $data){
+        $roles_name[] = $role_name;
+      }
+    }
+
+    if(is_array($roles_name)) {
+      $roles_name_unique = array_unique($roles_name);
+    }
+
+    $query = db_select('users_roles', 'ur');
+    $query->fields('ur', array('uid'));
+    $query->condition('ur.rid', $roles_name_unique,'IN');
+    $count = $query->countQuery()->execute()->fetchField();
+
+    return (isset($count) && is_numeric($count)) ? $count : NULL;
   }
 
   /**
