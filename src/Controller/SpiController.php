@@ -722,6 +722,7 @@ class SpiController extends ControllerBase {
    * D7: acquia_spi_get_admin_count
    */
   private function getAdminCount() {
+    $roles_name = array();
     $get_roles = Role::loadMultiple();
     unset($get_roles[DRUPAL_ANONYMOUS_RID]);
     $permission = array('administer permissions', 'administer users');
@@ -734,7 +735,7 @@ class SpiController extends ControllerBase {
       }
     }
 
-    if (is_array($roles_name)) {
+    if (!empty($roles_name)) {
       $roles_name_unique = array_unique($roles_name);
       $query = db_select('users_roles', 'ur');
       $query->fields('ur', array('uid'));
@@ -1021,7 +1022,7 @@ class SpiController extends ControllerBase {
    * @return array
    *   An associative array keyed by a platform information type.
    */
-  public function getPlatform() {
+  public static function getPlatform() {
     $server = \Drupal::request()->server;
     // Database detection depends on the structure starting with the database
     $db_class = '\Drupal\Core\Database\Driver\\' . Database\Database::getConnection()->driver() . '\Install\Tasks';
@@ -1068,7 +1069,7 @@ class SpiController extends ControllerBase {
       'system_type'       => php_uname('s'),
       // php_uname() only accepts one character, so we need to concatenate ourselves.
       'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
-      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? SpiController::getPlatformMysqlData() : array(),
+      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? self::getPlatformMysqlData() : array(),
     );
 
     // Never send NULL (or FALSE?) - that causes hmac errors.
@@ -1087,7 +1088,7 @@ class SpiController extends ControllerBase {
    * @return array
    *   An associative array keyed by a mysql information type.
    */
-  private function getPlatformMysqlData() {
+  private static function getPlatformMysqlData() {
     $connection = Database\Database::getConnection('default');
     $result = $connection->query('SHOW GLOBAL STATUS', array(), array())->fetchAll();
 
@@ -1210,7 +1211,7 @@ class SpiController extends ControllerBase {
         // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
         // too hard to tell an individual module appart from a project
         //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
-        list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = $this->_generateHashes($contrib_path);
+        list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = self::_generateHashes($contrib_path);
       }
       else {
         $info['module_data']['hashes'] = array();
