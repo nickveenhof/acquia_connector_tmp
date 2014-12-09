@@ -333,6 +333,7 @@ class SpiController extends ControllerBase {
    * @param boolean $log Whether to log check processing using security_review_log.
    * @param boolean $help Whether to load the help file and include in results.
    * @return array Results from running checklist, indexed by module namespace.
+   * D7: acquia_spi_security_review_run
    */
   private function securityReviewRun($checklist = NULL, $log = FALSE, $help = FALSE) {
     // Use Security Review module if available.
@@ -350,6 +351,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Private function the review and returns the full results.
+   * D7: _acquia_spi_security_review_run
    */
   private function _securityReviewRun($checklist, $log = FALSE) {
     $results = array();
@@ -366,6 +368,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Run a single Security Review check.
+   * D7: _acquia_spi_security_review_run_check
    */
   private function _securityReviewRunCheck($module, $check_name, $check, $log, $store = FALSE) {
     $last_check = array();
@@ -402,6 +405,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Helper function allows for collection of this file's security checks.
+   * D7: acquia_spi_security_review_get_checks
    */
   private function securityReviewGetChecks() {
     // Use Security Review's checks if available.
@@ -415,6 +419,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Checks for acquia_spi_security_review_get_checks().
+   * D7: _acquia_spi_security_review_security_checks
    */
   private function securityReviewSecurityChecks() {
     $checks['file_perms'] = array(
@@ -585,6 +590,7 @@ class SpiController extends ControllerBase {
    *
    * @return int 1|0
    *   True if they are removed, false if they aren't
+   * D7: acquia_spi_check_files_present
    */
   private function checkFilesPresent() {
     $store = $this->dataStoreGet(array('platform'));
@@ -607,6 +613,7 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   The details of last 15 users created.
+   * D7: acquai_spi_get_last_users
    */
   private function getLastUsers() {
     $last_five_users = array();
@@ -636,6 +643,7 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return array of the details of last 15 nodes created
+   * D7: acquai_spi_get_last_nodes
    */
   private function getLastNodes() {
     $last_five_nodes = array();
@@ -665,7 +673,7 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return array
-   *
+   * D7: acquia_spi_get_watchdog_data
    */
   private function getWatchdogData() {
     $wd = array();
@@ -688,7 +696,7 @@ class SpiController extends ControllerBase {
    * Get the number of rows in watchdog
    *
    * @return int
-   *
+   * D7: acquai_spi_get_watchdog_size
    */
   private function getWatchdogSize() {
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
@@ -702,6 +710,7 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An array of the pages not found and some associated data
+   * D7: acquai_spi_get_404s
    */
   private function get404s() {
     $data = array();
@@ -735,7 +744,7 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return array
-   *
+   * D7: acquia_spi_get_failed_logins
    */
   private function getFailedLogins() {
     $last_logins = array();
@@ -765,6 +774,7 @@ class SpiController extends ControllerBase {
    * This function is a trimmed version of Drupal's system_status function
    *
    * @return array
+   * D7: acquia_spi_get_system_status
    */
   private function getSystemStatus() {
     $data = array();
@@ -860,6 +870,7 @@ class SpiController extends ControllerBase {
    * Get all system variables
    *
    * @return array()
+   * D7: acquia_spi_get_variables_data
    */
   private function getVariablesData() {
     $data = array();
@@ -943,10 +954,11 @@ class SpiController extends ControllerBase {
   }
 
   /**
-  * Check the presence of UID 0 in the users table.
-  *
-  * @return bool Whether UID 0 is present.
-  */
+   * Check the presence of UID 0 in the users table.
+   *
+   * @return bool Whether UID 0 is present.
+   * D7: acquia_spi_uid_0_present
+   */
   private function getUidZerroIsPresent() {
     $count = db_query("SELECT uid FROM {users} WHERE uid = 0")->fetchAll();
     return (boolean) $count;
@@ -956,6 +968,7 @@ class SpiController extends ControllerBase {
    * The number of users who have admin-level user roles.
    *
    * @return int
+   * D7: acquia_spi_get_admin_count
    */
   private function getAdminCount() {
     $get_roles = Role::loadMultiple();
@@ -985,6 +998,7 @@ class SpiController extends ControllerBase {
    * Determine if the super user has a weak name
    *
    * @return boolean
+   * D7: acquia_spi_get_super_name
    */
   private function getSuperName() {
     $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
@@ -995,6 +1009,7 @@ class SpiController extends ControllerBase {
    * Determines if settings.php is read-only
    *
    * @return boolean
+   * D7: acquia_spi_get_settings_permissions
    */
   private function getSettingsPermissions() {
     $settings_permissions_read_only = TRUE;
@@ -1020,6 +1035,7 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An associative array keyed by filename of hashes.
+   * D7: acquia_spi_file_hashes
    */
   private function getFileHashes($exclude_dirs = array()) {
     // The list of directories for the third parameter are the only ones that
@@ -1041,6 +1057,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Recursive helper function for getFileHashes().
+   * D7: _acquia_spi_generate_hashes
    */
   private function generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir=NULL) {
     $hashes = array();
@@ -1091,6 +1108,7 @@ class SpiController extends ControllerBase {
 
   /**
    * Determine if a path is a file type we care about for modificaitons.
+   * D7: acquia_spi_is_manifest_type
    */
   private function isManifestType($path) {
     $extensions = array(
@@ -1124,6 +1142,7 @@ class SpiController extends ControllerBase {
    *   The name of the file or a directory.
    * @return string
    *   bas64 encoded sha1 hash. 'hash' is an empty string for directories.
+   * D7: acquia_spi_hash_path
    */
   private function hashPath($path = '') {
     $hash = '';
@@ -1211,6 +1230,20 @@ class SpiController extends ControllerBase {
     return $ver;
   }
 
+  /**
+   * Put SPI data in local storage.
+   *
+   * @param array $data Keyed array of data to store.
+   * @param int $expire Expire time or null to use default of 1 day.
+   */
+  private function dataStoreSet($data, $expire = NULL) {
+    if (is_null($expire)) {
+      $expire = REQUEST_TIME + (60*60*24);
+    }
+    foreach ($data as $key => $value) {
+      \Drupal::cache()->set('acquia.spi.' . $key, $value, $expire);
+    }
+  }
 
   /**
    * Get SPI data out of local storage.
@@ -1379,6 +1412,7 @@ class SpiController extends ControllerBase {
    * @return array
    *   An associative array keyed by filename of associative arrays with
    *   information on the modules.
+   * D7: acquia_spi_get_modules
    */
   private function getModules() {
     // @todo add cache if possible.
@@ -1491,6 +1525,7 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An associative array.
+   * D7: acquia_spi_get_quantum
    */
   private function getQuantum() {
     $quantum = array();
@@ -1604,6 +1639,7 @@ class SpiController extends ControllerBase {
    *
    * @param  array $set_variables Variables to be set.
    * @return NULL
+   * D7: acquia_spi_set_variables
    */
   private function setVariables($set_variables) {
     dpm('----set variables----');
