@@ -35,6 +35,7 @@ function acquia_connector_requirements($phase) {
 
   switch ($phase) {
     case 'runtime':
+      acquia_connector_load_versions();
       //SEND DATA TO NSPI
       $config = \Drupal::config('acquia_connector.settings');
       $use_cron = $config->get('use_cron'); //variable_get('acquia_spi_use_cron', 1);

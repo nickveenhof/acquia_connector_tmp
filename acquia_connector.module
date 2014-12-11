@@ -199,3 +199,16 @@ function acquia_connector_system_info_alter(&$info) {
 }
 
 /******** end code to rewrite *********/
+
+/**
+ * API function used by others to ensure version information is loaded.
+ *
+ * Saves us some cycles to not load it each time, when it is actually
+ * not needed. We store this in a separate file, so that the Acquia
+ * build process only needs to alter that file instead of the main
+ * module file.
+ */
+function acquia_connector_load_versions() {
+  // Include version number information.
+  include_once 'acquia_connector_drupal_version.inc';
+}

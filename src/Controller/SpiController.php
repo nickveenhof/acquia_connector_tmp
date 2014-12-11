@@ -765,20 +765,7 @@ class SpiController extends ControllerBase {
     $ver['distribution']  = '';
 
     // Determine if this puppy is Acquia Drupal
-    // @todo: do something with next 5 defines.
-//    acquia_agent_load_versions();
-    /**
-     * Is this an Acquia Drupal install?
-     */
-    define('IS_ACQUIA_DRUPAL', FALSE);
-
-    /**
-     * Acquia Drupal version information (only used if IS_ACQUIA_DRUPAL).
-     */
-    define('ACQUIA_DRUPAL_VERSION' , 'ACQ_version_ACQ');
-    define('ACQUIA_DRUPAL_SERIES'  , 'ACQ_series_ACQ');
-    define('ACQUIA_DRUPAL_BRANCH'  , 'ACQ_branch_ACQ');
-    define('ACQUIA_DRUPAL_REVISION', 'ACQ_rev_ACQ');
+    acquia_connector_load_versions();
 
     if (IS_ACQUIA_DRUPAL) {
       $ver['distribution']   = 'Acquia Drupal';
@@ -1162,6 +1149,8 @@ class SpiController extends ControllerBase {
    * @return mixed FALSE if data not sent else NSPI result array
    */
   public function send(Request $request) {
+    // Mark this page as being uncacheable.
+    \Drupal::service('page_cache_kill_switch')->trigger();
     $method = ACQUIA_SPI_METHOD_CALLBACK;
 
     // Insight's set variable feature will pass method insight.
