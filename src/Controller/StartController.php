@@ -25,7 +25,7 @@ class StartController extends ControllerBase {
 
     $path = drupal_get_path('module', 'acquia_connector');
 
-    $build['#attached']['css'][$path . '/css/acquia_connector.admin.theme.css'] = array();
+    $build['#attached']['library'][] = 'acquia_connector/acquia_connector.form';
 
     $banner = array(
       '#theme' => 'image',
