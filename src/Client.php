@@ -162,9 +162,7 @@ class Client {
    */
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
-    // @todo: don't use simple method!
-//    $authenticator =  $this->buildAuthenticator($key, $body);
-    $authenticator =  $this->buildAuthenticator($key, array('identifier' => $id));
+    $authenticator =  $this->buildAuthenticator($key, $body);
     dpm($authenticator);
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';

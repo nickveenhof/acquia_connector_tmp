@@ -66,7 +66,6 @@ class SpiController extends ControllerBase {
    * D7: acquia_spi_get
    */
   public function get($method = '') {
-
     // Get file hashes and compute serialized version.
     list($hashes, $fileinfo) = $this->getFileHashes();
     $hashes_string = serialize($hashes);
@@ -82,7 +81,8 @@ class SpiController extends ControllerBase {
       $platform = $this->getPlatform();
     }
     $spi = array(
-      'spi_data_version' => ACQUIA_SPI_DATA_VERSION,
+      'rpc_version'    => ACQUIA_SPI_DATA_VERSION,      // Used in HMAC validation
+      'spi_data_version' => ACQUIA_SPI_DATA_VERSION,    // Used in Fix it now feature
       'site_key'       => sha1(\Drupal::service('private_key')->get()),
       'modules'        => $this->getModules(),
       'platform'       => $platform,
@@ -586,12 +586,12 @@ class SpiController extends ControllerBase {
   /**
    * Determine if the super user has a weak name
    *
-   * @return boolean
+   * @return int 0|1
    * D7: acquia_spi_get_super_name
    */
   private function getSuperName() {
     $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
-    return (boolean) $result;
+    return (int) $result;
   }
 
   /**
@@ -895,13 +895,6 @@ class SpiController extends ControllerBase {
       'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
       'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? self::getPlatformMysqlData() : array(),
     );
-
-    // Never send NULL (or FALSE?) - that causes hmac errors.
-    foreach ($platform as $key => $value) {
-      if (empty($platform[$key])) {
-        $platform[$key] = '';
-      }
-    }
 
     return $platform;
   }
