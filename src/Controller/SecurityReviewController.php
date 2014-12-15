@@ -183,7 +183,7 @@ class SecurityReviewController extends ControllerBase {
    * @return array
    */
   private function securityReviewSecurityChecks() {
-    $checks['file_perms'] = array(
+    $checks['file_perms'] = array( //@todo need review
       'title' => t('File system permissions'),
       'callback' => 'acquia_spi_security_review_check_file_perms',
       'success' => t('Drupal installation files and directories (except required) are not writable by the server.'),
@@ -196,19 +196,19 @@ class SecurityReviewController extends ControllerBase {
       'failure' => t('Untrusted users are allowed to input dangerous HTML tags.'),
     );
     $checks['field'] = array(
-      'title' => t('Content'),
+      'title' => t('Content'), //@todo need review
       'callback' => 'acquia_spi_security_review_check_field',
       'success' => t('Dangerous tags were not found in any submitted content (fields).'),
       'failure' => t('Dangerous tags were found in submitted content (fields).'),
     );
     $checks['error_reporting'] = array(
-      'title' => t('Error reporting'),
+      'title' => t('Error reporting'), //@todo need review
       'callback' => 'acquia_spi_security_review_check_error_reporting',
       'success' => t('Error reporting set to log only.'),
       'failure' => t('Errors are written to the screen.'),
     );
     $checks['private_files'] = array(
-      'title' => t('Private files'),
+      'title' => t('Private files'), //@todo need review
       'callback' => 'acquia_spi_security_review_check_private_files',
       'success' => t('Private files directory is outside the web server root.'),
       'failure' => t('Private files is enabled but the specified directory is not secure outside the web server root.'),
@@ -216,14 +216,14 @@ class SecurityReviewController extends ControllerBase {
     // Checks dependent on dblog.
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
       $checks['query_errors'] = array(
-        'title' => t('Database errors'),
+        'title' => t('Database errors'), //@todo need review
         'callback' => 'acquia_spi_security_review_check_query_errors',
         'success' => t('Few query errors from the same IP.'),
         'failure' => t('Query errors from the same IP. These may be a SQL injection attack or an attempt at information disclosure.'),
       );
 
       $checks['failed_logins'] = array(
-        'title' => t('Failed logins'),
+        'title' => t('Failed logins'), //@todo need review
         'callback' => 'acquia_spi_security_review_check_failed_logins',
         'success' => t('Few failed login attempts from the same IP.'),
         'failure' => t('Failed login attempts from the same IP. These may be a brute-force attack to gain access to your site.'),
@@ -236,7 +236,7 @@ class SecurityReviewController extends ControllerBase {
       'failure' => t('Unsafe file extensions are allowed in uploads.'),
     );
     $checks['admin_permissions'] = array(
-      'title' => t('Drupal permissions'),
+      'title' => t('Drupal permissions'), //@todo need review
       'callback' => 'acquia_spi_security_review_check_admin_permissions',
       'success' => t('Untrusted roles do not have administrative or trusted Drupal permissions.'),
       'failure' => t('Untrusted roles have been granted administrative or trusted Drupal permissions.'),
@@ -244,7 +244,7 @@ class SecurityReviewController extends ControllerBase {
     // Check dependent on PHP filter being enabled.
     if (\Drupal::moduleHandler()->moduleExists('php')) {
       $checks['untrusted_php'] = array(
-        'title' => t('PHP access'),
+        'title' => t('PHP access'), //@todo need review
         'callback' => 'acquia_spi_security_review_check_php_filter',
         'success' => t('Untrusted users do not have access to use the PHP input format.'),
         'failure' => t('Untrusted users have access to use the PHP input format.'),
