@@ -10,26 +10,6 @@ function acquia_agent_report_xmlrpc_error() {
 }
 
 /**
- * Returns the stored subscription data if update service is enabled or FALSE otherwise.
- */
-function acquia_agent_has_update_service() {
-  // Include version number information.
-  acquia_agent_load_versions();
-
-  $subscription = acquia_agent_settings('acquia_subscription_data');
-  if (!IS_ACQUIA_DRUPAL || empty($subscription['active']) || (isset($subscription['update_service']) && empty($subscription['update_service']))) {
-    // We don't have update service if (1) this is not Acquia Drupal, (2) there
-    // is no subscription or (3) the update service was disabled on acquia.com.
-    // Requiring the update_service key and checking its value separately is
-    // important for backwards compatibility. Isset & empty tells us
-    // that the web service willingly told us to not do update notifications.
-    return FALSE;
-  }
-
-  return $subscription;
-}
-
-/**
  * Implemetation of hook_menu_alter()
  */
 function acquia_agent_menu_alter(&$items) {

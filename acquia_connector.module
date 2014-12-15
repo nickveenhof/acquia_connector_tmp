@@ -145,10 +145,12 @@ function acquia_connector_toolbar() {
  * @see update_calculate_project_data()
  */
 function acquia_connector_update_status_alter(&$projects) {
-  //if (!$subscription = acquia_agent_has_update_service()) {
-    //Get subscription data or return if the service is not enabled.
-    //return;
-  //}
+  if (!$subscription = acquia_connector_has_update_service()) {
+    // Get subscription data or return if the service is not enabled.
+    return;
+  }
+
+  acquia_connector_load_versions();
 
   foreach ($projects as $project => $project_info) {
     if ($project == 'drupal') {
@@ -211,4 +213,25 @@ function acquia_connector_system_info_alter(&$info) {
 function acquia_connector_load_versions() {
   // Include version number information.
   include_once 'acquia_connector_drupal_version.inc';
+}
+
+
+/**
+ * Returns the stored subscription data if update service is enabled or FALSE otherwise.
+ * D7: acquia_agent_has_update_service
+ */
+function acquia_connector_has_update_service() {
+  // Include version number information.
+  acquia_connector_load_versions();
+  $subscription = Drupal::config('acquia_connector.settings')->get('subscription_data');
+  if (!IS_ACQUIA_DRUPAL || empty($subscription['active']) || (isset($subscription['update_service']) && empty($subscription['update_service']))) {
+    // We don't have update service if (1) this is not Acquia Drupal, (2) there
+    // is no subscription or (3) the update service was disabled on acquia.com.
+    // Requiring the update_service key and checking its value separately is
+    // important for backwards compatibility. Isset & empty tells us
+    // that the web service willingly told us to not do update notifications.
+    return FALSE;
+  }
+
+  return $subscription;
 }
