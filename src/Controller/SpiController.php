@@ -572,9 +572,11 @@ class SpiController extends ControllerBase {
 
     if (!empty($roles_name)) {
       $roles_name_unique = array_unique($roles_name);
-      $query = db_select('users_roles', 'ur');
-      $query->fields('ur', array('uid'));
-      $query->condition('ur.rid', $roles_name_unique, 'IN');
+      $query = db_select('user__roles', 'ur');
+      $query->fields('ur', array('entity_id'));
+      $query->condition('ur.bundle', 'user', '=');
+      $query->condition('ur.deleted', '0', '=');
+      $query->condition('ur.roles_target_id', $roles_name_unique, 'IN');
       $count = $query->countQuery()->execute()->fetchField();
     }
 
