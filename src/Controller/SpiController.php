@@ -656,7 +656,7 @@ class SpiController extends ControllerBase {
     if ($dir != $orig_dir && $module_break) {
       if (is_dir($dir) && $handle = opendir($dir)) {
         while ($file = readdir($handle)) {
-          if (stristr($file, '.module')) {
+          if (stristr($file, '.info.yml')) {
             return;
           }
         }
@@ -669,7 +669,7 @@ class SpiController extends ControllerBase {
     // Standard nesting function
     if (is_dir($dir) && $handle = opendir($dir)) {
       while ($file = readdir($handle)) {
-        if (!in_array($file, array('.', '..', 'CVS', '.svn'))) {
+        if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git'))) {
           $path = $dir == '.' ? $file : "{$dir}/{$file}";
           if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
             list($sub_hashes, $sub_fileinfo) =  $this->generateHashes($path, $exclude_dirs);
