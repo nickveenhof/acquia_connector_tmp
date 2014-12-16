@@ -1004,15 +1004,17 @@ class SpiController extends ControllerBase {
     uasort($modules, 'system_sort_modules_by_info_name');
 
     $result = array();
-    $keys_to_send = array('name', 'version', 'package', 'core');
+    $keys_to_send = array('name', 'version', 'package', 'core', 'project');
     foreach ($modules as $module_key => $module) {
       $info = array();
       $info['status'] = $module->status;
       foreach ($keys_to_send as $key) {
         $info[$key] = isset($module->info[$key]) ? $module->info[$key] : '';
       }
-      $info['project'] = $module_key;
       $info['filename'] = $module->getPathname();
+      if (empty($info['project']) && $module->origin == 'core') {
+        $info['project'] = 'drupal';
+      }
 
       // Determine which files belong to this module and hash them
       $module_path = explode('/', $info['filename']);
