@@ -701,6 +701,7 @@ class SpiController extends ControllerBase {
    */
   private function isManifestType($path) {
     $extensions = array(
+      'yml' => 1,
       'php' => 1,
       'php4' => 1,
       'php5' => 1,
@@ -1051,7 +1052,7 @@ class SpiController extends ControllerBase {
     if ($dir != $orig_dir && $module_break) {
       if (is_dir($dir) && $handle = opendir($dir)) {
         while ($file = readdir($handle)) {
-          if (stristr($file, '.module')) {
+          if (stristr($file, '.info.yml')) {
             return;
           }
         }
