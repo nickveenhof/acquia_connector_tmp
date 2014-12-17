@@ -236,8 +236,8 @@ class SecurityReviewController extends ControllerBase {
       'failure' => t('Unsafe file extensions are allowed in uploads.'),
     );
     $checks['admin_permissions'] = array(
-      'title' => t('Drupal permissions'), //@todo need review
-      'callback' => 'acquia_spi_security_review_check_admin_permissions',
+      'title' => t('Drupal permissions'),
+      'callback' => 'checkAdminPermissions',
       'success' => t('Untrusted roles do not have administrative or trusted Drupal permissions.'),
       'failure' => t('Untrusted roles have been granted administrative or trusted Drupal permissions.'),
     );
@@ -387,7 +387,7 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Check if PHP files written to the files directory can be executed.
    */
-  function checkExecutablePHP($last_check = NULL) {
+  private function checkExecutablePHP($last_check = NULL) {
     global $base_url;
     $result = TRUE;
     $check_result_value = array();
@@ -485,7 +485,7 @@ class SecurityReviewController extends ControllerBase {
    * Check for formats that either do not have HTML filter that can be used by
    * untrusted users, or if they do check if unsafe tags are allowed.
    */
-  function checkInputFormats() {
+  private function checkInputFormats() {
     $result = TRUE;
     $formats = \Drupal::entityManager()
       ->getStorage('filter_format')
@@ -524,6 +524,37 @@ class SecurityReviewController extends ControllerBase {
     if (!empty($check_result_value)) {
       $result = FALSE;
     }
+    return array('result' => $result, 'value' => $check_result_value);
+  }
+
+  /**
+   * Look for admin permissions granted to untrusted roles.
+   */
+  private function checkAdminPermissions() {
+    $result = TRUE;
+    $check_result_value = array();
+    $mapping_role = array('anonymous' => 1, 'authenticated' => 2);
+    $untrusted_roles = $this->untrustedRoles();
+
+    // Collect permissions marked as for trusted users only.
+    $all_permissions = \Drupal::service('user.permissions')->getPermissions();
+    $all_keys = array_keys($all_permissions);
+
+    // Get permissions for untrusted roles.
+    $untrusted_permissions = user_role_permissions(array_keys($untrusted_roles));
+    foreach ($untrusted_permissions as $rid => $permissions) {
+      $intersect = array_intersect($all_keys, $permissions);
+      foreach ($intersect as $permission) {
+        if (isset($all_permissions[$permission]['restrict access'])) {
+          $check_result_value[$mapping_role[$rid]][] = $permission;
+        }
+      }
+    }
+
+    if (!empty($check_result_value)) {
+      $result = FALSE;
+    }
+    dpm($check_result_value);
     return array('result' => $result, 'value' => $check_result_value);
   }
 

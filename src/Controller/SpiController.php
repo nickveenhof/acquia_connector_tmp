@@ -116,8 +116,8 @@ class SpiController extends ControllerBase {
     $additional_data = array();
 
     // @todo: security_review module for D8 not released yet.
-    //$security_review = new SecurityReviewController();
-   // $security_review_results = $security_review->runSecurityReview();
+    $security_review = new SecurityReviewController();
+    $security_review_results = $security_review->runSecurityReview();
     // It's worth sending along node access control information even if there are
     // no modules implementing it - some alerts are simpler if we know we don't
     // have to worry about node access.
