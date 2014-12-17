@@ -149,21 +149,19 @@ class SpiController extends ControllerBase {
 
     // Database updates required?
     // Based on code from system.install
-    include_once DRUPAL_ROOT . '/core/includes/install.inc';
-    drupal_load_updates();
-
     $additional_data['pending_updates'] = FALSE;
-    $modules = system_rebuild_module_data();
-    uasort($modules, 'system_sort_modules_by_info_name');
-    foreach ($modules as $key => $module) {
-      $updates = drupal_get_schema_versions($key);
+    foreach (\Drupal::moduleHandler()->getModuleList() as $module => $filename) {
+      $updates = drupal_get_schema_versions($module);
       if ($updates !== FALSE) {
-        $default = drupal_get_installed_schema_version($key);
+        $default = drupal_get_installed_schema_version($module);
         if (max($updates) > $default) {
           $additional_data['pending_updates'] = TRUE;
           break;
         }
       }
+    }
+    if (!$additional_data['pending_updates'] && \Drupal::service('entity.definition_update_manager')->needsUpdates()) {
+      $additional_data['pending_updates'] = TRUE;
     }
 
     if (!empty($additional_data)) {
