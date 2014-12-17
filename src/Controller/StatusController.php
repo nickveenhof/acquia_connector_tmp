@@ -89,7 +89,7 @@ class StatusController extends ControllerBase {
         'sub_data' => $sub_data,
         'sub_uuid_from_data' => $sub_uuid,
         'expected_hash' => $expected_hash,
-        'get' => $query,
+        'get' => $request->query->all(),
         'server' => $request->server->all(),
         'request' => $request->request->all(),
       );
