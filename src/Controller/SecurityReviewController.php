@@ -244,8 +244,8 @@ class SecurityReviewController extends ControllerBase {
     // Check dependent on PHP filter being enabled.
     if (\Drupal::moduleHandler()->moduleExists('php')) {
       $checks['untrusted_php'] = array(
-        'title' => t('PHP access'), //@todo need review
-        'callback' => 'acquia_spi_security_review_check_php_filter',
+        'title' => t('PHP access'),
+        'callback' => 'checkPhpFilter',
         'success' => t('Untrusted users do not have access to use the PHP input format.'),
         'failure' => t('Untrusted users have access to use the PHP input format.'),
       );
@@ -554,7 +554,35 @@ class SecurityReviewController extends ControllerBase {
     if (!empty($check_result_value)) {
       $result = FALSE;
     }
-    dpm($check_result_value);
+    return array('result' => $result, 'value' => $check_result_value);
+  }
+
+  /**
+   * @return array
+   */
+  protected function checkPhpFilter() {
+    $result = TRUE;
+    $check_result_value = array();
+    $formats = \Drupal::entityManager()
+      ->getStorage('filter_format')
+      ->loadByProperties(array('status' => TRUE));
+    // Check formats that are accessible by untrusted users.
+    $untrusted_roles = $this->untrustedRoles();
+    $untrusted_roles = array_keys($untrusted_roles);
+    foreach ($formats as $id => $format) {
+      $format_roles = filter_get_roles_by_format($format);
+      $intersect = array_intersect(array_keys($format_roles), $untrusted_roles);
+      if (!empty($intersect)) {
+        // Untrusted users can use this format.
+        $filters = $formats[$id]->get('filters');
+        // Check format for enabled PHP filter.
+        if (in_array('php_code', array_keys($filters)) && $filters['php_code']['status'] == 1) {
+          $result = FALSE;
+          $check_result_value['formats'][$id] = $format;
+        }
+      }
+    }
+
     return array('result' => $result, 'value' => $check_result_value);
   }
 
