@@ -61,13 +61,11 @@ class ModuleDataController extends ControllerBase {
    */
   public function isValidRequest($data, $message) {
     $key = $this->config('acquia_connector.settings')->get('key');
-    \Drupal::logger('acquia module data')->notice('$data: '. print_r($data, TRUE));
     if (!isset($data['authenticator']) || !isset($data['authenticator']['time']) || !isset($data['authenticator']['nonce'])) {
       return FALSE;
     }
     $string = $data['authenticator']['time'] . ':' . $data['authenticator']['nonce'] . ':' . $message;
     $hash = sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    \Drupal::logger('acquia $hash data')->notice('$hash: '. $hash);
     if ($hash == $data['authenticator']['hash']) {
       return TRUE;
     }
@@ -84,16 +82,16 @@ class ModuleDataController extends ControllerBase {
     $data = json_decode($request->getContent(), TRUE);
 
     // We only do this if we are on SSL
-    $via_ssl = isset($_SERVER['HTTPS']) ? TRUE : FALSE;
-    $via_ssl = TRUE;
+    $via_ssl = $request->isSecure();
+    if ($this->config('acquia_connector.settings')->get('spi.ssl_override')) {
+      $via_ssl = TRUE;
+    }
 
     if ($this->config('acquia_connector.settings')->get('spi.module_diff_data') && $via_ssl) {
       $subscription = new Subscription();
       if ($subscription->hasCredentials() && isset($data['body']['file']) && $this->isValidRequest($data, $data['body']['file'])) {
-        \Drupal::logger('acquia module data')->notice('module_diff_data: OK '. $this->config('acquia_connector.settings')->get('spi.module_diff_data'));
         return AccessResultAllowed::allowed();
       }
-      \Drupal::logger('acquia module data')->notice('module_diff_data: OPS!!! '. $this->config('acquia_connector.settings')->get('spi.module_diff_data'));
 
       // Log the request if validation failed and debug is enabled.
       if ($this->config('acquia_connector.settings')->get('debug')) {
