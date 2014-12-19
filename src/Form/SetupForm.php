@@ -164,7 +164,6 @@ class SetupForm extends ConfigFormBase {
     $storage = $form_state->getStorage();
     if (isset($storage['choose']) && isset($storage['response']['subscription'][$form_state->getValue('subscription')])) {
       $config = $this->config('acquia_connector.settings');
-
       $sub = $storage['response']['subscription'][$form_state->getValue('subscription')];
       $config->set('key', $sub['key'])
         ->set('identifier', $sub['identifier'])

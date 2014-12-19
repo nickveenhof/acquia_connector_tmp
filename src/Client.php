@@ -6,14 +6,12 @@
  * Time: 7:17 PM
  */
 
-
 namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
-use Drupal\acquia_connector;
 
 class Client {
 
@@ -62,7 +60,6 @@ class Client {
    *   communication.
    */
   public function getSubscriptionCredentials($email, $password) {
-
     $body = array('email' => $email, 'rpc_version' => '2.1'); //@todo
     $authenticator = $this->buildAuthenticator($body);
     $data = array(
