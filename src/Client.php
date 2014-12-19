@@ -60,8 +60,8 @@ class Client {
    *   communication.
    */
   public function getSubscriptionCredentials($email, $password) {
-    $body = array('email' => $email, 'rpc_version' => '2.1'); //@todo
-    $authenticator = $this->buildAuthenticator($body);
+    $body = array('email' => $email); //@todo
+    $authenticator = $this->buildAuthenticator($email, array('rpc_version' => '2.1'));
     $data = array(
       'body' => $body,
       'authenticator' => $authenticator,
@@ -74,14 +74,14 @@ class Client {
       $pass = $crypt_pass->cryptPass();
 
       $body = array('email' => $email, 'pass' => $pass, 'rpc_version' => '2.1'); //@todo
-      $authenticator = $this->buildAuthenticator($pass);
+      $authenticator = $this->buildAuthenticator($pass, array('rpc_version' => '2.1'));
       $data = array(
         'body' => $body,
         'authenticator' => $authenticator,
       );
 
       $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
-      if($response){
+      if($response['body']){
         return $response['body'];
       }
     }
@@ -313,8 +313,7 @@ class Client {
    * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
-
-  /*  if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
+    if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
       dpm('Methos 1');
       $string = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
 
@@ -328,10 +327,10 @@ class Client {
       $string = $time . ':' . $nonce . ':' . json_encode($params);
       return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
     }
-    else {*/
+    else {
       $string = $time . ':' . $nonce;
       return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    //}
+    }
   }
 
   /**
