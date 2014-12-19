@@ -6,12 +6,14 @@
  * Time: 7:17 PM
  */
 
+
 namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
+use Drupal\acquia_connector;
 
 class Client {
 
@@ -60,17 +62,32 @@ class Client {
    *   communication.
    */
   public function getSubscriptionCredentials($email, $password) {
-    $body = array('email' => $email, 'pass' => $password);
-    $authenticator = $this->buildAuthenticator($password, $body);
+
+    $body = array('email' => $email, 'rpc_version' => '2.1'); //@todo
+    $authenticator = $this->buildAuthenticator($body);
     $data = array(
       'body' => $body,
       'authenticator' => $authenticator,
     );
-    $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
-    //if ($this->validateResponse($password, $response, $authenticator)) {
-      return $response['body'];
-    //}
-    //return FALSE;
+
+    $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
+
+    if($communication_setting) {
+      $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
+      $pass = $crypt_pass->cryptPass();
+
+      $body = array('email' => $email, 'pass' => $pass, 'rpc_version' => '2.1'); //@todo
+      $authenticator = $this->buildAuthenticator($pass);
+      $data = array(
+        'body' => $body,
+        'authenticator' => $authenticator,
+      );
+
+      $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
+      if($response){
+        return $response['body'];
+      }
+    }
   }
 
   /**
@@ -102,7 +119,7 @@ class Client {
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
-    $body += array('identifier' => $id);
+    $body += array('identifier' => $id, 'rpc_version' => '2.1'); //@todo
     $authenticator =  $this->buildAuthenticator($key, $body);
     $data = array(
       'body' => $body,
@@ -300,7 +317,8 @@ class Client {
    */
   protected function hash($key, $time, $nonce, $params = array()) {
 
-    if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
+  /*  if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
+      dpm('Methos 1');
       $string = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
 
       return base64_encode(
@@ -309,13 +327,14 @@ class Client {
         $string)))));
     }
     elseif ($params['rpc_version'] == 2) {
+      dpm('Methos 2');
       $string = $time . ':' . $nonce . ':' . json_encode($params);
       return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
     }
-    else {
+    else {*/
       $string = $time . ':' . $nonce;
       return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    }
+    //}
   }
 
   /**
