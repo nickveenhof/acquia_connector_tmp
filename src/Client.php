@@ -63,6 +63,7 @@ class Client {
    * @param string $password
    *   Plain-text password for Acquia Network account. Will be hashed for
    *   communication.
+   * @return array | FALSE
    */
   public function getSubscriptionCredentials($email, $password) {
     $body = array('email' => $email);
@@ -87,9 +88,11 @@ class Client {
 
       $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
       if($response['body']){
+        dpm($response);
         return $response['body'];
       }
     }
+    return FALSE;
   }
 
   /**
@@ -318,8 +321,8 @@ class Client {
    * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
+    // @todo: should we remove this method for D8?
     if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
-      dpm('Methos 1');
       $string = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
 
       return base64_encode(
@@ -327,15 +330,14 @@ class Client {
         pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
         $string)))));
     }
+    // @todo: should we remove this method for D8?
     elseif ($params['rpc_version'] == 2) {
-      dpm('Methos 2');
       $string = $time . ':' . $nonce . ':' . json_encode($params);
       return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
     }
-    else {
-      $string = $time . ':' . $nonce;
-      return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    }
+
+    $string = $time . ':' . $nonce;
+    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
 
   /**
