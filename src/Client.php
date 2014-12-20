@@ -40,6 +40,11 @@ class Client {
    */
   protected $config;
 
+  /**
+   * @param ClientInterface $client
+   * @param ConfigFactoryInterface $config
+   */
+
   public function __construct(ClientInterface $client, ConfigFactoryInterface $config) {
     $this->client = $client;
     $this->headers = array(
@@ -60,8 +65,8 @@ class Client {
    *   communication.
    */
   public function getSubscriptionCredentials($email, $password) {
-    $body = array('email' => $email); //@todo
-    $authenticator = $this->buildAuthenticator($email, array('rpc_version' => '2.1'));
+    $body = array('email' => $email);
+    $authenticator = $this->buildAuthenticator($email, array('rpc_version' => ACQUIA_SPI_DATA_VERSION));
     $data = array(
       'body' => $body,
       'authenticator' => $authenticator,
@@ -73,8 +78,8 @@ class Client {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
       $pass = $crypt_pass->cryptPass();
 
-      $body = array('email' => $email, 'pass' => $pass, 'rpc_version' => '2.1'); //@todo
-      $authenticator = $this->buildAuthenticator($pass, array('rpc_version' => '2.1'));
+      $body = array('email' => $email, 'pass' => $pass, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
+      $authenticator = $this->buildAuthenticator($pass, array('rpc_version' => ACQUIA_SPI_DATA_VERSION));
       $data = array(
         'body' => $body,
         'authenticator' => $authenticator,
@@ -116,7 +121,7 @@ class Client {
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
-    $body += array('identifier' => $id, 'rpc_version' => '2.1'); //@todo
+    $body += array('identifier' => $id, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
     $authenticator =  $this->buildAuthenticator($key, $body);
     $data = array(
       'body' => $body,
