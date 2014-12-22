@@ -1127,8 +1127,6 @@ class SpiController extends ControllerBase {
 
     $response = $this->client->sendNspi($config->get('identifier'), $config->get('key'), $spi);
 
-    // @todo: remove dpm.
-    dpm($response);
     if ($response === FALSE) {
       return FALSE;
     }
@@ -1220,6 +1218,7 @@ class SpiController extends ControllerBase {
     $spi_def_end_point = '/spi_def/get/' . $core_version;
 
     $response = $this->client->getDefinition($spi_def_end_point);
+    dpm('updateDefinition $response: ');
     dpm($response);
 
     if (!$response) {

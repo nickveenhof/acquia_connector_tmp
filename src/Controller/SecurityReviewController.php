@@ -29,7 +29,6 @@ class SecurityReviewController extends ControllerBase {
 
     // Collect the checklist.
     $checklist = $this->securityReviewGetChecks();
-    \Drupal::logger('print checklist')->error(print_r($checklist, TRUE));
     // Run only specific checks.
     $to_check = array(
       'views_access',
@@ -53,8 +52,6 @@ class SecurityReviewController extends ControllerBase {
       }
     }
     $checklist_results = $this->securityReviewRun($checklist);
-    \Drupal::logger('print checklist_results Review')
-      ->error(print_r($checklist_results, TRUE));
     foreach ($checklist_results as $module => $checks) {
       foreach ($checks as $check_name => $check) {
         // Unset data that does not need to be sent.
@@ -71,8 +68,6 @@ class SecurityReviewController extends ControllerBase {
         unset($checklist_results[$module]);
       }
     }
-    \Drupal::logger('print checklist_results')
-      ->error(print_r($checklist_results, TRUE));
     return $checklist_results;
   }
 
@@ -353,7 +348,6 @@ class SecurityReviewController extends ControllerBase {
         $check_result_value[] = $path;
       }
     }
-    dpm('checkTemporaryFiles', print_r($result, TRUE));
     return array('result' => $result, 'value' => $check_result_value);
   }
 
@@ -380,7 +374,6 @@ class SecurityReviewController extends ControllerBase {
     if (!empty($check_result_value)) {
       $result = FALSE;
     }
-    dpm('checkViewsAccess', print_R($check_result_value, TRUE));
     return array('result' => $result, 'value' => $check_result_value);
   }
 
@@ -459,7 +452,6 @@ class SecurityReviewController extends ControllerBase {
     $unsafe_extensions = $this->unsafeExtensions();
     $fields = FieldConfig::loadMultiple();
     foreach ($fields as $field_name => $field) {
-//      dpm('name: ' . $field->field_name . '-> entitty type: ' . $field->entity_type . '-> bundle: '. $field->bundle);
       $dependencies = $field->get('dependencies');
       if (isset($dependencies) && !empty($dependencies['module'])) {
         foreach ($dependencies['module'] as $module) {

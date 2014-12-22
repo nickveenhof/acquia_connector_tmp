@@ -88,6 +88,7 @@ class Client {
 
       $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
       if($response['body']){
+        dpm('getSubscriptionCredentials $response: ');
         dpm($response);
         return $response['body'];
       }
@@ -185,6 +186,7 @@ class Client {
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
     $authenticator =  $this->buildAuthenticator($key, $body);
+    dpm('sendNspi $authenticator: ');
     dpm($authenticator);
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
@@ -196,13 +198,14 @@ class Client {
       'host' => $host,
       'ssl' => $ssl,
     );
+    dpm('sendNspi $data: ');
     dpm($data);
 
     try{
       $response = $this->request('POST', '/spi-api/site', $data);
-//      if ($this->validateResponse($key, $response, $authenticator)) {
+      if ($this->validateResponse($key, $response, $authenticator)) {
         return $response;
-//      }
+      }
     }
     catch (\Exception $e){}
     return FALSE;
