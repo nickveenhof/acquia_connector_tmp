@@ -40,6 +40,11 @@ class Client {
    */
   protected $config;
 
+  /**
+   * @param ClientInterface $client
+   * @param ConfigFactoryInterface $config
+   */
+
   public function __construct(ClientInterface $client, ConfigFactoryInterface $config) {
     $this->client = $client;
     $this->headers = array(
@@ -58,19 +63,36 @@ class Client {
    * @param string $password
    *   Plain-text password for Acquia Network account. Will be hashed for
    *   communication.
+   * @return array | FALSE
    */
   public function getSubscriptionCredentials($email, $password) {
-    $body = array('email' => $email, 'pass' => $password);
-    $authenticator = $this->buildAuthenticator($password, $body);
+    $body = array('email' => $email);
+    $authenticator = $this->buildAuthenticator($email, array('rpc_version' => ACQUIA_SPI_DATA_VERSION));
     $data = array(
       'body' => $body,
       'authenticator' => $authenticator,
     );
-    $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
-    //if ($this->validateResponse($password, $response, $authenticator)) {
-      return $response['body'];
-    //}
-    //return FALSE;
+
+    $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
+
+    if($communication_setting) {
+      $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
+      $pass = $crypt_pass->cryptPass();
+
+      $body = array('email' => $email, 'pass' => $pass, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
+      $authenticator = $this->buildAuthenticator($pass, array('rpc_version' => ACQUIA_SPI_DATA_VERSION));
+      $data = array(
+        'body' => $body,
+        'authenticator' => $authenticator,
+      );
+
+      $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
+      if($response['body']){
+        dpm($response);
+        return $response['body'];
+      }
+    }
+    return FALSE;
   }
 
   /**
@@ -102,7 +124,7 @@ class Client {
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
-    $body += array('identifier' => $id);
+    $body += array('identifier' => $id, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
     $authenticator =  $this->buildAuthenticator($key, $body);
     $data = array(
       'body' => $body,
@@ -299,7 +321,7 @@ class Client {
    * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
-
+    // @todo: should we remove this method for D8?
     if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
       $string = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
 
@@ -308,14 +330,14 @@ class Client {
         pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
         $string)))));
     }
+    // @todo: should we remove this method for D8?
     elseif ($params['rpc_version'] == 2) {
       $string = $time . ':' . $nonce . ':' . json_encode($params);
       return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
     }
-    else {
-      $string = $time . ':' . $nonce;
-      return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    }
+
+    $string = $time . ':' . $nonce;
+    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
 
   /**
