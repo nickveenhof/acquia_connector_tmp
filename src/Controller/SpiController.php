@@ -15,6 +15,7 @@ use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\acquia_connector\Client;
@@ -1155,19 +1156,16 @@ class SpiController extends ControllerBase {
     $response = $this->sendFullSpi($method);
 
     if ($request->get('destination')) {
-      if (!empty($response)) {
-        $message = array();
-        if (isset($response['spi_data_received']) && $response['spi_data_received'] === TRUE) {
-          $message[] = $this->t('SPI data sent.');
+      if (!empty($response['body'])) {
+        if (isset($response['body']['spi_data_received']) && $response['body']['spi_data_received'] === TRUE) {
+          drupal_set_message($this->t('SPI data sent.'));
         }
-        if (!empty($response['nspi_messages'])) {
-          $message[] = $this->t('Acquia Network returned the following messages. Further information may be in the logs.');
-          foreach ($response['nspi_messages'] as $nspi_message) {
-            $message[] = String::checkPlain($nspi_message);
+        if (!empty($response['body']['nspi_messages'])) {
+          drupal_set_message($this->t('Acquia Network returned the following messages. Further information may be in the logs.'));
+          foreach ($response['body']['nspi_messages'] as $nspi_message) {
+            drupal_set_message(String::checkPlain($nspi_message));
           }
         }
-
-        drupal_set_message(implode('<br/>', $message));
       }
       else {
         drupal_set_message($this->t('Error sending SPI data. Consult the logs for more information.'), 'error');
@@ -1175,8 +1173,18 @@ class SpiController extends ControllerBase {
       $route_match = $route = RouteMatch::createFromRequest($request);
       return $this->redirect($route_match->getRouteName(), $route_match->getRawParameters()->all());
     }
-    return array();
-//    throw new ServiceUnavailableHttpException(3, t('Error sending SPI data. Consult the logs for more information.'));
+
+    $headers = [
+      'Expires' => 'Mon, 26 Jul 1997 05:00:00 GMT',
+      'Content-Type' => 'text/plain',
+      'Cache-Control' => 'no-cache',
+      'Pragma' => 'no-cache',
+    ];
+    if (empty($response['body'])) {
+      return new Response('', Response::HTTP_BAD_REQUEST, $headers);
+    }
+
+    return new Response('', Response::HTTP_OK, $headers);
   }
 
 
