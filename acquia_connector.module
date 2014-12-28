@@ -1,9 +1,21 @@
 <?php
 
-use Drupal\Core\Database\Database;
+use Drupal\acquia_connector\Controller;
 use Drupal\acquia_connector\Subscription;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+
+// Version of SPI data format.
+define('ACQUIA_SPI_DATA_VERSION', 2.1);
+
+/**
+ * Identifiers for the method of sending SPI data.
+ */
+define('ACQUIA_SPI_METHOD_CALLBACK', 'menu');
+define('ACQUIA_SPI_METHOD_CRON', 'cron');
+define('ACQUIA_SPI_METHOD_DRUSH', 'drush');
+define('ACQUIA_SPI_METHOD_CREDS', 'creds');
+define('ACQUIA_SPI_METHOD_INSIGHT', 'insight');
 
 /**
  * Implements hook_help().
@@ -57,19 +69,20 @@ function acquia_connector_form_system_modules_alter(&$form, &$form_state) {
  */
 function acquia_connector_cron() {
   // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
-  acquia_agent_check_subscription();
+  $subscription = new Subscription();
+  $subscription->update();
 
   $config = \Drupal::config('acquia_connector.settings');
 
   // Get the last time we processed data.
-  $last = \Drupal::state('acquia_connector.cron_last', 0);
+  $last = $config->get('cron_last');
 
   // 30 minute interval for sending site profile.
   $interval = $config->get('cron_interval');
 
   // Determine if the required interval has passed.
   if ($config->get('use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
-    acquia_connector_send_full_spi(ACQUIA_SPI_METHOD_CRON);
+    \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CRON);
   }
 }
 
@@ -132,10 +145,12 @@ function acquia_connector_toolbar() {
  * @see update_calculate_project_data()
  */
 function acquia_connector_update_status_alter(&$projects) {
-  //if (!$subscription = acquia_agent_has_update_service()) {
-    //Get subscription data or return if the service is not enabled.
-    //return;
-  //}
+  if (!$subscription = acquia_connector_has_update_service()) {
+    // Get subscription data or return if the service is not enabled.
+    return;
+  }
+
+  acquia_connector_load_versions();
 
   foreach ($projects as $project => $project_info) {
     if ($project == 'drupal') {
@@ -167,6 +182,9 @@ function acquia_connector_update_status_alter(&$projects) {
   }
 }
 
+/******** start code to rewrite *********/
+
+
 /**
  * Implements hook_system_info_alter()
  */
@@ -181,218 +199,39 @@ function acquia_connector_system_info_alter(&$info) {
 //    $info['datestamp'] = 'acquia drupal';
 //  }
 }
+
+/******** end code to rewrite *********/
+
 /**
- * Gather full SPI data and send to Acquia Network.
+ * API function used by others to ensure version information is loaded.
  *
- * @param string $method Optional identifier for the method initiating request.
- *   Values could be 'cron' or 'menu callback' or 'drush'.
- * @return mixed FALSE if data not sent else NSPI result array
+ * Saves us some cycles to not load it each time, when it is actually
+ * not needed. We store this in a separate file, so that the Acquia
+ * build process only needs to alter that file instead of the main
+ * module file.
  */
-function acquia_connector_send_full_spi($method = '') {
-  $spi = acquia_spi_get();
+function acquia_connector_load_versions() {
+  // Include version number information.
+  include_once 'acquia_connector_drupal_version.inc';
+}
 
-  if (!empty($method)) {
-    $spi['send_method'] = $method;
-  }
 
-  $result = acquia_spi_send_data($spi);
-
-  if ($result === FALSE) {
+/**
+ * Returns the stored subscription data if update service is enabled or FALSE otherwise.
+ * D7: acquia_agent_has_update_service
+ */
+function acquia_connector_has_update_service() {
+  // Include version number information.
+  acquia_connector_load_versions();
+  $subscription = Drupal::config('acquia_connector.settings')->get('subscription_data');
+  if (!IS_ACQUIA_DRUPAL || empty($subscription['active']) || (isset($subscription['update_service']) && empty($subscription['update_service']))) {
+    // We don't have update service if (1) this is not Acquia Drupal, (2) there
+    // is no subscription or (3) the update service was disabled on acquia.com.
+    // Requiring the update_service key and checking its value separately is
+    // important for backwards compatibility. Isset & empty tells us
+    // that the web service willingly told us to not do update notifications.
     return FALSE;
   }
 
-  acquia_spi_handle_server_response($result);
-
-  \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
-
-  return $result;
-}
-
-/**
- * Gather platform specific information.
- *
- * @return
- *   An associative array keyed by a platform information type.
- */
-function acquia_connector_get_platform() {
-  $server = \Drupal::request()->server;
-  // Database detection depends on the structure starting with the database
-  $db_class = '\Drupal\Core\Database\Driver\\' . Database::getConnection()->driver() . '\Install\Tasks';
-  $db_tasks = new $db_class();
-  // Webserver detection is based on name being before the slash, and
-  // version being after the slash.
-  preg_match('!^([^/]+)(/.+)?$!', $server->get('SERVER_SOFTWARE'), $webserver);
-
-  if (isset($webserver[1]) && stristr($webserver[1], 'Apache') && function_exists('apache_get_version')) {
-    $webserver[2] = apache_get_version();
-    $apache_modules = apache_get_modules();
-  }
-  else {
-    $apache_modules = '';
-  }
-
-  // Get some basic PHP vars
-  $php_quantum = array(
-    'memory_limit' => ini_get('memory_limit'),
-    'register_globals' => ini_get('register_globals'),
-    'post_max_size' => ini_get('post_max_size'),
-    'max_execution_time' => ini_get('max_execution_time'),
-    'upload_max_filesize' => ini_get('upload_max_filesize'),
-    'error_log' => ini_get('error_log'),
-    'error_reporting' => ini_get('error_reporting'),
-    'display_errors' => ini_get('display_errors'),
-    'log_errors' => ini_get('log_errors'),
-    'session.cookie_domain' => ini_get('session.cookie_domain'),
-    'session.cookie_lifetime' => ini_get('session.cookie_lifetime'),
-    'newrelic.appname' => ini_get('newrelic.appname'),
-    'SERVER' => $server,
-    'sapi' => php_sapi_name(),
-  );
-
-  $platform = array(
-    'php'               => PHP_VERSION,
-    'webserver_type'    => isset($webserver[1]) ? $webserver[1] : '',
-    'webserver_version' => isset($webserver[2]) ? $webserver[2] : '',
-    'apache_modules'    => $apache_modules,
-    'php_extensions'    => get_loaded_extensions(),
-    'php_quantum'       => $php_quantum,
-    'database_type'     => $db_tasks->name(),
-    'database_version'  => Database::getConnection()->version(),
-    'system_type'       => php_uname('s'),
-    // php_uname() only accepts one character, so we need to concatenate ourselves.
-    'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
-    'mysql'             => (Database::getConnection()->driver() == 'mysql') ? acquia_connector_get_platform_mysql_data() : array(),
-  );
-
-  // Never send NULL (or FALSE?) - that causes hmac errors.
-  foreach ($platform as $key => $value) {
-    if (empty($platform[$key])) {
-      $platform[$key] = '';
-    }
-  }
-
-  return $platform;
-}
-
-/**
- * @return array
- */
-function acquia_connector_get_platform_mysql_data() {
-  $connection = Database::getConnection('default');
-  $result = $connection->query('SHOW GLOBAL STATUS', array(), array());
-
-  $ret = array();
-  if (empty($result)) {
-    return $ret;
-  }
-  foreach ($result as $record) {
-    if (!isset($record->variable_name)) {
-      continue;
-    }
-    switch ($record->variable_name) {
-      case 'Table_locks_waited':
-        $ret['Table_locks_waited'] = $record->value;
-        break;
-      case 'Slow_queries':
-        $ret['Slow_queries'] = $record->value;
-        break;
-      case 'Qcache_hits':
-        $ret['Qcache_hits'] = $record->value;
-        break;
-      case 'Qcache_inserts':
-        $ret['Qcache_inserts'] = $record->value;
-        break;
-      case 'Qcache_queries_in_cache':
-        $ret['Qcache_queries_in_cache'] = $record->value;
-        break;
-      case 'Qcache_lowmem_prunes':
-        $ret['Qcache_lowmem_prunes'] = $record->value;
-        break;
-      case 'Open_tables':
-        $ret['Open_tables'] = $record->value;
-        break;
-      case 'Opened_tables':
-        $ret['Opened_tables'] = $record->value;
-        break;
-      case 'Select_scan':
-        $ret['Select_scan'] = $record->value;
-        break;
-      case 'Select_full_join':
-        $ret['Select_full_join'] = $record->value;
-        break;
-      case 'Select_range_check':
-        $ret['Select_range_check'] = $record->value;
-        break;
-      case 'Created_tmp_disk_tables':
-        $ret['Created_tmp_disk_tables'] = $record->value;
-        break;
-      case 'Created_tmp_tables':
-        $ret['Created_tmp_tables'] = $record->value;
-        break;
-      case 'Handler_read_rnd_next':
-        $ret['Handler_read_rnd_next'] = $record->value;
-        break;
-      case 'Sort_merge_passes':
-        $ret['Sort_merge_passes'] = $record->value;
-        break;
-      case 'Qcache_not_cached':
-        $ret['Qcache_not_cached'] = $record->value;
-        break;
-
-    }
-  }
-
-  return $ret;
-}
-
-/**
- * Helper function to check if an identifer and key exist.
- */
-function acquia_agent_has_credentials() {
-  $config = \Drupal::config('acquia_agent.credentials');
-  return (bool) ($config->get('identifier') && $config->get('key'));
-}
-
-/**
- * Get subscription status from the Acquia Network, and store the result.
- *
- * This check also sends a heartbeat to the Acquia Network unless
- * $params['no_heartbeat'] == 1.
- *
- * @return FALSE, integer (xmlrpc error number), or subscription data
- */
-function acquia_agent_check_subscription($params = array()) {
-  $config = \Drupal::config('acquia_connector.settings');
-  $current_subscription = $config->get('subscription_data');
-  $subscription = FALSE;
-  $active = FALSE;
-  if (!acquia_agent_has_credentials()) {
-    // If there is not an identifier or key, delete any old subscription data.
-    $config->clear('subscription_data');
-  }
-  else {
-    // Get our subscription data
-    $subscription = acquia_agent_get_subscription($params);
-    if (is_numeric($subscription)) {
-      switch ($subscription) {
-        case SUBSCRIPTION_NOT_FOUND:
-        case SUBSCRIPTION_EXPIRED:
-          // Fall through since these values are stored and used by
-          // acquia_search_acquia_subscription_status()
-          break;
-        default:
-          // Likely server error (503) or connection timeout (-110) so leave
-          // current subscription in place. _acquia_agent_request() logged an
-          // error message.
-          return $current_subscription;
-      }
-    }
-    $config->set('subscription_data', $subscription);
-    // Check if our main subscription is active
-    if ($subscription) {
-      $active = acquia_agent_subscription_is_active();
-    }
-  }
-  \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$active, $subscription]);
   return $subscription;
 }

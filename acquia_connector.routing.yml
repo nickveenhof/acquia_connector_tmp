@@ -16,7 +16,7 @@ acquia_connector.setup:
 acquia_connector.start:
   path: '/admin/config/system/acquia-connector/start'
   defaults:
-    _content: '\Drupal\acquia_connector\Controller\StartController::info'
+    _controller: '\Drupal\acquia_connector\Controller\StartController::info'
   requirements:
     _permission: 'administer site configuration'
 
@@ -34,6 +34,18 @@ acquia_connector.status:
     _controller: '\Drupal\acquia_connector\Controller\StatusController::json'
   requirements:
     _custom_access: '\Drupal\acquia_connector\Controller\StatusController::access'
+  options:
+    _maintenance_access: TRUE
+
+acquia_connector.send_module_data:
+  path: '/system/acquia-connector-send-module-data'
+  defaults:
+    _controller: '\Drupal\acquia_connector\Controller\ModuleDataController::sendModuleData'
+  requirements:
+    _custom_access: '\Drupal\acquia_connector\Controller\ModuleDataController::access'
+  options:
+    _maintenance_access: TRUE
+    datatype: plaintext
 
 acquia_connector.refresh_status:
   path: '/admin/config/system/acquia-connector/refresh-status'
@@ -46,7 +58,7 @@ acquia_connector.refresh_status:
 acquia_connector.migrate:
   path: '/admin/config/system/acquia-agent/migrate'
   defaults:
-    _content: '\Drupal\acquia_connector\Controller\MigrateController::migratePage'
+    _controller: '\Drupal\acquia_connector\Controller\MigrateController::migratePage'
     _title: 'Acquia Cloud Migrate'
   requirements:
     _permission: 'administer site configuration'
@@ -54,13 +66,13 @@ acquia_connector.migrate:
 acquia_connector.migrate_check:
   path: '/system/acquia-migrate-check'
   defaults:
-    _content: '\Drupal\acquia_connector\Controller\MigrateController::migrateCheck'
+    _controller: '\Drupal\acquia_connector\Controller\MigrateController::migrateCheck'
     _title: 'Upload capable'
   requirements:
     _permission: 'access content'
 
 acquia_connector.send:
-  path: '/system/acquia-connector-send'
+  path: '/system/acquia-spi-send'
   defaults:
     _controller: '\Drupal\acquia_connector\Controller\SpiController::send'
     _title: 'Acquia SPI send'

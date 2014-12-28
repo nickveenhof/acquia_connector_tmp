@@ -208,8 +208,7 @@ class SettingsForm extends ConfigFormBase {
       );
 
       $path = drupal_get_path('module', 'acquia_connector');
-      $form['#attached']['css'][$path . '/css/acquia_connector.admin.theme.css'] = array();
-
+      $form['#attached']['library'][] = 'acquia_connector/acquia_connector.form';
 //      $key = sha1($this->privateKey->get());
 //      $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
 //

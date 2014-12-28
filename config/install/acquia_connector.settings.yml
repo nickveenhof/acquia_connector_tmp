@@ -27,17 +27,7 @@ spi:
   send_watchdog: true
   module_diff_data: true
   set_variables_override: false
-  set_variables_automatic:
-    - acquia_connector_settings:
-        spi: [set_variables_automatic, send_node_user, admin_priv, module_diff_data, send_watchdog, use_cron]
-    - system_logging: error_level
-    - system_performance:
-        cache:
-          page: [use_internal, max_age]
-        css: [preprocess, gzip]
-        js: [preprocess, gzip]
-        fast_404: [enabled]
-        response: [gzip]
+  set_variables_automatic: ['acquia_spi_set_variables_automatic', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'image_allow_insecure_derivatives', 'googleanalytics_cache', 'acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron']
   ignored_set_variables: []
   saved_variables:
     - { variables: [], time: 0 }

@@ -162,10 +162,8 @@ class SetupForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $storage = $form_state->getStorage();
-
     if (isset($storage['choose']) && isset($storage['response']['subscription'][$form_state->getValue('subscription')])) {
       $config = $this->config('acquia_connector.settings');
-
       $sub = $storage['response']['subscription'][$form_state->getValue('subscription')];
       $config->set('key', $sub['key'])
         ->set('identifier', $sub['identifier'])
@@ -199,7 +197,6 @@ class SetupForm extends ConfigFormBase {
   protected function automaticStartSubmit(FormStateInterface &$form_state) {
     $config = $this->config('acquia_connector.settings');
     $storage = $form_state->getStorage();
-
     if (empty($storage['response']['subscription'])) {
       drupal_set_message($this->t('No subscriptions were found for your account.'), 'error');
     }
