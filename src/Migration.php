@@ -8,7 +8,8 @@
 namespace Drupal\acquia_connector;
 
 use Guzzle\Http\ClientInterface;
-use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Url;
+use Drupal\Core\DrupalKernel;
 
 /**
  * Class Migration.
@@ -73,7 +74,7 @@ class Migration {
       // Parameters used in transfer request.
       'request_params' => array(
         // Return URL on this site.
-        'r' => $this->getUrl('admin/config/system/acquia-agent', array('absolute' => TRUE)),
+        'r' => Url::FromRoute('acquia_connector.settings',  array(), array('absolute' => TRUE))->toString(),
         'y' => 'sar', // For Acquia Hosting
         'stage' => $environment['stage'],
         'nonce' => $environment['nonce'],
@@ -109,7 +110,7 @@ class Migration {
    * Create temporary directory and setup file for migration.
    */
   public function destination(&$migration) {
-    $tmp_dir = realpath(variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR . 'files')) . DIRECTORY_SEPARATOR . 'acquia_migrate' . $migration['id'];
+    $tmp_dir = drupal_realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files') . DIRECTORY_SEPARATOR . 'acquia_migrate' . $migration['id'];
     if (!mkdir($tmp_dir) || !is_writable($tmp_dir)) {
       $migration['error'] = t('Cannot create temporary directory !dir to store site archive.', array('!dir' => $tmp_dir));
       return;
@@ -127,13 +128,15 @@ class Migration {
    */
   public function testSetup(&$migration) {
     $url = $migration['env']['url'];
-    $headers = array(
-      'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
-    );
+    $options = [
+      'headers' => ['User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)'],
+      'allow_redirects' => FALSE,
+      'verify' => \Drupal::config('acquia_connector.settings')->get('spi.ssl_verify'),
+    ];
 
-    $response = \Drupal::service('http_default_client')->get($url, $headers, array('follow_redirects' => FALSE))->send();
+    $response = \Drupal::httpClient()->get($url, $options);
 
-    if ($response->isSuccessful()) {
+    if ($response->getStatusCode() != '200') {
       $migration['error'] = t('Unable to connect to migration destination site, please contact Acquia Support.');
       return FALSE;
     }
@@ -206,7 +209,8 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      variable_set('acquia_agent_cloud_migration', $migration);
+      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+//      variable_set('acquia_agent_cloud_migration', $migration);
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -227,7 +231,8 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      variable_set('acquia_agent_cloud_migration', $migration);
+      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+//      variable_set('acquia_agent_cloud_migration', $migration);
     }
 
     // Check for error and abort if appropriate.
@@ -352,8 +357,8 @@ class Migration {
     // Exclude the migration directory.
     $exclude[] = basename($migration['dir']);
 
-    if (!variable_get('acquia_migrate_files', 1)) {
-      $exclude[] = realpath(variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR . 'files'));
+    if (!\Drupal::config('acquia_connector.settings')->get('migrate.files')) {
+      $exclude[] = drupal_realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files');
     }
 
     return $exclude;
@@ -587,17 +592,6 @@ class Migration {
    */
   public function getToken($now, $return, $secret) {
     return hash_hmac('sha256', $now . $return, $secret);
-  }
-
-  /**
-   * Get url for a path.
-   *
-   * @param null $path
-   * @param array $options
-   * @return mixed
-   */
-  public function getUrl($path = NULL, $options = array()) {
-    return url($path, $options);
   }
 
   /**

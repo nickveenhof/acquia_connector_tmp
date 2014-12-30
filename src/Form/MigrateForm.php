@@ -119,31 +119,32 @@ dpm($data); // @todo: remove debug
    * Submit handler for Migrate button on settings form.
    */
   public function submitMigrateCancel(array &$form, FormStateInterface $form_state) {
-    $form_state['redirect'] = new Url('acquia_connector.settings');
+    $form_state->setRedirect('acquia_connector.settings');
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $values = $form_state->getValues();
     // Sanity check.
-    if (empty($form_state['values']['envs'])) {
+    if (empty($values['envs'])) {
       return;
     }
 
-    $migrate_files = isset($form_state['values']['migrate_files']) ? $form_state['values']['migrate_files'] : TRUE;
+    $migrate_files = isset($values['migrate_files']) ? $values['migrate_files'] : TRUE;
 
-    $this->config('acquia_connector.settings')->set('acquia_migrate_files', $migrate_files)->save();
+    $this->config('acquia_connector.settings')->set('migrate.files', $migrate_files)->save();
 
-    $reduce_db_size = !empty($form_state['values']['reduce_db_size']) ? $form_state['values']['reduce_db_size'] : FALSE;
+    $reduce_db_size = !empty($values['reduce_db_size']) ? $values['reduce_db_size'] : FALSE;
 
-    if (count($form_state['values']['envs']) > 1) {
+    if (count($values['envs']) > 1) {
       // Use selected environment.
-      $env = $form_state['values']['envs'][$form_state['values']['environment']];
-      $site_name = $form_state['values']['environment'];
+      $env = $values['envs'][$values['environment']];
+      $site_name = $values['environment'];
     }
     else {
-      $env = array_pop($form_state['values']['envs']);
+      $env = array_pop($values['envs']);
       $site_name = $env;
     }
 
@@ -157,7 +158,7 @@ dpm($data); // @todo: remove debug
 
     if (isset($migration['error']) && $migration['error'] !== FALSE) {
       drupal_set_message($this->t('Unable to begin migration. @error', array('@error' => $migration['error'])), 'error');
-      $form_state['redirect'] = new Url('acquia_connector.settings');
+      $form_state->setRedirect('acquia_connector.settings');
     }
     else {
       $batch = array(

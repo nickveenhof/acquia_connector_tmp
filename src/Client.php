@@ -203,6 +203,7 @@ class Client {
 
     try{
       $response = $this->request('POST', '/spi-api/site', $data);
+      // @todo: Check is $respinse['authenticator'] exists
       if ($this->validateResponse($key, $response, $authenticator)) {
         return $response;
       }
