@@ -127,26 +127,6 @@ function acquia_agent_valid_credentials($identifier, $key, $acquia_network_addre
 }
 
 /**
- * Prepare and send a XML-RPC request to Acquia Network with an authenticator.
- *
- */
-function acquia_agent_call($method, $params, $identifier = NULL, $key = NULL, $acquia_network_address = NULL) {
-  $acquia_network_address = acquia_agent_network_address($acquia_network_address);
-  $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
-  $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
-  $ssl = isset($_SERVER["HTTPS"]) ? TRUE : FALSE;
-  $data = array(
-    'authenticator' => _acquia_agent_authenticator($params, $identifier, $key),
-    'ip' => $ip,
-    'host' => $host,
-    'ssl' => $ssl,
-    'body' => $params,
-  );
-  $data['result'] = _acquia_agent_request($acquia_network_address, $method, $data);
-  return $data;
-}
-
-/**
  * Returns an error message for the most recent (failed) attempt to connect
  * to the Acquia Network during the current page request. If there were no
  * failed attempts, returns FALSE.
@@ -179,45 +159,6 @@ function acquia_agent_connection_error_message() {
     }
   }
   return FALSE;
-}
-
-/**
- * Helper function to build the xmlrpc target address.
- */
-function acquia_agent_network_address($acquia_network_address = NULL) {
-  if (empty($acquia_network_address)) {
-    $acquia_network_address = acquia_agent_settings('acquia_network_address');
-  }
-  // Strip protocol (scheme) from Network address
-  $uri = parse_url($acquia_network_address);
-  if (isset($uri['host'])) {
-    $acquia_network_address = $uri['host'];
-  }
-  $acquia_network_address .= isset($uri['port']) ? ':' . $uri['port'] : '';
-  $acquia_network_address .= (isset($uri['path']) && isset($uri['host'])) ? $uri['path'] : '';
-  // Add a scheme based on PHP's capacity.
-  if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
-    // OpenSSL is available in PHP
-    $acquia_network_address = 'https://' . $acquia_network_address;
-  }
-  else {
-    $acquia_network_address = 'http://' . $acquia_network_address;
-  }
-  $acquia_network_address .= '/xmlrpc.php';
-  return $acquia_network_address;
-}
-
-/**
- * API function used by others to ensure version information is loaded.
- *
- * Saves us some cycles to not load it each time, when it is actually
- * not needed. We store this in a separate file, so that the Acquia
- * build process only needs to alter that file instead of the main
- * module file.
- */
-function acquia_agent_load_versions() {
-  // Include version number information.
-  include_once 'acquia_agent_drupal_version.inc';
 }
 
 /**
@@ -264,53 +205,6 @@ function acquia_agent_valid_response($data, $key = NULL) {
   }
   $hash = _acquia_agent_hmac($key, $result_auth['time'], $result_auth['nonce'], $result['body']);
   return $valid && ($hash == $result_auth['hash']);
-}
-
-/**
- * Send a XML-RPC request.
- *
- * This function should never be called directly - use acquia_agent_call().
- */
-function _acquia_agent_request($url, $method, $data) {
-  $ctx = acquia_agent_stream_context_create($url);
-  if (!$ctx) {
-    // TODO: what's a meaningful fault code?
-    xmlrpc_error(-1, t('SSL is not supported or setup failed'));
-    $result = FALSE;
-  }
-  else {
-    $result = xmlrpc($url, array($method => array($data)), array('context' => $ctx));
-  }
-  if ($errno = xmlrpc_errno()) {
-    $acquia_debug = \Drupal::config('acquia_agent')->get('debug');
-    if ($acquia_debug) {
-      watchdog('acquia agent', '@message (@errno): %server - %method - <pre>@data</pre>', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method, '@data' => var_export($data, TRUE)), WATCHDOG_ERROR);
-    }
-    else {
-      watchdog('acquia agent', '@message (@errno): %server - %method', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno(), '%server' => $url, '%method' => $method), WATCHDOG_ERROR);
-    }
-    $result = FALSE;
-  }
-  return $result;
-}
-
-/**
- * Creates an authenticator based on xmlrpc params and a HMAC-SHA1.
- */
-function _acquia_agent_authenticator($params = array(), $identifier = NULL, $key = NULL) {
-  if (empty($identifier)) {
-    $identifier = acquia_agent_settings('acquia_identifier');
-  }
-  if (empty($key)) {
-    $key = acquia_agent_settings('acquia_key');
-  }
-  $time = REQUEST_TIME;
-  $nonce = base64_encode(hash('sha256', drupal_random_bytes(55), TRUE));
-  $authenticator['identifier'] = $identifier;
-  $authenticator['time'] = $time;
-  $authenticator['hash'] = _acquia_agent_hmac($key, $time, $nonce, $params);
-  $authenticator['nonce'] = $nonce;
-  return $authenticator;
 }
 
 /**

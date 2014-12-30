@@ -10,6 +10,7 @@ namespace Drupal\acquia_connector\Form;
 use Drupal\acquia_connector\Migration;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -28,18 +29,16 @@ class MigrateForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
     $identifier = $config->get('identifier');
     $key = $config->get('key');
-    $data = acquia_agent_call('acquia.agent.cloud.migration.environments', array('identifier' => $identifier), $identifier, $key, $config->get('network_address'));
+    $client = \Drupal::service('acquia_connector.client');
+    $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
 
+dpm($data); // @todo: remove debug
     $error = NULL;
-    if ($errno = xmlrpc_errno()) {
-      acquia_agent_report_xmlrpc_error();
-      return $this->redirect('acquia_connector.settings');
-    }
-    elseif (!$data || !isset($data['result'])) {
+    if (!$data || !isset($data['result'])) {
       $error = $this->t('Server error, please submit again.');
     }
     else {
@@ -55,6 +54,7 @@ class MigrateForm extends ConfigFormBase {
         $error = $this->t('Server error, unable to retrieve environments for migration');
       }
     }
+    drupal_set_message($error, 'error');
 
     if ($error) {
       drupal_set_message($error, 'error');
@@ -118,14 +118,14 @@ class MigrateForm extends ConfigFormBase {
   /**
    * Submit handler for Migrate button on settings form.
    */
-  public function submitMigrateCancel($form, &$form_state) {
+  public function submitMigrateCancel(array &$form, FormStateInterface $form_state) {
     $form_state['redirect'] = new Url('acquia_connector.settings');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Sanity check.
     if (empty($form_state['values']['envs'])) {
       return;
@@ -190,8 +190,8 @@ class MigrateForm extends ConfigFormBase {
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   A redirect response object that may be returned by the controller.
    */
-  protected function redirect($route_name, array $route_parameters = array(), $status = 302) {
-    $url = $this->urlGenerator()->generate($route_name, $route_parameters, TRUE);
+  protected function redirect($route_name, array $route_parameters = array(), array $options = array(), $status = 302) {
+    $url = Url::fromRoute($route_name, $route_parameters, array('absolute' => TRUE))->toString();
     return new RedirectResponse($url, $status);
   }
 

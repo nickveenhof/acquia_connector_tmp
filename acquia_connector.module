@@ -209,6 +209,7 @@ function acquia_connector_system_info_alter(&$info) {
  * not needed. We store this in a separate file, so that the Acquia
  * build process only needs to alter that file instead of the main
  * module file.
+ * D7: acquia_agent_load_versions().
  */
 function acquia_connector_load_versions() {
   // Include version number information.

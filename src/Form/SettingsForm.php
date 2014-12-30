@@ -100,7 +100,7 @@ class SettingsForm extends ConfigFormBase {
     // Check our connection to the Acquia Network and validity of the credentials.
     if (!$this->client->validateCredentials($identifier, $key)) {
       $error_message = array(); // acquia_agent_connection_error_message();
-      $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('verify_peer');
+      $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.verify_peer');
       if (empty($error_message) && $ssl_available) {
         $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_agent_verify_peer to false.');
       }
