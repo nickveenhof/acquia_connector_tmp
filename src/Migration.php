@@ -8,8 +8,11 @@
 namespace Drupal\acquia_connector;
 
 use Guzzle\Http\ClientInterface;
+use GuzzleHttp\Post\PostFile;
 use Drupal\Core\Url;
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Archiver;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Class Migration.
@@ -155,16 +158,21 @@ class Migration {
    * Complete migration tasks.
    */
   public function complete(&$migration) {
-    $identifier = acquia_agent_settings('acquia_identifier');
-    $key = acquia_agent_settings('acquia_key');
-    $body = array('identifier' => acquia_agent_settings('acquia_identifier'));
+    $config = \Drupal::config('acquia_connector.settings');
+    $identifier = $config->get('identifier');
+    $key = $config->get('key');
+    $client = \Drupal::service('acquia_connector.client');
+    $body = array('identifier' => $identifier);
     if (isset($migration['redirect']) && is_array($migration['redirect']['data'])) {
       $body += $migration['redirect']['data'];
     }
-    $data = acquia_agent_call('acquia.agent.cloud.migration.complete', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
+    $data = $client->acquia_agent_call('/agent-api/subscription/migration/complete', $body, $key);
+//    $data = acquia_agent_call('acquia.agent.cloud.migration.complete', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
+dpm('$data from complete'); // @todo: remove debug
+dpm($data); // @todo: remove debug
 
-    if ($errno = xmlrpc_errno()) {
-      acquia_agent_report_xmlrpc_error();
+    if (!empty($data['result']['error'])) {
+      drupal_set_message(t('Error: @message (@errno)', array('@message' => $data['result']['message'], '@errno' => $data['result']['code'])), 'error');
       $migration['error'] = TRUE;
       return;
     }
@@ -175,7 +183,7 @@ class Migration {
 
     // Response is in $data['result'].
     $result = $data['result'];
-    if ($result['success']) {
+    if (!empty($result['success'])) {
       $migration['network_url'] = $result['network_url'];
     }
     else {
@@ -189,7 +197,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      variable_set('acquia_agent_cloud_migration', $migration);
+      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -210,7 +218,6 @@ class Migration {
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
       \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
-//      variable_set('acquia_agent_cloud_migration', $migration);
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -232,7 +239,6 @@ class Migration {
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
       \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
-//      variable_set('acquia_agent_cloud_migration', $migration);
     }
 
     // Check for error and abort if appropriate.
@@ -254,7 +260,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      variable_set('acquia_agent_cloud_migration', $migration);
+      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
 
     // Check for error and abort if appropriate.
@@ -284,24 +290,11 @@ class Migration {
     if ($context['sandbox']['position'] !== FALSE) {
       $context['message'] = t('Uploading archive. Transferred !pos of !size bytes.', array('!pos' => $context['sandbox']['position'], '!size' => $context['sandbox']['size']));
       $finished = $context['sandbox']['position'] / $context['sandbox']['size'];
-      if ($finished !== 1  && $this->brokenRounding() && $finished > 0.98) {
-        // In case this version of Drupal 7 is lower than 7.4
-        // force finished to 98% for remaining chunks due to rounding error
-        // in Batch API. http://drupal.org/node/1089472
-        $finished = 0.98;
-      }
       $context['finished'] = $finished;
     }
     else {
       $context['finished'] = 1;
     }
-  }
-
-  /**
-   * If this version of Drupal is less than 7.4 it suffers from Batch API bug.
-   */
-  function brokenRounding() {
-    return in_array(\Drupal::VERSION, array('7.0', '7.1', '7.2', '7.3'));
   }
 
   /**
@@ -317,12 +310,12 @@ class Migration {
       $this->complete($migration);
 
       if ($migration['error'] != FALSE) {
-        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => l(t('Network dashboard'), 'https://network.acquia.com/')));
+        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://network.acquia.com/'))));
         drupal_set_message($message);
       }
       else {
         $message = t('Migrate success. You can see import progress on the !network.', array(
-          '!network' => l(t('Acquia Network'), $migration['network_url'], array('external' => TRUE)),
+          '!network' => \Drupal::l(t('Acquia Network'), Url::fromUri($migration['network_url'], array('external' => TRUE))),
         ));
         drupal_set_message($message);
       }
@@ -331,7 +324,7 @@ class Migration {
       $this->cleanup($migration);
     }
     else {
-      watchdog('acquia-migrate', 'Migration error @m', array('@m' => var_export($migration, TRUE)), WATCHDOG_ERROR);
+      \Drupal::logger('acquia-migrate')->error('Migration error @m', array('@m' => var_export($migration, TRUE)));
       $message = t('There was an error during migration.');
 
       if ($migration && is_string($migration['error'])) {
@@ -343,7 +336,7 @@ class Migration {
       $this->cleanup($migration);
     }
 
-    drupal_goto('admin/config/system/acquia-agent');
+    new RedirectResponse(\Drupal::url('acquia_connector.migrate'));
   }
 
   /**
@@ -382,7 +375,7 @@ class Migration {
         $dest_file .= '.' . $migration['compression_ext'];
       }
 
-      $gz = new \Archive_Tar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
+      $gz = new Archiver\ArchiveTar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
       if (!empty($migration['db_file'])) {
         // Add db file.
         $ret = $gz->addModify(array($migration['db_file']), '', $migration['dir'] . DIRECTORY_SEPARATOR);
@@ -494,42 +487,44 @@ class Migration {
     $params['t'] = time();
     $params[$migration['env']['stage']] = $this->getToken($params['t'], $params['r'], $migration['env']['secret']);
 
-    $data = '';
-    $boundary = $this->multipartBoundary();
-    $data = $this->multipartEncodeParams($boundary, $params, $migration['file_name'], $content);
-
-    $headers = array(
-      'Content-Type' => "multipart/form-data, boundary=$boundary",
-      'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
-    );
+    $data = $params;
+    $data['files[u]'] = new PostFile('files[u]', $content, $migration['file_name']);
     $url = $migration['env']['url'];
+    $options = [
+      'headers' => [
+        'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
+      ],
+      'allow_redirects' => FALSE,
+      'verify' => \Drupal::config('acquia_connector.settings')->get('spi.ssl_verify'),
+      'body' => $data,
+    ];
 
-    $return = drupal_http_request($url, array(
-      'headers' => $headers,
-      'method' => 'POST',
-      'data' => $data,
-      'max_redirects' => 0,
-    ));
+    $response = \Drupal::httpClient()->post($url, $options, $data);
 
-    if ($return->code == 200) {
-      $output = drupal_json_decode($return->data);
+    try {
+      $data = $response->json();
+    }
+    catch (\Exception $e) {
+      $data = $e->getMessage();
+    }
 
-      if (!is_array($output)) {
+    if ($response->getStatusCode() == '200') {
+      if (!is_array($data)) {
         $migration['error'] = t('Error occurred, please try again or consult the logs.');
-        $migration['error_data'] = $return->data;
+        $migration['error_data'] = $data;
         return FALSE;
       }
-      elseif (!empty($output['err'])) {
-        $migration['error'] = $output['err'];
-        $migration['error_data'] = $return->data;
+      elseif (!empty($data['err'])) {
+        $migration['error'] = $data['err'];
+        $migration['error_data'] = $data;
         return FALSE;
       }
       else {
         // Validate signature.
-        $response_signature = $output['sig'];
-        unset($output['sig']);
+        $response_signature = $data['sig'];
+        unset($data['sig']);
         $sig = '';
-        foreach ($output as $value) {
+        foreach ($data as $value) {
           $sig .= $value;
         }
         $signature = hash_hmac('sha256', $sig, $migration['env']['secret']);
@@ -537,19 +532,22 @@ class Migration {
         // Check if response is correct, if not stop migration.
         if ($signature != $response_signature) {
           $migration['error'] = t('Signature from server is wrong');
-          $migration['error_data'] = $return->data;
+          $migration['error_data'] = $data;
           return FALSE;
         }
       }
     }
-    elseif ($return->code == 302) {
+    elseif ($response->getStatusCode() == 302) {
       // Final chunk, signature and any error is in Location URL.
-      $redirect_url = $return->redirect_url;
+      if (!($response->hasHeader('Location') && $redirect_url = $response->getHeader('Location'))) {
+        $redirect_url = $response->getEffectiveUrl();
+      }
+      drupal_set_message('$redirect_url: ' . $redirect_url); // @todo: remove debug
       $parsed = parse_url($redirect_url);
       parse_str($parsed['query'], $query);
       if (!empty($query['err'])) {
         $migration['error'] = $query['err'];
-        $migration['error_data'] = $return->data;
+        $migration['error_data'] = $data;
         return FALSE;
       }
       else {
@@ -571,14 +569,14 @@ class Migration {
         }
         else {
           $migration['error'] = t('Signature from server is wrong');
-          $migration['error_data'] = $return->data;
+          $migration['error_data'] = $data;
           return FALSE;
         }
       }
     }
     else {
       $migration['error'] = t('Transfer error');
-      $migration['error_data'] = $return->data;
+      $migration['error_data'] = $data;
       return FALSE;
     }
   }
@@ -660,8 +658,7 @@ class Migration {
 
       unset($migration['dir']);
     }
-
-    variable_set('acquia_agent_cloud_migration', $migration);
+    \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
   }
 
   /**
@@ -811,69 +808,6 @@ SET NAMES utf8;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 ";
-  }
-
-  /**
-   * Create multipart boundary
-   *
-   * @return
-   *   Boundary
-   */
-  protected function multipartBoundary() {
-    return '---------------------------' . substr(md5(rand(0, 32000)), 0, 10);
-  }
-
-  /**
-   * Encode params array as multipart/form-data string
-   *
-   * @param $boundary
-   *   Boundary to delimit parameters
-   * @param $params
-   *   Form data array
-   * @return
-   *   Encoded string for drupal_http_request
-   */
-  protected function multipartEncodeParams($boundary, $params, $filename, $content) {
-    $output = '';
-
-    foreach ($params as $key => $value) {
-      $output .= "--$boundary\r\n";
-      $output .= $this->multipartEncText($key, $value);
-    }
-
-    $output .= "--$boundary\r\n";
-    $output .= $this->multipartEncFile('files[u]', $filename, $content);
-    $output .= "--$boundary--";
-
-    return $output;
-  }
-
-  /**
-   * Encode simple param
-   *
-   * @param type $name
-   * @param type $value
-   * @return type
-   */
-  protected function multipartEncText($name,  $value) {
-    return "Content-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n";
-  }
-
-  /**
-   * @param $name
-   * @param $filename
-   * @param $file_content
-   *
-   * @return string
-   */
-  protected function multipartEncFile($name, $filename, $file_content) {
-    $mimetype = "application/octet-stream";
-    $data = "Content-Disposition: form-data; name=\"$name\"; filename=\"$filename\"\r\n";
-    $data .= "Content-Transfer-Encoding: binary\r\n";
-    $data .= "Content-Type: $mimetype\r\n\r\n";
-    $data .= $file_content . "\r\n";
-
-    return $data;
   }
 
 }

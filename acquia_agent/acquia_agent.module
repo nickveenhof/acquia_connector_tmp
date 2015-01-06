@@ -5,10 +5,6 @@
  *   Acquia Agent securely sends information to Acquia Network.
  */
 
-function acquia_agent_report_xmlrpc_error() {
-  drupal_set_message(t('Error: @message (@errno)', array('@message' => xmlrpc_error_msg(), '@errno' => xmlrpc_errno())), 'error');
-}
-
 /**
  * Implemetation of hook_menu_alter()
  */

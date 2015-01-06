@@ -54,7 +54,6 @@ dpm($data); // @todo: remove debug
         $error = $this->t('Server error, unable to retrieve environments for migration');
       }
     }
-    drupal_set_message($error, 'error');
 
     if ($error) {
       drupal_set_message($error, 'error');
