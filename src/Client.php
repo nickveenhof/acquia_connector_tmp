@@ -165,7 +165,7 @@ class Client {
 
     try{
       $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
-      if ($this->validateResponse($key, $response, $authenticator)) {
+      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
         return $subscription + $response['body'];
       }
     }
@@ -186,7 +186,7 @@ class Client {
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
     $authenticator =  $this->buildAuthenticator($key, $body);
-    dpm('sendNspi $authenticator: ');
+    dpm('sendNspi $authenticator: '); // @todo: remove debug
     dpm($authenticator);
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
@@ -198,13 +198,12 @@ class Client {
       'host' => $host,
       'ssl' => $ssl,
     );
-    dpm('sendNspi $data: ');
+    dpm('sendNspi $data: '); // @todo: remove debug
     dpm($data);
 
     try{
       $response = $this->request('POST', '/spi-api/site', $data);
-      // @todo: Check is $respinse['authenticator'] exists
-      if ($this->validateResponse($key, $response, $authenticator)) {
+      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
         return $response;
       }
     }
@@ -282,7 +281,7 @@ class Client {
     // @todo support response code
     if (!empty($response)) {
       $body = $response->json();
-      if (!empty($body['error'])) {
+      if (!empty($body['error']) || !empty($body['is_error'])) {
         drupal_set_message($body['code'] . ' : ' .$body['message'], 'error');
       }
       return $body;
