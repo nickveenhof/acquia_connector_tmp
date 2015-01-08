@@ -307,7 +307,7 @@ class Migration {
       $this->complete($migration);
 
       if ($migration['error'] != FALSE) {
-        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://network.acquia.com/'))));
+        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://insight.acquia.com/'))));
         drupal_set_message($message);
       }
       else {
