@@ -67,7 +67,7 @@ class Subscription {
       $config->set('subscription_data', $subscription)->save();
 
       // @todo hook signature has changed, doesn't pass active anymore.
-      \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', $subscription);
+      //\Drupal::moduleHandler()->invokeAll('acquia_subscription_status', $subscription);
     }
 
 
