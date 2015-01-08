@@ -168,6 +168,16 @@ class ConnectorTest extends WebTestBase{
     $this->drupalGet($this->setup_path);
     $this->drupalGet($this->settings_path);
     $this->assertText($this->acquiaConnectorStrings('subscription'), 'Subscription connected with credentials');
+    // Confirm menu reports active subscription.
+    $this->drupalGet('admin');
+    $this->assertText($this->acquiaConnectorStrings('menu-active'), 'Subscription active menu message appears');
+    // Test dynamic banner.
+    $edit_fields = array(
+      'acquia_dynamic_banner' => TRUE,
+    );
+    $submit_button = 'Save configuration';
+    //$this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
+    $this->assertFieldChecked('edit-acquia-dynamic-banner', '"Receive updates from Acquia" option stays saved');
   }
 
 }
