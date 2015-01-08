@@ -7,6 +7,7 @@
 
 namespace Drupal\acquia_connector\Controller;
 
+use Drupal\acquia_connector\Form\MigrateForm;
 use Drupal\acquia_connector\Migration;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,10 +28,8 @@ class MigrateController extends ControllerBase {
 
     if (!empty($identifier) && !empty($key)) {
       if (\Drupal::service('acquia_connector.client')->validateCredentials($identifier, $key)) {
-        $form_builder = $this->formBuilder()->getForm('');
-        $form_builder->setRequest($request);
-
-        return $form_builder->getForm('\Drupal\acquia_connector\Form\MigrateForm');
+        $form_builder = \Drupal::formBuilder();
+        return $form_builder->getForm('Drupal\acquia_connector\Form\MigrateForm');
       }
       else {
         $error = acquia_agent_connection_error_message();

@@ -52,8 +52,8 @@ class Client {
       'Accept' => 'application/json'
     );
     $this->config = $config->get('acquia_connector.settings');
-    $this->server = $this->config->get('network_address');
-    $this->client->setDefaultOption('verify', $this->config->get('ssl_verify'));
+    $this->server = $this->config->get('spi.server');
+    $this->client->setDefaultOption('verify', $this->config->get('spi.ssl_verify'));
   }
 
   /**
@@ -165,7 +165,7 @@ class Client {
 
     try{
       $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
-      if ($this->validateResponse($key, $response, $authenticator)) {
+      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
         return $subscription + $response['body'];
       }
     }
@@ -186,11 +186,11 @@ class Client {
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
     $authenticator =  $this->buildAuthenticator($key, $body);
-    dpm('sendNspi $authenticator: ');
+    dpm('sendNspi $authenticator: '); // @todo: remove debug
     dpm($authenticator);
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
-    $ssl = isset($_SERVER["HTTPS"]) ? TRUE : FALSE;
+    $ssl = \Drupal::request()->isSecure();
     $data = array(
       'body' => $body,
       'authenticator' => $authenticator,
@@ -198,12 +198,12 @@ class Client {
       'host' => $host,
       'ssl' => $ssl,
     );
-    dpm('sendNspi $data: ');
+    dpm('sendNspi $data: '); // @todo: remove debug
     dpm($data);
 
     try{
       $response = $this->request('POST', '/spi-api/site', $data);
-      if ($this->validateResponse($key, $response, $authenticator)) {
+      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
         return $response;
       }
     }
@@ -281,7 +281,7 @@ class Client {
     // @todo support response code
     if (!empty($response)) {
       $body = $response->json();
-      if (!empty($body['error'])) {
+      if (!empty($body['error']) || !empty($body['is_error'])) {
         drupal_set_message($body['code'] . ' : ' .$body['message'], 'error');
       }
       return $body;
@@ -351,4 +351,29 @@ class Client {
   protected function getNonce() {
     return Crypt::hashBase64(uniqid(mt_rand(), TRUE) . Crypt::randomBytes(55));
   }
+
+  /**
+   * Prepare and send a REST request to Acquia Network with an authenticator.
+   * D7: acquia_agent_call().
+   */
+  public function acquia_agent_call($method, $params, $key = NULL) {
+    if (empty($key)) {
+      $config = \Drupal::config('acquia_connector.settings');
+      $key = $config->get('key');
+    }
+    $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
+    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
+    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
+    $ssl = \Drupal::request()->isSecure();
+    $data = array(
+      'authenticator' => $this->buildAuthenticator($key, $params),
+      'ip' => $ip,
+      'host' => $host,
+      'ssl' => $ssl,
+      'body' => $params,
+    );
+    $data['result'] = $this->request('POST', $method, $data);
+    return $data;
+  }
+
 }

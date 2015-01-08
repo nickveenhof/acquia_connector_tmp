@@ -108,7 +108,7 @@ class SpiController extends ControllerBase {
       'uid_0_present'  => $this->getUidZerroIsPresent(),
     );
 
-    $scheme = parse_url($this->config('acquia_connector.settings')->get('network_address'), PHP_URL_SCHEME);
+    $scheme = parse_url($this->config('acquia_connector.settings')->get('spi.server'), PHP_URL_SCHEME);
     $via_ssl = (in_array('ssl', stream_get_transports(), TRUE) && $scheme == 'https') ? TRUE : FALSE;
     if ($this->config('acquia_connector.settings')->get('spi.ssl_override')) {
       $via_ssl = TRUE;

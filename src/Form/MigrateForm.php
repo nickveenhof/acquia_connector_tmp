@@ -10,6 +10,7 @@ namespace Drupal\acquia_connector\Form;
 use Drupal\acquia_connector\Migration;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -28,18 +29,15 @@ class MigrateForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
     $identifier = $config->get('identifier');
     $key = $config->get('key');
-    $data = acquia_agent_call('acquia.agent.cloud.migration.environments', array('identifier' => $identifier), $identifier, $key, $config->get('network_address'));
+    $client = \Drupal::service('acquia_connector.client');
+    $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
 
     $error = NULL;
-    if ($errno = xmlrpc_errno()) {
-      acquia_agent_report_xmlrpc_error();
-      return $this->redirect('acquia_connector.settings');
-    }
-    elseif (!$data || !isset($data['result'])) {
+    if (!$data || !isset($data['result'])) {
       $error = $this->t('Server error, please submit again.');
     }
     else {
@@ -118,32 +116,33 @@ class MigrateForm extends ConfigFormBase {
   /**
    * Submit handler for Migrate button on settings form.
    */
-  public function submitMigrateCancel($form, &$form_state) {
-    $form_state['redirect'] = new Url('acquia_connector.settings');
+  public function submitMigrateCancel(array &$form, FormStateInterface $form_state) {
+    $form_state->setRedirect('acquia_connector.settings');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    $values = $form_state->getValues();
     // Sanity check.
-    if (empty($form_state['values']['envs'])) {
+    if (empty($values['envs'])) {
       return;
     }
 
-    $migrate_files = isset($form_state['values']['migrate_files']) ? $form_state['values']['migrate_files'] : TRUE;
+    $migrate_files = isset($values['migrate_files']) ? $values['migrate_files'] : TRUE;
 
-    $this->config('acquia_connector.settings')->set('acquia_migrate_files', $migrate_files)->save();
+    $this->config('acquia_connector.settings')->set('migrate.files', $migrate_files)->save();
 
-    $reduce_db_size = !empty($form_state['values']['reduce_db_size']) ? $form_state['values']['reduce_db_size'] : FALSE;
+    $reduce_db_size = !empty($values['reduce_db_size']) ? $values['reduce_db_size'] : FALSE;
 
-    if (count($form_state['values']['envs']) > 1) {
+    if (count($values['envs']) > 1) {
       // Use selected environment.
-      $env = $form_state['values']['envs'][$form_state['values']['environment']];
-      $site_name = $form_state['values']['environment'];
+      $env = $values['envs'][$values['environment']];
+      $site_name = $values['environment'];
     }
     else {
-      $env = array_pop($form_state['values']['envs']);
+      $env = array_pop($values['envs']);
       $site_name = $env;
     }
 
@@ -152,12 +151,12 @@ class MigrateForm extends ConfigFormBase {
     $migration = $migration_class->prepare($env);
     $migration['site_name'] = $site_name;
     if ($reduce_db_size) {
-      $migration['no_data_tables'] = array('cache', 'cache_menu', 'cache_page', 'cache_field', 'sessions', 'watchdog');
+      $migration['no_data_tables'] = array('cachetags', 'cache_bootstrap', 'cache_config', 'cache_data', 'cache_default', 'cache_discovery', 'cache_entity', 'cache_menu', 'cache_render', 'cache_toolbar', 'sessions', 'watchdog');
     }
 
     if (isset($migration['error']) && $migration['error'] !== FALSE) {
       drupal_set_message($this->t('Unable to begin migration. @error', array('@error' => $migration['error'])), 'error');
-      $form_state['redirect'] = new Url('acquia_connector.settings');
+      $form_state->setRedirect('acquia_connector.settings');
     }
     else {
       $batch = array(
@@ -190,8 +189,8 @@ class MigrateForm extends ConfigFormBase {
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   A redirect response object that may be returned by the controller.
    */
-  protected function redirect($route_name, array $route_parameters = array(), $status = 302) {
-    $url = $this->urlGenerator()->generate($route_name, $route_parameters, TRUE);
+  protected function redirect($route_name, array $route_parameters = array(), array $options = array(), $status = 302) {
+    $url = Url::fromRoute($route_name, $route_parameters, array('absolute' => TRUE))->toString();
     return new RedirectResponse($url, $status);
   }
 

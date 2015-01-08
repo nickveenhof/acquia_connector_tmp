@@ -1,15 +1,12 @@
 cloud_migration: []
 identifier: ''
 key: ''
-network_address: 'https://rpc.acquia.com'
-ssl_verify: true
 subscription_data:
   - { active: false }
 subscription_name: ''
 use_cron: true
 debug: false
 cron_interval: 30
-verify_peer: false
 migrate_files: true
 hide_signup_messages: false
 ah:
@@ -18,6 +15,9 @@ ah:
     identifier: false
 spi:
   server: 'https://nspi.acquia.com'
+  ssl_override: false
+  ssl_verify: true
+  verify_peer: false
   def_vars: []
   def_waived_vars: []
   def_timestamp: 0
