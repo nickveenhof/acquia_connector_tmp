@@ -36,7 +36,6 @@ class MigrateForm extends ConfigFormBase {
     $client = \Drupal::service('acquia_connector.client');
     $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
 
-dpm($data); // @todo: remove debug
     $error = NULL;
     if (!$data || !isset($data['result'])) {
       $error = $this->t('Server error, please submit again.');
@@ -152,7 +151,7 @@ dpm($data); // @todo: remove debug
     $migration = $migration_class->prepare($env);
     $migration['site_name'] = $site_name;
     if ($reduce_db_size) {
-      $migration['no_data_tables'] = array('cache', 'cache_menu', 'cache_page', 'cache_field', 'sessions', 'watchdog');
+      $migration['no_data_tables'] = array('cachetags', 'cache_bootstrap', 'cache_config', 'cache_data', 'cache_default', 'cache_discovery', 'cache_entity', 'cache_menu', 'cache_render', 'cache_toolbar', 'sessions', 'watchdog');
     }
 
     if (isset($migration['error']) && $migration['error'] !== FALSE) {

@@ -167,9 +167,6 @@ class Migration {
       $body += $migration['redirect']['data'];
     }
     $data = $client->acquia_agent_call('/agent-api/subscription/migration/complete', $body, $key);
-//    $data = acquia_agent_call('acquia.agent.cloud.migration.complete', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
-dpm('$data from complete'); // @todo: remove debug
-dpm($data); // @todo: remove debug
 
     if (!empty($data['result']['error'])) {
       drupal_set_message(t('Error: @message (@errno)', array('@message' => $data['result']['message'], '@errno' => $data['result']['code'])), 'error');
