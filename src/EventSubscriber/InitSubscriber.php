@@ -121,10 +121,15 @@ class InitSubscriber implements EventSubscriberInterface {
       (strpos($request, PublicStream::basePath()) !== 0)) {
       $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="!acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
       if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
-        // @todo The "Learn more" link is broken. Fix it.
         $text = '<a href="!settings">Connect your site to the Acquia Network now</a>. <a href="!more">Learn more</a>.';
       }
-      $message = t($text, array('!acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(), '!settings' => Url::fromRoute('acquia_connector.setup')->toString()));
+      $message = t(
+        $text,
+        [
+          '!more' => Url::fromUri('https://docs.acquia.com/network/install')->getUri(),
+          '!acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(),
+          '!settings' => Url::fromRoute('acquia_connector.setup')->toString(),
+        ]);
       drupal_set_message($message, 'warning', FALSE);
     }
   }
