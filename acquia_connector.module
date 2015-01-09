@@ -90,44 +90,44 @@ function acquia_connector_cron() {
  * Implements hook_toolbar().
  */
 function acquia_connector_toolbar() {
-  $link = array(
+  $link = [
     '#type' => 'link',
-    '#options' => array(
-      'html' => TRUE
-    ),
-  );
+    '#theme_wrappers' => [],
+    '#type' => 'link',
+    '#options' => ['html' => TRUE,],
+  ];
 
   $subscription_class = new Subscription();
 
   if ($subscription_class->isActive()) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
-
+    // @todo Fix CSS
     if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
-      $icon = '<img src="' . base_path() . 'core/misc/message-24-ok.png" alt="ok" style="vertical-align: middle;" />';
+      $icon = '<img src="' . base_path() . 'core/misc/icons/73b355/check.svg" alt="ok" style="vertical-align: middle;" />';
       $link['#title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
       $link['#options']['attributes']['class'][] = "acquia-active-subscription";
-      $link['#href'] = $subscription['href'];
+      $link['#url'] = Url::fromUri($subscription['href']);
     }
   }
 
-  if (empty($link['#href'])) {
+  if (empty($link['#url'])) {
     // Yes, this uses inline CSS, which sounds bad, but including a CSS file
     // just for this sounds equally bad.
-    $icon = '<img src="' . base_path() . 'core/misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
+    $icon = '<img src="' . base_path() . 'core/misc/icons/ea2800/error.svg" alt="error" style="vertical-align: middle;" />';
     $link['#title'] = t("!icon Subscription not active", array('!icon' => $icon));
     $link['#attributes']['class'][] = "acquia-inactive-subscription";
-    $link['#href'] = 'http://acquia.com/network';
+    $link['#url'] = Url::fromUri('https://insight.acquia.com');
   }
 
-  return array(
-    'acquia_connector' => array(
+  return [
+    'acquia_connector' => [
       '#type' => 'toolbar_item',
       'tab' => $link,
       '#weight' => 200,
-    ),
-  );
+    ],
+  ];
 }
 
 /**
