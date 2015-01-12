@@ -4,9 +4,3 @@ acquia_connector.settings:
   parent: system.admin_config_system
   route_name: acquia_connector.settings
   weight: -20
-acquia_connector.migrate:
-  title: 'Acquia Cloud Migrate'
-  description: 'Migrate your site to Acquia Cloud.'
-  parent: system.admin_config_system
-  route_name: acquia_connector.migrate
-  weight: -20

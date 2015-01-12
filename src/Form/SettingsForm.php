@@ -120,30 +120,29 @@ class SettingsForm extends ConfigFormBase {
       '#title' => $this->t('Acquia Network Settings'),
       '#collapsible' => FALSE,
     );
-    /*
+
     $form['migrate'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => $this->t('Acquia Cloud Migrate'),
-      '#description' => $this->t('Transfer a fully-functional copy of your site to Acquia Cloud. <a href="!url">Learn more</a>.', array('!url' => url('https://docs.acquia.com/cloud/site/import/connector'))),
-      '#collapsible' => TRUE,
+      '#description' => $this->t('Transfer a fully-functional copy of your site to Acquia Cloud. <a href="!url">Learn more</a>.', array('!url' => Url::fromUri('https://docs.acquia.com/cloud/site/import/connector')->getUri())),
       // Collapse migrate if Acquia hosting.
-      '#collapsed' => $request->server->has('AH_SITE_GROUP'),
+      '#open' => !\Drupal::request()->server->has('AH_SITE_GROUP'),
     );
     $form['migrate']['submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Migrate'),
-      '#submit' => array($this, 'submitMigrateGoForm'),
+      '#submit' => ['::submitMigrateGoForm'],
     );
 
-    $last_migration = $config->get('cloud_migration');
+    $last_migration = $config->get('migrate.cloud');
 
     if (!empty($last_migration['db_file']) || !empty($last_migration['tar_file']) || !empty($last_migration['dir'])) {
       // Replace Upload button with Cleanup.
       unset($form['migrate']['#description']);
       $form['migrate']['#prefix'] = '<div class="messages error">' . $this->t('Temporary files were leftover from last migration attempt.') . '</div>';
       $form['migrate']['submit']['#value'] = $this->t('Cleanup files');
-      $form['migrate']['submit']['#submit'] = array($this, 'submitMigrateCleanupForm');
-    }*/
+      $form['migrate']['submit']['#submit'] = ['::submitMigrateCleanupForm'];
+    }
 
     // Help documentation is local unless the Help module is disabled.
     if ($this->moduleHandler->moduleExists('help')) {
@@ -207,20 +206,19 @@ class SettingsForm extends ConfigFormBase {
         '#default_value' => $use_cron,
       );
 
-      $path = drupal_get_path('module', 'acquia_connector');
       $form['#attached']['library'][] = 'acquia_connector/acquia_connector.form';
-//      $key = sha1($this->privateKey->get());
-//      $url = url('system/acquia-spi-send', array('query' => array('key' => $key), 'absolute' => TRUE));
-//
-//      $form['connection']['spi']['use_cron_url'] = array(
-//        '#type' => 'container',
-//        '#children' => '<p>' . $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br/><em>!url</em>', array('!url' => $url)) . '</p>',
-//        '#states' => array(
-//          'visible' => array(
-//            ':input[name="use_cron"]' => array('checked' => FALSE),
-//          )
-//        ),
-//      );
+      $key = sha1($this->privateKey->get());
+      $url = Url::fromRoute('acquia_connector.send', [], ['query' => ['key' => $key], 'absolute' => TRUE])->toString();
+
+      $form['connection']['use_cron_url'] = array(
+        '#type' => 'container',
+        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>!url</em>', array('!url' => $url)),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="use_cron"]' => array('checked' => FALSE),
+          )
+        ),
+      );
     }
 
     return parent::buildForm($form, $form_state);
@@ -247,20 +245,20 @@ class SettingsForm extends ConfigFormBase {
   /**
    * Submit handler for Migrate button on settings form.
    */
-  public function submitMigrateGoForm($form, &$form_state) {
-    $form_state['redirect'] = new Url('acquia_connector.migrate');
+  public function submitMigrateGoForm($form, FormStateInterface &$form_state) {
+    $form_state->setRedirect('acquia_connector.migrate');
   }
 
   /**
    * @param $form
    * @param $form_state
    */
-  public function submitMigrateCleanupForm($form, &$form_state) {
+  public function submitMigrateCleanupForm($form, FormStateInterface &$form_state) {
     $migration = $this->config('acquia_connector.settings')->get('cloud_migration');
     $migration_class = new Migration();
     $migration_class->cleanup($migration);
     drupal_set_message($this->t('Temporary files removed'));
-    $form_state['redirect'] = new Url('acquia_connector.settings');
+    $form_state->setRedirect('acquia_connector.settings');
   }
 
 }

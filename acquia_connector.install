@@ -175,36 +175,4 @@ function acquia_connector_install() {
       drupal_set_message($text, 'status', FALSE);
     }
   }
-
-  $request = ltrim(request_uri(), DIRECTORY_SEPARATOR);
-  $hide_signup_messages = $config->get('hide_signup_messages');
-  $current_user = \Drupal::currentUser();
-
-  // @todo
-  // Display a message asking to connect to the Acquia Network if ALL of the
-  // following conditions are met:
-  //
-  // 1) $hide_signup_messages is FALSE (i.e., the default setting)
-  // 2) We're not on an AJAX overlay page (we should route-match this)
-  // 3) We're not actually configuring Acquia Agent (again, route-match this)
-  // 4) There's no POST data
-  // 5) The current user has 'administer site configuration' permission
-  // 6) There are no credentials already set up for Acquia Agent
-  // 7) We're not serving a public file
-  //
-  // This is partially refactored into src/EventSubscriber/InitSubscriber.
-  //
-  /* if (!$hide_signup_messages &&
-    (arg(0) != 'overlay-ajax') && (arg(3) != 'acquia-agent') &&
-    empty($_POST) &&  $current_user->hasPermission('administer site configuration') &&
-    (!acquia_agent_has_credentials()) &&
-    (strpos($request, variable_get('file_public_path', conf_path() . DIRECTORY_SEPARATOR . 'files')) !== 0)) {
-    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="!acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
-    if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
-      $text = '<a href="!settings">Connect your site to the Acquia Network now</a>. <a href="!more">Learn more</a>.';
-    }
-    $message = t($text, array('!acquia-free' => url('https://www.acquia.com/acquia-cloud-free'), '!settings' => url('admin/config/system/acquia-agent/setup')));
-    drupal_set_message($message, 'warning', FALSE);
-  }
-  */
 }

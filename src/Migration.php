@@ -167,9 +167,6 @@ class Migration {
       $body += $migration['redirect']['data'];
     }
     $data = $client->acquia_agent_call('/agent-api/subscription/migration/complete', $body, $key);
-//    $data = acquia_agent_call('acquia.agent.cloud.migration.complete', $body, $identifier, $key, variable_get('acquia_spi_server', 'https://nspi.acquia.com'));
-dpm('$data from complete'); // @todo: remove debug
-dpm($data); // @todo: remove debug
 
     if (!empty($data['result']['error'])) {
       drupal_set_message(t('Error: @message (@errno)', array('@message' => $data['result']['message'], '@errno' => $data['result']['code'])), 'error');
@@ -310,7 +307,7 @@ dpm($data); // @todo: remove debug
       $this->complete($migration);
 
       if ($migration['error'] != FALSE) {
-        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://network.acquia.com/'))));
+        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://insight.acquia.com/'))));
         drupal_set_message($message);
       }
       else {
