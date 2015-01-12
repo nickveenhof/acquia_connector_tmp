@@ -11,6 +11,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Path;
+use Drupal\Core\StreamWrapper\PrivateStream;
 use Drupal\Core\Url;
 use Drupal\acquia_connector\Subscription;
 use Drupal\acquia_connector\Controller;
@@ -60,6 +61,20 @@ class InitSubscriber implements EventSubscriberInterface {
     if (PHP_SAPI == 'cli') {
       return;
     }
+    // Check that there's no form submission in progress.
+    if (\Drupal::request()->server->get('REQUEST_METHOD') == 'POST') {
+      return;
+    }
+    // Check that we're not on an AJAX overlay page.
+    if(\Drupal::request()->isXmlHttpRequest()) {
+      return;
+    }
+    // Check that we're not serving a private file/Image
+    if ($controller_name = \Drupal::request()->attributes->get('_controller') &&
+      (strpos($controller_name, 'FileDownloadController') !== FALSE || strpos($controller_name, 'ImageStyleDownloadController') !== FALSE)) {
+      return;
+    }
+
     $config = $this->configFactory->get('acquia_connector.settings');
     // Get the last time we processed data.
     $last = $this->state->get('acquia_connector.boot_last', 0);
@@ -87,8 +102,6 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // @todo: Check that there's no form submission in progress.
-
     // Check that the user has 'administer site configuration' permission.
     if (!\Drupal::currentUser()->hasPermission('administer site configuration')) {
       return;
@@ -100,38 +113,19 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $request = ltrim(request_uri(), DIRECTORY_SEPARATOR);
-    // Retrieve an array which contains the path pieces.
-//    $path_args = explode('/', $current_path);
-
-    // @todo
-    // Display a message asking to connect to the Acquia Network if ALL of the
-    // following conditions are met:
-    //
-    // 1) $hide_signup_messages is FALSE (i.e., the default setting) - done
-    // 2) We're not on an AJAX overlay page (we should route-match this) - @todo do it!
-    // 3) We're not actually configuring Acquia Agent (again, route-match this) - done
-    // 4) There's no POST data - done (review)
-    // 5) The current user has 'administer site configuration' permission - done
-    // 6) There are no credentials already set up for Acquia Agent - done
-    // 7) We're not serving a public file - done (review)
-    if (\Drupal::currentUser()->hasPermission('administer site configuration') &&
-//      (arg(0) != 'overlay-ajax') &&
-      empty($_POST) &&
-      (strpos($request, PublicStream::basePath()) !== 0)) {
-      $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="!acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
-      if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
-        $text = '<a href="!settings">Connect your site to the Acquia Network now</a>. <a href="!more">Learn more</a>.';
-      }
-      $message = t(
-        $text,
-        [
-          '!more' => Url::fromUri('https://docs.acquia.com/network/install')->getUri(),
-          '!acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(),
-          '!settings' => Url::fromRoute('acquia_connector.setup')->toString(),
-        ]);
-      drupal_set_message($message, 'warning', FALSE);
+    // Display a message asking to connect to the Acquia Network.
+    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="!acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
+    if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
+      $text = '<a href="!settings">Connect your site to the Acquia Network now</a>. <a href="!more">Learn more</a>.';
     }
+    $message = t(
+      $text,
+      [
+        '!more' => Url::fromUri('https://docs.acquia.com/network/install')->getUri(),
+        '!acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(),
+        '!settings' => Url::fromRoute('acquia_connector.setup')->toString(),
+      ]);
+    drupal_set_message($message, 'warning', FALSE);
   }
 
   /**
