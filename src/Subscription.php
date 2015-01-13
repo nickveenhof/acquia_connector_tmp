@@ -48,9 +48,11 @@ class Subscription {
     }
     else {
       // Get our subscription data
-      $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
-      if (!empty($subscription['error'])) {
-        switch ($subscription['code']) {
+      try {
+        $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
+      }
+      catch (\Exception $e) {
+        switch ($e->getCode()) {
           case static::NOT_FOUND:
           case static::EXPIRED:
             // Fall through since these values are stored and used by
@@ -63,13 +65,12 @@ class Subscription {
             $subscription = $current_subscription;
         }
       }
-
-      $config->set('subscription_data', $subscription)->save();
-
-      // @todo hook signature has changed, doesn't pass active anymore.
-      \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
+      if ($subscription) {
+        $config->set('subscription_data', $subscription)->save();
+        // @todo hook signature has changed, doesn't pass active anymore.
+        \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
+      }
     }
-
 
     return $subscription;
   }

@@ -47,7 +47,7 @@ class SettingsForm extends ConfigFormBase {
   /**
    * Constructs a \Drupal\aggregator\SettingsForm object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
@@ -98,11 +98,14 @@ class SettingsForm extends ConfigFormBase {
     }
 
     // Check our connection to the Acquia Network and validity of the credentials.
-    if (!$this->client->validateCredentials($identifier, $key)) {
-      $error_message = array(); // acquia_agent_connection_error_message();
+    try {
+      $this->client->getSubscription($identifier, $key);
+    }
+    catch (\Exception $e) {
+      $error_message = acquia_connector_connection_error_message($e->getCode());
       $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.verify_peer');
       if (empty($error_message) && $ssl_available) {
-        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_agent_verify_peer to false.');
+        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_connector.settings:spi.verify_peer to false.');
       }
       drupal_set_message($error_message, 'error', FALSE);
     }

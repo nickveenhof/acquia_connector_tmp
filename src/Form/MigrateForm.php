@@ -34,13 +34,19 @@ class MigrateForm extends ConfigFormBase {
     $identifier = $config->get('identifier');
     $key = $config->get('key');
     $client = \Drupal::service('acquia_connector.client');
-    $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
-
     $error = NULL;
-    if (!$data || !isset($data['result'])) {
+    try {
+      $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
+    }
+    catch (\Exception $e) {
+      if ($e->getCode()) {
+        acquia_connect_report_restapi_error($e->getCode(), $e->getMessage());
+        return $this->redirect('acquia_connector.settings');;
+      }
       $error = $this->t('Server error, please submit again.');
     }
-    else {
+
+    if (!empty($data['result'])) {
       // Response is in $data['result'].
       $result = $data['result'];
       if (!empty($result['is_error'])) {
