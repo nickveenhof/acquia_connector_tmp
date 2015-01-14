@@ -36,7 +36,7 @@ class MigrateForm extends ConfigFormBase {
     $client = \Drupal::service('acquia_connector.client');
     $error = NULL;
     try {
-      $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
+      $data = $client->nspiCall('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
     }
     catch (\Exception $e) {
       if ($e->getCode()) {

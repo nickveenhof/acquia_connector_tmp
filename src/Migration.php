@@ -168,7 +168,7 @@ class Migration {
     }
 
     try {
-      $data = $client->acquia_agent_call('/agent-api/subscription/migration/complete', $body, $key);
+      $data = $client->nspiCall('/agent-api/subscription/migration/complete', $body, $key);
     }
     catch (\Exception $e) {
       if ($e->getCode()) {

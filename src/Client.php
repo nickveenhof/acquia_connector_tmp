@@ -74,6 +74,7 @@ class Client {
     );
 
     try {
+      // Don't use nspiCall() - key is not defined yet.
       $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
     }
     catch (\Exception $e) {
@@ -90,11 +91,10 @@ class Client {
         'authenticator' => $authenticator,
       );
 
+      // Don't use nspiCall() - key is not defined yet.
       try {
         $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
         if ($response['body']) {
-          dpm('getSubscriptionCredentials $response: ');  // @todo: Remove debug
-          dpm($response);                                 // @todo: Remove debug
           return $response['body'];
         }
       }
@@ -117,13 +117,7 @@ class Client {
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
-    $body += array('identifier' => $id, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
-    $authenticator =  $this->buildAuthenticator($key, $body);
-    $data = array(
-      'body' => $body,
-      'authenticator' => $authenticator,
-    );
-
+    $body['identifier'] = $id;
     // There is an identifier and key, so attempt communication.
     $subscription = array();
     $subscription['timestamp'] = REQUEST_TIME;
@@ -155,9 +149,15 @@ class Client {
 //      }
     }
 
-    $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
-    if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
-      return $subscription + $response['body'];
+    try{
+      $response = $this->nspiCall('/agent-api/subscription/' . $id, $body);
+      if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
+        return $subscription + $response['result']['body'];
+      }
+    }
+    catch (\Exception $e) {
+      // @todo: Add error message
+      dpm($e->getMessage());
     }
 
     return FALSE;
@@ -175,29 +175,19 @@ class Client {
    */
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
-    $authenticator =  $this->buildAuthenticator($key, $body);
-    dpm('sendNspi $authenticator: '); // @todo: remove debug
-    dpm($authenticator);              // @todo: remove debug
-    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
-    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
-    $ssl = \Drupal::request()->isSecure();
-    $data = array(
-      'body' => $body,
-      'authenticator' => $authenticator,
-      'ip' => $ip,
-      'host' => $host,
-      'ssl' => $ssl,
-    );
-    dpm('sendNspi $data: ');  // @todo: remove debug
-    dpm($data);               // @todo: remove debug
+    dpm('sendNspi $body: ');  // @todo: remove debug
+    dpm($body);               // @todo: remove debug
 
     try{
-      $response = $this->request('POST', '/spi-api/site', $data);
-      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
-        return $response;
+      $response = $this->nspiCall('/spi-api/site', $body);
+      if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
+        return $response['result'];
       }
     }
-    catch (\Exception $e){}
+    catch (\Exception $e) {
+      // @todo: Add error message
+      dpm($e->getMessage());
+    }
     return FALSE;
   }
 
@@ -337,10 +327,14 @@ class Client {
   /**
    * Prepare and send a REST request to Acquia Network with an authenticator.
    *
+   * @param string $method
+   * @param array $params
+   * @param string $key or NULL
    * @return array or throw Exception
    * D7: acquia_agent_call().
    */
-  public function acquia_agent_call($method, $params, $key = NULL) {
+  public function nspiCall($method, $params, $key = NULL) {
+    dpm('Method called: ' . $method);
     if (empty($key)) {
       $config = \Drupal::config('acquia_connector.settings');
       $key = $config->get('key');
