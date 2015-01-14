@@ -73,8 +73,12 @@ class Client {
       'authenticator' => $authenticator,
     );
 
-    $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
-
+    try {
+      $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
+    }
+    catch (\Exception $e) {
+      return FALSE;
+    }
     if($communication_setting) {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
       $pass = $crypt_pass->cryptPass();
@@ -86,31 +90,19 @@ class Client {
         'authenticator' => $authenticator,
       );
 
-      $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
-      if($response['body']){
-        dpm('getSubscriptionCredentials $response: ');
-        dpm($response);
-        return $response['body'];
+      try {
+        $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
+        if ($response['body']) {
+          dpm('getSubscriptionCredentials $response: ');  // @todo: Remove debug
+          dpm($response);                                 // @todo: Remove debug
+          return $response['body'];
+        }
+      }
+      catch (\Exception $e) {
+        return FALSE;
       }
     }
     return FALSE;
-  }
-
-  /**
-   * Validate Network ID/Key pair to Acquia Network.
-   *
-   * @param string $id Network ID
-   * @param string $key Network Key
-   * @return bool
-   */
-  public function validateCredentials($id, $key) {
-    try {
-      $this->getSubscription($id, $key);
-      return TRUE;
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
   }
 
   /**
@@ -121,7 +113,7 @@ class Client {
    * @param array $body
    *   (optional)
    *
-   * @return array|false
+   * @return array|false or throw Exception
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
@@ -163,13 +155,11 @@ class Client {
 //      }
     }
 
-    try{
-      $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
-      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
-        return $subscription + $response['body'];
-      }
+    $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
+    if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
+      return $subscription + $response['body'];
     }
-    catch (\Exception $e){}
+
     return FALSE;
   }
 
@@ -187,7 +177,7 @@ class Client {
     $body['identifier'] = $id;
     $authenticator =  $this->buildAuthenticator($key, $body);
     dpm('sendNspi $authenticator: '); // @todo: remove debug
-    dpm($authenticator);
+    dpm($authenticator);              // @todo: remove debug
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
     $ssl = \Drupal::request()->isSecure();
@@ -198,8 +188,8 @@ class Client {
       'host' => $host,
       'ssl' => $ssl,
     );
-    dpm('sendNspi $data: '); // @todo: remove debug
-    dpm($data);
+    dpm('sendNspi $data: ');  // @todo: remove debug
+    dpm($data);               // @todo: remove debug
 
     try{
       $response = $this->request('POST', '/spi-api/site', $data);
@@ -213,11 +203,9 @@ class Client {
 
   public function getDefinition($apiEndpoint) {
     try{
-      $response = $this->request('GET', $apiEndpoint, array());
-      return $response;
+      return $this->request('GET', $apiEndpoint, array());
     }
-    catch (\Exception $e){
-    }
+    catch (\Exception $e){}
     return FALSE;
   }
 
@@ -249,40 +237,34 @@ class Client {
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
-    switch ($method) {
-      case 'GET':
-        try {
-          $options = array(
-            'headers' => $this->headers,
-            'json' => json_encode($data),
-          );
+    $options = array(
+      'headers' => $this->headers,
+      'json' => json_encode($data),
+    );
 
+    try {
+      switch ($method) {
+        case 'GET':
           $response = $this->client->get($uri, $options);
-        }
-        catch (ClientException $e) {
-          drupal_set_message($e->getMessage(), 'error');
-        }
-        break;
-      case 'POST':
-        try {
-          $options = array(
-            'headers' => $this->headers,
-            'json' => json_encode($data),
-          );
-
+          break;
+        case 'POST':
           $response = $this->client->post($uri, $options);
-
-        }
-        catch (ClientException $e) {
-          drupal_set_message($e->getMessage(), 'error');
-        }
-        break;
+          break;
+      }
+    }
+    catch (ClientException $e) {
+      $error = $e->getResponse()->json();
+      dpm($error);
+      if ((!empty($error['error']) || !empty($error['is_error'])) && !empty($error['message']) && !empty($error['code'])) {
+        throw new \Exception($error['message'], $error['code']);
+      }
+      throw new \Exception($e->getMessage(), $e->getCode());
     }
     // @todo support response code
     if (!empty($response)) {
       $body = $response->json();
-      if (!empty($body['error']) || !empty($body['is_error'])) {
-        drupal_set_message($body['code'] . ' : ' .$body['message'], 'error');
+      if ((!empty($body['error']) || !empty($body['is_error'])) && !empty($body['message']) && !empty($body['code'])) {
+        throw new \Exception($body['message'], $body['code']);
       }
       return $body;
     }
@@ -354,6 +336,8 @@ class Client {
 
   /**
    * Prepare and send a REST request to Acquia Network with an authenticator.
+   *
+   * @return array or throw Exception
    * D7: acquia_agent_call().
    */
   public function acquia_agent_call($method, $params, $key = NULL) {
@@ -362,6 +346,7 @@ class Client {
       $key = $config->get('key');
     }
     $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
+    // @todo: Remove $_SERVER
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
     $ssl = \Drupal::request()->isSecure();

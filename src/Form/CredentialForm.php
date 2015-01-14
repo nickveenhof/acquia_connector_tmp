@@ -91,18 +91,38 @@ class CredentialForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));
-
-    if (!empty($response['error'])) {
-      // Set form error to prevent switching to the next page.
-      $form_state->setErrorByName('acquia_identifier', $response['message']);
+//    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));  // @todo: remove the line.
+    try {
+      $response = $this->client->acquia_agent_call(
+        '/agent-api/subscription/' . trim($form_state->getValue('acquia_identifier')),
+        array('identifier' => trim($form_state->getValue('acquia_identifier'))),
+        trim($form_state->getValue('acquia_key')));
     }
-    elseif (empty($response)) {
-      // Subscription doesn't exist.
-      $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
+    catch (\Exception $e) {
+      if ($e->getCode()) {
+        acquia_connect_report_restapi_error($e->getCode(), $e->getMessage());
+        $form_state->setErrorByName('');
+      }
+      else {
+        $form_state->setErrorByName('', t('Server error, please submit again.'));
+      }
+      $response['result'] = FALSE;
+    }
+
+    $response = $response['result'];
+    dpm($response); // @todo: Remove debug.
+
+    if (!empty($response['is_error'])) {
+      $form_state->setErrorByName('', t('Server error, please submit again.'));
+    }
+    elseif (isset($response['body']['error'])) {
+      $form_state->setErrorByName('', $response['body']['error']);
+    }
+    elseif (empty($response['body']['subscription_name'])) {
+      $form_state->setErrorByName('acquia_identifier', t('No subscriptions were found.'));
     }
     else {
-      $form_state->setValue('subscription', $response['subscription_name']);
+      $form_state->setValue('subscription', $response['body']['subscription_name']);
     }
   }
 

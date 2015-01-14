@@ -236,3 +236,50 @@ function acquia_connector_has_update_service() {
 
   return $subscription;
 }
+
+/**
+ * Set error message.
+ * @param $code
+ * @param $message
+ * d7: acquia_agent_report_xmlrpc_error().
+ */
+function acquia_connect_report_restapi_error($code, $message) {
+  drupal_set_message(t('Error: @message (@errno)', array('@message' => $message, '@errno' => $code)), 'error');
+}
+
+
+/**
+ * Returns an error message for the most recent (failed) attempt to connect
+ * to the Acquia Network during the current page request. If there were no
+ * failed attempts, returns FALSE.
+ *
+ * This function assumes that the most recent XML-RPC error came from the
+ * Acquia Network; otherwise, it will not work correctly.
+ *
+ * @param int $errno.
+ * @return string or FALSE.
+ * d7: acquia_agent_connection_error_message().
+ */
+function acquia_connector_connection_error_message($errno) {
+  switch ($errno) {
+    case Subscription::NOT_FOUND:
+      return t('The identifier you have provided does not exist in the Acquia Network or is expired. Please make sure you have used the correct value and try again.');
+      break;
+    case Subscription::EXPIRED:
+      return t('Your Acquia Network subscription has expired. Please renew your subscription so that you can resume using Acquia Network services.');
+      break;
+    case Subscription::MESSAGE_FUTURE:
+      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
+      break;
+    case Subscription::MESSAGE_EXPIRED:
+      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
+      break;
+    case Subscription::VALIDATION_ERROR:
+      return t('The identifier and key you have provided for the Acquia Network do not match. Please make sure you have used the correct values and try again.');
+      break;
+    default:
+      return t('There is an error communicating with the Acquia Network at this time. Please check your identifier and key and try again.');
+      break;
+  }
+  return FALSE;
+}

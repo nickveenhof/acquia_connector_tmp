@@ -123,41 +123,6 @@ function acquia_agent_valid_credentials($identifier, $key, $acquia_network_addre
 }
 
 /**
- * Returns an error message for the most recent (failed) attempt to connect
- * to the Acquia Network during the current page request. If there were no
- * failed attempts, returns FALSE.
- *
- * This function assumes that the most recent XML-RPC error came from the
- * Acquia Network; otherwise, it will not work correctly.
- */
-function acquia_agent_connection_error_message() {
-  $errno = xmlrpc_errno();
-  if ($errno) {
-    switch ($errno) {
-      case SUBSCRIPTION_NOT_FOUND:
-        return t('The identifier you have provided does not exist in the Acquia Network or is expired. Please make sure you have used the correct value and try again.');
-        break;
-      case SUBSCRIPTION_EXPIRED:
-        return t('Your Acquia Network subscription has expired. Please renew your subscription so that you can resume using Acquia Network services.');
-        break;
-      case SUBSCRIPTION_MESSAGE_FUTURE:
-        return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
-        break;
-      case SUBSCRIPTION_MESSAGE_EXPIRED:
-        return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
-        break;
-      case SUBSCRIPTION_VALIDATION_ERROR:
-        return t('The identifier and key you have provided for the Acquia Network do not match. Please make sure you have used the correct values and try again.');
-        break;
-      default:
-        return t('There is an error communicating with the Acquia Network at this time. Please check your identifier and key and try again.');
-        break;
-    }
-  }
-  return FALSE;
-}
-
-/**
  * Builds a stream context based on a url and local .pem file if available.
  */
 function acquia_agent_stream_context_create($url, $module = 'acquia_agent') {

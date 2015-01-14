@@ -69,9 +69,10 @@ class InitSubscriber implements EventSubscriberInterface {
     if(\Drupal::request()->isXmlHttpRequest()) {
       return;
     }
-    // Check that we're not serving a private file/Image
-    if ($controller_name = \Drupal::request()->attributes->get('_controller') &&
-      (strpos($controller_name, 'FileDownloadController') !== FALSE || strpos($controller_name, 'ImageStyleDownloadController') !== FALSE)) {
+
+    // Check that we're not serving a private file or image
+    $controller_name = \Drupal::request()->attributes->get('_controller');
+    if (strpos($controller_name, 'FileDownloadController') !== FALSE || strpos($controller_name, 'ImageStyleDownloadController') !== FALSE) {
       return;
     }
 
