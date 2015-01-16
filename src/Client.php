@@ -78,7 +78,7 @@ class Client {
       $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
     }
     catch (\Exception $e) {
-      return FALSE;
+      return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
     }
     if($communication_setting) {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
@@ -99,7 +99,7 @@ class Client {
         }
       }
       catch (\Exception $e) {
-        return FALSE;
+        return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
       }
     }
     return FALSE;

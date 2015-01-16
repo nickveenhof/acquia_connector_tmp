@@ -116,7 +116,7 @@ class VariablesController extends ControllerBase {
     $types = NodeType::loadMultiple();
     if (!empty($types)) {
       foreach ($types as $name => $NodeType) {
-        dpm('Node type: ' . $NodeType->type);
+//        dpm('Node type: ' . $NodeType->type);   // @todo: $nodeType->type removed in latest dev.
 //        $variables[] = 'comment_' . $name;
       }
     }
