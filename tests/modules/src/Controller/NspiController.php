@@ -76,7 +76,7 @@ class NspiController extends ControllerBase {
       return new JsonResponse($err);
     }
     else {
-      $request = array();
+      $result = array();
       $result = array(
         'algorithm' => 'sha512',
         'hash_setting' => substr($account->getPassword(), 0, 12),
