@@ -92,19 +92,17 @@ class ConnectorTest extends WebTestBase{
       case 'enter-password':
         return 'Enter your Acquia Network password';
       case 'account-not-found':
-        return '1800 : Account not found.';
+        return 'Account not found'; //@todo
       case 'id-key':
         return 'Enter your identifier and key from your subscriptions overview or log in to connect your site to the Acquia Network.';
       case 'enter-key':
         return 'Network key';
       case 'subscription-not-found':
-        //return 'Error: Subscription not found (1800)'; //@todo
-        return 'Can\'t connect to the Acquia Network.';
+        return 'Error: Subscription not found (1000)'; //@todo
       case 'saved':
         return 'The Acquia configuration options have been saved.';
       case 'subscription':
-        //return 'Subscription: ' . $this->acqtest_id; // Assumes subscription name is same as id. @todo
-        return 'Subscription: docs.acquia.com';
+        return 'Subscription: ' . $this->acqtest_id; // Assumes subscription name is same as id. @todo
       case 'migrate':
         return 'Transfer a fully-functional copy of your site to Acquia Cloud.';
       case 'migrate-hosting-404':
@@ -153,8 +151,8 @@ class ConnectorTest extends WebTestBase{
 
     // Check errors on connection page.
     $edit_fields = array(
-      'acquia_identifier' => 'JQWX-00000',//$this->randomString(),
-      'acquia_key' => 'safe-19b923433d4f30dd2491421b5ed72389',//$this->randomString(),
+      'acquia_identifier' => $this->randomString(),
+      'acquia_key' => $this->randomString(),
     );
     $submit_button = 'Connect';
     $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);

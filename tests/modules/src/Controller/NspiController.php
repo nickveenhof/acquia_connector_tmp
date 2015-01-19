@@ -33,7 +33,6 @@ class NspiController extends ControllerBase {
   const ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND = 1900;
   const ACQTEST_SUBSCRIPTION_PROVISION_ERROR = 9000;
   const ACQTEST_SUBSCRIPTION_MESSAGE_LIFETIME = 900; //15*60
-  const ACQSUBSCRIPTION_VALIDATION_ERROR = 000; //@todo
   const ACQTEST_EMAIL = 'TEST_networkuser@example.com';
   const ACQTEST_PASS = 'TEST_password';
   const ACQTEST_ID = 'TEST_AcquiaConnectorTestID';
@@ -66,13 +65,13 @@ class NspiController extends ControllerBase {
     }
 
     if (!isset($data['body']) || !isset($data['body']['email'])) {
-      return new JsonResponse($this->errorResponse(self::ACQSUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
     }
 
     $account = user_load_by_mail($data['body']['email']);
 
     if (empty($account) || $account->isAnonymous()) {
-      $err = $this->errorResponse(self::ACQSUBSCRIPTION_VALIDATION_ERROR, t('Account not found'));
+      $err = $this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found'));
       return new JsonResponse($err);
     }
     else {
@@ -132,11 +131,11 @@ class NspiController extends ControllerBase {
       $account = user_load_by_mail($data['body']['email']);
       \Drupal::logger('getCredentials password')->debug($account->getPassword());
       if (empty($account) || $account->isAnonymous()) {
-        return new JsonResponse($this->errorResponse(self::ACQSUBSCRIPTION_VALIDATION_ERROR, t('Account not found')));
+        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')));
       }
     }
     else {
-      return new JsonResponse($this->errorResponse(self::ACQSUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
     }
 
     $client = new testClient();
@@ -153,7 +152,7 @@ class NspiController extends ControllerBase {
       return new JsonResponse($result);
     }
     else {
-      return new JsonResponse($this->errorResponse(self::ACQSUBSCRIPTION_VALIDATION_ERROR, t('Incorrect password.')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Incorrect password.')));
     }
   }
 
@@ -218,7 +217,7 @@ class NspiController extends ControllerBase {
     $hash_simple = $client->testHash($key, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
 
     if (($hash !== $data['authenticator']['hash']) && ($hash_simple != $data['authenticator']['hash'])) {
-      return $this->errorResponse(self::ACQSUBSCRIPTION_VALIDATION_ERROR, t('HMAC validation error: ') . "{$hash} != {$data['authenticator']['hash']}");
+      return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('HMAC validation error: ') . "{$hash} != {$data['authenticator']['hash']}");
     }
 
     if ($key === self::ACQTEST_EXPIRED_KEY) {
