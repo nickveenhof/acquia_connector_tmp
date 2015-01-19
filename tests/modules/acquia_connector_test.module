@@ -1,0 +1,104 @@
+<?php
+
+/**
+ * @file
+ * Helper module for the Acquia Connector tests.
+ */
+
+define('ACQTEST_SUBSCRIPTION_NOT_FOUND'       , 1000);
+define('ACQTEST_SUBSCRIPTION_KEY_MISMATCH'    , 1100);
+define('ACQTEST_SUBSCRIPTION_EXPIRED'         , 1200);
+define('ACQTEST_SUBSCRIPTION_REPLAY_ATTACK'   , 1300);
+define('ACQTEST_SUBSCRIPTION_KEY_NOT_FOUND'   , 1400);
+define('ACQTEST_SUBSCRIPTION_MESSAGE_FUTURE'  , 1500);
+define('ACQTEST_SUBSCRIPTION_MESSAGE_EXPIRED' , 1600);
+define('ACQTEST_SUBSCRIPTION_MESSAGE_INVALID' , 1700);
+define('ACQTEST_SUBSCRIPTION_VALIDATION_ERROR', 1800);
+define('ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND'  , 1900);
+define('ACQTEST_SUBSCRIPTION_PROVISION_ERROR' , 9000);
+define('ACQTEST_SUBSCRIPTION_MESSAGE_LIFETIME', 15*60);
+define('ACQTEST_EMAIL', 'TEST_networkuser@example.com');
+define('ACQTEST_PASS', 'TEST_password');
+define('ACQTEST_ID', 'TEST_AcquiaConnectorTestID');
+define('ACQTEST_KEY', 'TEST_AcquiaConnectorTestKey');
+define('ACQTEST_ERROR_ID', 'TEST_AcquiaConnectorTestIDErr');
+define('ACQTEST_ERROR_KEY', 'TEST_AcquiaConnectorTestKeyErr');
+define('ACQTEST_EXPIRED_ID', 'TEST_AcquiaConnectorTestIDExp');
+define('ACQTEST_EXPIRED_KEY', 'TEST_AcquiaConnectorTestKeyExp');
+define('ACQTEST_503_ID', 'TEST_AcquiaConnectorTestID503');
+define('ACQTEST_503_KEY', 'TEST_AcquiaConnectorTestKey503');
+if (!defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+  define('ACQUIA_DEVELOPMENT_NOSSL', TRUE);
+}
+
+/**
+ * Implements hook_rest_endpoints().
+ */
+function acquia_connector_test_rest_endpoints() {
+  return array(
+    'agent-api' => array(
+      'path' => 'agent-api',
+      'name' => t('Acquia Agent API'),
+      'versions' => array(
+        '1.0' => array(
+          'router' => 'AcquiaAgentApiRouterV1',
+          'class' => 'AcquiaAgentApiV1'
+        ),
+      ),
+      'default version' => '1.0',
+      'version' => array(
+        'path' => array()
+      ),
+      'response' => array('json'),
+      'request' => array('json'),
+    ),
+  );
+}
+
+function acquia_connector_test_credentials($data) {
+  $fields = array(
+    'time' => 'is_numeric',
+    'nonce' => 'is_string',
+    'hash' => 'is_string',
+  );
+  $result = acquia_connector_test_basic_authenticator($fields, $data);
+  if (!empty($result->is_error)) {
+    return $result;
+  }
+
+  if (!empty($data['body']['email'])) {
+    $account = user_load_by_mail($data['body']['email']);
+    if (empty($account) || $account->uid == 0) {
+      return xmlrpc_error(ACQSUBSCRIPTION_VALIDATION_ERROR, t('Account not found'));
+    }
+  }
+  else {
+    return xmlrpc_error(ACQSUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments'));
+  }
+
+  $hash = _acquia_agent_hmac($account->pass, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
+  if ($hash === $data['authenticator']['hash']) {
+    $result = array();
+    $result['is_error'] = FALSE;
+    $result['body']['subscription'][] = array(
+      'identifier' => ACQTEST_ID,
+      'key' => ACQTEST_KEY,
+      'name' => ACQTEST_ID,
+    );
+    return $result;
+  }
+  else {
+    return xmlrpc_error(ACQSUBSCRIPTION_VALIDATION_ERROR, t('Incorrect password.'));
+  }
+}
+
+function _acquia_connector_test_increment_requests() {
+  //$requests = variable_get('acquia_connector_test-requests', 0);
+  $requests = \Drupal::config('acquia_connector_test')->get('requests_count');
+  $requests++;
+  \Drupal::config('acquia_connector_test')->set('requests_count', $requests)->save();
+  //variable_set('acquia_connector_test-requests', $requests);
+}
+
+
+

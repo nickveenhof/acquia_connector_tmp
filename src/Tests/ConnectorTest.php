@@ -8,22 +8,28 @@
 namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\acquia_connector\Subscription;
 
 /**
  * Tests the functionality of the Acquia Connector module.
  */
 class ConnectorTest extends WebTestBase{
   protected $strictConfigSchema = FALSE;
-  protected $acqtest_email = 'stas.mihnovich@acquia.com';//'TEST_networkuser@example.com';
-  protected $acqtest_pass = '937wv1s45!web20';//'TEST_password';
-  protected $acqtest_id =  'JQWX-22095';//'TEST_AcquiaConnectorTestID';
-  protected $acqtest_key = 'safe-19b923433d4f30dd2491421b5ed72389';//'TEST_AcquiaConnectorTestKey';
+  /*protected $acqtest_email = 'stas.mihnovich@acquia.com';
+  protected $acqtest_pass = '937wv1s45!web20';
+  protected $acqtest_id =  'JQWX-22095';
+  protected $acqtest_key = 'safe-19b923433d4f30dd2491421b5ed72389';*/
+
+  protected $acqtest_email = 'TEST_networkuser@example.com';
+  protected $acqtest_pass = 'TEST_password';
+  protected $acqtest_id =  'TEST_AcquiaConnectorTestID';
+  protected $acqtest_key = 'TEST_AcquiaConnectorTestKey';
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('acquia_connector');
+  public static $modules = array('acquia_connector', 'toolbar', 'devel', 'acquia_connector_test', 'rest');
 
   /**
    * {@inheritdoc}
@@ -45,7 +51,7 @@ class ConnectorTest extends WebTestBase{
     $this->privileged_user = $this->drupalCreateUser(array(
       'administer site configuration',
       'access administration pages',
-      //'access toolbar',
+      'access toolbar',
     ));
     $this->drupalLogin($this->privileged_user);
     // Create a user that has a Network subscription.
@@ -60,6 +66,16 @@ class ConnectorTest extends WebTestBase{
     $this->credentials_path = 'admin/config/system/acquia-connector/credentials';
     $this->settings_path = 'admin/config/system/acquia-connector';
 
+    //nspi.dev
+    /*\Drupal::config('acquia_connector.settings')->set('spi.server', 'http://nspi.acquia.dev')->save();
+    \Drupal::config('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
+    \Drupal::config('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();*/
+
+    //local
+    \Drupal::config('acquia_connector.settings')->set('network_address', 'http://drupal-alerts.local:8083/')->save();
+    \Drupal::config('acquia_connector.settings')->set('spi.server', 'http://drupal-alerts.local:8083/')->save();
+    \Drupal::config('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
+    \Drupal::config('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
   }
 
   /**
@@ -70,7 +86,7 @@ class ConnectorTest extends WebTestBase{
       case 'free':
         return 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices.';
       case 'get-connected':
-        return 'If you have an Acquia Subscription, connect now. Otherwise, you can turn this message off by disabling the Acquia Subscription modules.';
+        return 'If you have an Acquia Network subscription, connect now. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
       case 'enter-email':
         return 'Enter the email address you use to login to the Acquia Network';
       case 'enter-password':
@@ -82,12 +98,13 @@ class ConnectorTest extends WebTestBase{
       case 'enter-key':
         return 'Network key';
       case 'subscription-not-found':
-        //return 'Error: Subscription not found (1800)';
-        return 'Client error response';
+        //return 'Error: Subscription not found (1800)'; //@todo
+        return 'Can\'t connect to the Acquia Network.';
       case 'saved':
         return 'The Acquia configuration options have been saved.';
       case 'subscription':
-        return 'Subscription: ' . $this->acqtest_id; // Assumes subscription name is same as id.
+        //return 'Subscription: ' . $this->acqtest_id; // Assumes subscription name is same as id. @todo
+        return 'Subscription: docs.acquia.com';
       case 'migrate':
         return 'Transfer a fully-functional copy of your site to Acquia Cloud.';
       case 'migrate-hosting-404':
@@ -105,7 +122,7 @@ class ConnectorTest extends WebTestBase{
 
 
   public function testAcquiaConnectorGetConnected() {
-    // Check for call to get connected. @todo
+    // Check for call to get connected.
     $this->drupalGet('admin');
     $this->assertText($this->acquiaConnectorStrings('free'), 'The explanation of services text exists');
     $this->assertLinkByHref($this->cloud_free_url, 0, 'Link to Acquia.com Cloud Services exists');
@@ -126,7 +143,7 @@ class ConnectorTest extends WebTestBase{
     $submit_button = 'Next';
     $this->drupalPostForm($this->setup_path, $edit_fields, $submit_button);
     $this->assertText($this->acquiaConnectorStrings('account-not-found'), 'Account not found for random automatic setup attempt');
-    $this->assertText($this->acquiaConnectorStrings('menu-inactive'), 'Subscription not active menu message appears'); //@todo
+    $this->assertText($this->acquiaConnectorStrings('menu-inactive'), 'Subscription not active menu message appears');
 
     // Check manual connection. ------------------------------------------------------------------
     $this->drupalGet($this->credentials_path);
@@ -136,8 +153,8 @@ class ConnectorTest extends WebTestBase{
 
     // Check errors on connection page.
     $edit_fields = array(
-      'acquia_identifier' => $this->randomString(),
-      'acquia_key' => $this->randomString(),
+      'acquia_identifier' => 'JQWX-00000',//$this->randomString(),
+      'acquia_key' => 'safe-19b923433d4f30dd2491421b5ed72389',//$this->randomString(),
     );
     $submit_button = 'Connect';
     $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
@@ -151,7 +168,7 @@ class ConnectorTest extends WebTestBase{
     );
     $submit_button = 'Connect';
     $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
-    //$this->drupalGet($this->settings_path);
+    $this->drupalGet($this->settings_path);
     $this->assertText($this->acquiaConnectorStrings('subscription'), 'Subscription connected with key and identifier');
     $this->assertLinkByHref($this->setup_path, 0, 'Link to change subscription exists');
     $this->assertText($this->acquiaConnectorStrings('migrate'), 'Acquia Cloud Migrate description exists');
@@ -176,8 +193,46 @@ class ConnectorTest extends WebTestBase{
       'acquia_dynamic_banner' => TRUE,
     );
     $submit_button = 'Save configuration';
-    //$this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
+    $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
     $this->assertFieldChecked('edit-acquia-dynamic-banner', '"Receive updates from Acquia" option stays saved');
+  }
+
+  /**
+   * Test Agent subscription methods.
+   */
+  public function testAcquiaConnectorSubscription(){
+    // Set a wrapper on drupal_http_request() to record connection request counts.
+    //variable_set('drupal_http_request_function', '_acquia_connector_test_http_request_wrapper');
+
+    // Starts as inactive.
+    $this->subscription = new Subscription();
+    $this->assertFalse($this->subscription->isActive(), 'Subscription is not currently active.');
+    //$this->drupalPost('agent-api', array(), array());
+    // Confirm HTTP request count is 0 because without credentials no request
+    // should have been made.
+    $this->assertIdentical(\Drupal::config('acquia_connector_test')->get('requests'), 0);
+    //\Drupal::config('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
+    $this->assertFalse($this->subscription->update(), 'Subscription is currently false.');
+    // Confirm HTTP request count is still 0.
+    $this->assertIdentical(\Drupal::config('acquia_connector_test')->get('requests'), 0);
+    // Fail a connection.
+    $random_id = $this->randomString();
+    $edit_fields = array(
+      'acquia_identifier' => $random_id,
+      'acquia_key' => $this->randomString(),
+    );
+    $submit_button = 'Connect';
+    $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
+
+
+    // Connect.
+    $edit_fields = array(
+      'acquia_identifier' => $this->acqtest_id,
+      'acquia_key' => $this->acqtest_key,
+    );
+    $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
+
+
   }
 
 }
