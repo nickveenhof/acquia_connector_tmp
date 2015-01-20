@@ -164,7 +164,7 @@ class Client {
     }
 
     try{
-      $response = $this->request('POST', '/agent-api/subscription/' . $id, $data);
+      $response = $this->request('POST', '/agent-api/subscription', $data);
       if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
         return $subscription + $response['body'];
       }
