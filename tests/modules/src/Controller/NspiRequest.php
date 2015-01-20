@@ -16,7 +16,8 @@ class NspiRequest implements EventSubscriberInterface {
    */
   public function onKernelRequest(GetResponseEvent $event) {
     $system_path = \Drupal::Request()->attributes->get('_system_path');
-    if(isset($patch['0']) && $patch['0'] == 'agent-api'){
+    $patch = explode("/", $system_path);
+    if((isset($patch['0']) && $patch['0'] == 'agent-api') || (isset($patch['0']) && $patch['0'] == 'spi-api') || (isset($patch['0']) && $patch['0'] == 'spi_def')){
       $requests =  \Drupal::state()->get('acquia_connector_test_request_count', 0);
       $requests++;
       \Drupal::state()->set('acquia_connector_test_request_count', $requests);
