@@ -83,7 +83,7 @@ class NspiController extends ControllerBase {
       );
       return new JsonResponse($result);
     }
-    return new JsonResponse(array('TRUE'));
+    //return new JsonResponse(array('TRUE')); //@todo
   }
 
 
@@ -139,7 +139,6 @@ class NspiController extends ControllerBase {
     }
 
     $client = new testClient();
-    \Drupal::logger('getCredentials DATA')->error(print_r($data['body'],TRUE));
     $hash = $client->testHash($account->getPassword(), $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
     if ($hash === $data['authenticator']['hash']) {
       $result = array();
@@ -170,7 +169,6 @@ class NspiController extends ControllerBase {
       $client = new testClient();
       $result['authenticator']['hash'] = $client->testHash($result['secret']['key'], $result['authenticator']['time'], $result['authenticator']['nonce'], $result['body']);
       unset($result['secret']);
-      \Drupal::logger('getSubscription body')->error(print_R($result, TRUE));
       return new JsonResponse($result);
     }
     unset($result['secret']);
