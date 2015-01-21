@@ -166,7 +166,7 @@ class Migration {
     if (isset($migration['redirect']) && is_array($migration['redirect']['data'])) {
       $body += $migration['redirect']['data'];
     }
-    $data = $client->acquia_agent_call('/agent-api/subscription/migration/complete', $body, $key);
+    $data = $client->acquia_agent_call('/agent-migrate-api/subscription/migration/complete', $body, $key);
 
     if (!empty($data['result']['error'])) {
       drupal_set_message(t('Error: @message (@errno)', array('@message' => $data['result']['message'], '@errno' => $data['result']['code'])), 'error');

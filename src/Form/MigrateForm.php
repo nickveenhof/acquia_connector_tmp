@@ -34,7 +34,7 @@ class MigrateForm extends ConfigFormBase {
     $identifier = $config->get('identifier');
     $key = $config->get('key');
     $client = \Drupal::service('acquia_connector.client');
-    $data = $client->acquia_agent_call('/agent-api/subscription/migration/environments', array('identifier' => $identifier), $key);
+    $data = $client->acquia_agent_call('/agent-migrate-api/subscription/migration/environments', array('identifier' => $identifier), $key);
 
     $error = NULL;
     if (!$data || !isset($data['result'])) {
