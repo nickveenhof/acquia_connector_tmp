@@ -2,20 +2,20 @@
 
 /**
  * @file
- * Definition of Drupal\acquia_connector\Tests\ConnectorTest.
+ * Definition of Drupal\acquia_connector\Tests\AcquiaConnectorModuleTest.
  */
 
 namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Subscription;
-use GuzzleHttp\Subscriber\History;
+use Drupal\Tests\UnitTestCase;
 use Drupal\acquia_connector\Controller\StatusController;
 
 /**
  * Tests the functionality of the Acquia Connector module.
  */
-class ConnectorTest extends WebTestBase{
+class AcquiaConnectorModuleTest extends WebTestBase{
   protected $strictConfigSchema = FALSE;
 
   protected $acqtest_email = 'TEST_networkuser@example.com';
@@ -34,7 +34,7 @@ class ConnectorTest extends WebTestBase{
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'toolbar', 'devel', 'acquia_connector_test');
+  public static $modules = array('acquia_connector', 'toolbar', 'devel', 'acquia_connector_test');//@todo devel
 
   /**
    * {@inheritdoc}
