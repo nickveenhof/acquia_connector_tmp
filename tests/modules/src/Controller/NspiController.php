@@ -45,6 +45,54 @@ class NspiController extends ControllerBase {
   const ACQTEST_503_ID = 'TEST_AcquiaConnectorTestID503';
   const ACQTEST_503_KEY = 'TEST_AcquiaConnectorTestKey503';
 
+
+  public function nspiUpdate(Request $request){
+    $data_decode = json_decode($request->getContent(), TRUE);//todo
+    $data = json_decode($data_decode, TRUE);//todo
+
+    $fields = array(
+      'time' => 'is_numeric',
+      'nonce' => 'is_string',
+      'hash' => 'is_string',
+    );
+    $result = $this->basicAuthenticator($fields, $data);
+    if (!empty($result['error'])) {
+      return new JsonResponse($result);
+    }
+    if (!empty($data['authenticator']['identifier'])) {
+      if ($data['authenticator']['identifier'] != self::ACQTEST_ID && $data['authenticator']['identifier'] != self::ACQTEST_ERROR_ID) {
+        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')));
+      }
+      if ($data['authenticator']['identifier'] == self::ACQTEST_ERROR_ID) {
+        return new JsonResponse(FALSE);
+      }
+      else {
+        $result = $this->validateAuthenticator($data);
+        $spi_data = $data['body'];
+        $result['body'] = array('spi_data_received' => TRUE);
+        if (isset($spi_data['spi_def_update'])) {
+          $result['body']['update_spi_definition'] = TRUE;
+        }
+
+        // Reflect send_method as nspi_messages if set.
+        if (isset($spi_data['send_method'])) {
+          $result['body']['nspi_messages'][] = $spi_data['send_method'];
+        }
+        $client = new testClient();
+        $result['authenticator']['hash'] = $client->testHash($result['secret']['key'], $result['authenticator']['time'], $result['authenticator']['nonce'], $result['body']);
+        if (isset($spi_data['test_validation_error'])) {
+          $result['authenticator']['nonce'] = 'TEST'; // Force a validation fail.
+        }
+        unset($result['secret']);
+        return new JsonResponse($result);
+      }
+    }
+    else {
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+    }
+  }
+
+
   /**
    * @param Request $request
    * @return array|bool|\stdClass
@@ -87,10 +135,14 @@ class NspiController extends ControllerBase {
     //return new JsonResponse(array('TRUE')); //@todo
   }
 
-
+  /**
+   * @param $fields
+   * @param $data
+   * @return array
+   */
   protected function basicAuthenticator($fields, $data) {
     $result = array();
-    \Drupal::logger('basicAuthenticator')->info(print_r($data, TRUE));
+    //\Drupal::logger('basicAuthenticator')->info(print_r($data, TRUE));
     foreach ($fields as $field => $type) {
       if (empty($data['authenticator'][$field]) || !$type($data['authenticator'][$field])) {
         return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_MESSAGE_INVALID, t('Authenticator field @field is missing or invalid.', array('@field' => $field)));
@@ -176,8 +228,10 @@ class NspiController extends ControllerBase {
     return new JsonResponse($result);
   }
 
-
-
+  /**
+   * @param $data
+   * @return array
+   */
   protected function validateAuthenticator($data) {
     $fields = array(
       'time' => 'is_numeric',
@@ -362,7 +416,7 @@ class testClient extends Client{
    * @return string
    */
   public function testHash($key, $time, $nonce, $params = array()) {
-    \Drupal::logger('testHash')->error(print_R($params, TRUE));
+    //\Drupal::logger('testHash')->error(print_R($params, TRUE));
     return parent::hash($key, $time, $nonce, $params);
   }
 }
