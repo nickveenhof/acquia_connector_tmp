@@ -124,7 +124,7 @@ class ConnectorTest extends WebTestBase{
   }
 
 
-  /*public function testAcquiaConnectorGetConnected() {
+  public function testAcquiaConnectorGetConnected() {
     // Check for call to get connected.
     $this->drupalGet('admin');
     $this->assertText($this->acquiaConnectorStrings('free'), 'The explanation of services text exists');
@@ -198,12 +198,12 @@ class ConnectorTest extends WebTestBase{
     $submit_button = 'Save configuration';
     $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
     $this->assertFieldChecked('edit-acquia-dynamic-banner', '"Receive updates from Acquia" option stays saved');
-  }*/
+  }
 
   /**
    * Test Agent subscription methods.
    */
-  /*public function testAcquiaConnectorSubscription(){
+  public function testAcquiaConnectorSubscription(){
     // Starts as inactive.
     $subscription = new Subscription();
     $is_active = $subscription->isActive();
@@ -310,7 +310,7 @@ class ConnectorTest extends WebTestBase{
     $this->assertTrue(is_array($check_subscription), 'Storing subscription array data.');
     $this->assertIdentical($current_subscription, $check_subscription, 'Subscription data is the same.');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, 'Have made 4 HTTP requests so far.');
-  }*/
+  }
 
   public function testAcquiaAgentCloudMigrate() {
     // Connect site on pair that will trigger an error for migration.
