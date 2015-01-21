@@ -265,6 +265,7 @@ class NspiController extends ControllerBase {
     $data_decode = json_decode($request->getContent(), TRUE); //todo
     $data = json_decode($data_decode, TRUE);
 
+    global $base_url;
     $fields = array(
       'time' => 'is_numeric',
       'nonce' => 'is_string',
@@ -289,7 +290,7 @@ class NspiController extends ControllerBase {
     $result['is_error'] = FALSE;
     foreach (array('dev' => 'Development', 'test' => 'Stage', 'prod' => 'Production') as $key => $name) {
       $result['body']['environments'][$key] = array(
-        'url' => 'system/acquia-connector-test-upload/AH_UPLOAD',
+        'url' => $base_url . '/system/acquia-connector-test-upload/AH_UPLOAD',
         'stage' => $key,
         'nonce' => 'nonce',
         'secret' => 'secret',
@@ -298,6 +299,7 @@ class NspiController extends ControllerBase {
     }
     return new JsonResponse($result);
   }
+
 
   /**
    * @param Request $request
