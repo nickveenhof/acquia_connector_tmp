@@ -289,7 +289,7 @@ class NspiController extends ControllerBase {
     $result['is_error'] = FALSE;
     foreach (array('dev' => 'Development', 'test' => 'Stage', 'prod' => 'Production') as $key => $name) {
       $result['body']['environments'][$key] = array(
-        'url' => 'http://drupal-alerts.local:8083/system/acquia-connector-test-upload/AH_UPLOAD',
+        'url' => 'system/acquia-connector-test-upload/AH_UPLOAD',
         'stage' => $key,
         'nonce' => 'nonce',
         'secret' => 'secret',
