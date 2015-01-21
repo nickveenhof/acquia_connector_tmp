@@ -10,6 +10,7 @@ namespace Drupal\acquia_connector\Tests;
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Subscription;
 use GuzzleHttp\Subscriber\History;
+use Drupal\acquia_connector\Controller\StatusController;
 
 /**
  * Tests the functionality of the Acquia Connector module.
@@ -201,7 +202,7 @@ class ConnectorTest extends WebTestBase{
   }
 
   /**
-   * Test Agent subscription methods.
+   * Test Connector subscription methods.
    */
   public function testAcquiaConnectorSubscription(){
     // Starts as inactive.
@@ -312,7 +313,10 @@ class ConnectorTest extends WebTestBase{
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, 'Have made 4 HTTP requests so far.');
   }
 
-  public function testAcquiaAgentCloudMigrate() {
+  /**
+   * Test Migrate methods.
+   */
+  public function testAcquiaConnectorCloudMigrate() {
     // Connect site on pair that will trigger an error for migration.
     $edit_fields = array(
       'acquia_identifier' => $this->acqtest_error_id,
@@ -347,5 +351,54 @@ class ConnectorTest extends WebTestBase{
   }
 
 
+  /**
+   * Tests the site status callback.
+   */
+  public function testAcquiaConnectorSiteStatus() {
+    $uuid = '0dee0d07-4032-44ea-a2f2-84182dc10d54';
+    $test_url = "https://insight.acquia.com/node/uuid/{$uuid}/dashboard";
 
+    $test_data = array(
+      'active' => 1,
+      'href' => $test_url,
+    );
+    // Set some sample test data.
+    \Drupal::config('acquia_connector.settings')->set('subscription_data', $test_data)->save();
+    // Test StatusControllerTest::getIdFromSub
+    $getIdFromSub = new StatusControllerTest();
+    $key = $getIdFromSub->getIdFromSub($test_data);
+    $this->assertIdentical($key, $uuid);
+
+    // Add a 'uuid' key to the data and make sure that is returned.
+    $test_data['uuid'] = $uuid;
+    $test_data['href'] = 'http://example.com';
+
+    $key = $getIdFromSub->getIdFromSub($test_data);
+    $this->assertIdentical($key, $uuid);
+
+    $query = array(
+      'key' => hash('sha1', "{$key}:test"),
+      'nonce' => 'test',
+    );
+    $json = $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+
+    // Test the version.
+    $this->assertIdentical($json['version'], '1.0', 'Correct API version found.');
+
+    // Test invalid query string parameters for access.
+    // A random key value should fail.
+    $query['key'] = $this->randomString(16);
+    $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
+    $this->assertResponse(403);
+  }
+}
+
+/**
+ * Class StatusControllerTest
+ * @package Drupal\acquia_connector\Tests
+ */
+class StatusControllerTest extends StatusController{
+  public function getIdFromSub($sub_data) {
+    return parent::getIdFromSub($sub_data);
+  }
 }

@@ -12,7 +12,7 @@ use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Component\Utility\Url;
+use Drupal\Component\Utility\UrlHelper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -116,7 +116,7 @@ class StatusController extends ControllerBase {
     }
 
     // Otherwise, get this form the sub url.
-    $url = Url::parse($sub_data['href']);
+    $url = UrlHelper::parse($sub_data['href']);
     $parts = explode('/', $url['path']);
     // Remove '/dashboard'.
     array_pop($parts);
