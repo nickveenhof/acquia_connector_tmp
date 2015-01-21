@@ -5,5 +5,8 @@
  * Helper module for the Acquia Connector tests.
  */
 
+if (!defined('ACQUIA_DEVELOPMENT_NOSSL')) {
+  define('ACQUIA_DEVELOPMENT_NOSSL', TRUE);
+}
 
 

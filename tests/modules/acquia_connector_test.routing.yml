@@ -21,3 +21,26 @@ acquia_connector_test.subscription:
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
     _format: json
+acquia_connector_test.migration_environments:
+  path: '/agent-api/subscription/migration/environments'
+  defaults:
+    _controller: '\Drupal\acquia_connector_test\Controller\NspiController::cloudMigrationEnvironments'
+  requirements:
+    _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
+    _format: json
+acquia_connector_test.migration_test_upload:
+  path: '/system/acquia-connector-test-upload/{id}'
+  defaults:
+    _controller: '\Drupal\acquia_connector_test\Controller\NspiController::testMigrationUpload'
+  requirements:
+    _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
+acquia_connector_test.migration_complete:
+  path: '/agent-api/subscription/migration/complete'
+  defaults:
+    _controller: '\Drupal\acquia_connector_test\Controller\NspiController::testMigrationComplete'
+  requirements:
+    _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
+    _format: json
+
+
+

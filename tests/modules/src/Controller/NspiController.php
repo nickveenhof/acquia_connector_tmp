@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\acquia_connector\Client;
+use Drupal\Core\Url;
 
 
 class NspiController extends ControllerBase {
@@ -254,6 +255,67 @@ class NspiController extends ControllerBase {
     $result['authenticator']['hash'] = '';
     $result['authenticator']['time'] += 1;
     return $result;
+  }
+
+  /**
+   * @param Request $request
+   * @return JsonResponse
+   */
+  public function cloudMigrationEnvironments(Request $request) {
+    $data_decode = json_decode($request->getContent(), TRUE); //todo
+    $data = json_decode($data_decode, TRUE);
+
+    $fields = array(
+      'time' => 'is_numeric',
+      'nonce' => 'is_string',
+      'hash' => 'is_string',
+    );
+    $result = $this->basicAuthenticator($fields, $data);
+    if (!empty($result['error'])) {
+      return new JsonResponse($result);
+    }
+    if (!empty($data['body']['identifier'])) {
+      if (strpos($data['body']['identifier'], 'TEST_') !== 0) {
+        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')));
+      }
+    }
+    else {
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+    }
+    if ($data['body']['identifier'] == self::ACQTEST_ERROR_ID) {
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND, t("Hosting not available under your subscription. Upgrade your subscription to continue with import.")));
+    }
+    $result = array();
+    $result['is_error'] = FALSE;
+    foreach (array('dev' => 'Development', 'test' => 'Stage', 'prod' => 'Production') as $key => $name) {
+      $result['body']['environments'][$key] = array(
+        'url' => 'http://drupal-alerts.local:8083/system/acquia-connector-test-upload/AH_UPLOAD',
+        'stage' => $key,
+        'nonce' => 'nonce',
+        'secret' => 'secret',
+        'site_name' => $name,
+      );
+    }
+    return new JsonResponse($result);
+  }
+
+  /**
+   * @param Request $request
+   * @param $id
+   * @return Response
+   *
+   */
+  public function testMigrationUpload(Request $request, $id) {
+    return new Response('', Response::HTTP_OK);
+  }
+
+  /**
+   * @param Request $request
+   * @return JsonResponse
+   * @return JsonResponse
+   */
+  public function testMigrationComplete(Request $request){
+    return new JsonResponse(array('TRUE'));
   }
 
 
