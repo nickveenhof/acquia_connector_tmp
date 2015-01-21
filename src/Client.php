@@ -11,7 +11,7 @@ namespace Drupal\acquia_connector;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 
 class Client {
 
@@ -169,7 +169,11 @@ class Client {
         return $subscription + $response['body'];
       }
     }
-    catch (\Exception $e){}
+    catch (RequestException $e){
+      drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
+      \Drupal::logger('acquia connector')->error($e->getMessage() . '. Response data: @data', array('@data' => json_encode($e->getResponse()->json())));
+    }
+
     return FALSE;
   }
 
@@ -245,47 +249,31 @@ class Client {
    * @param string $path
    * @param array $data
    * @return array|false
-   * @throws \Exception
+   * @throws RequestException
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
+    $options = array(
+      'headers' => $this->headers,
+      'json' => json_encode($data),
+    );
+
     switch ($method) {
       case 'GET':
         try {
-          $options = array(
-            'headers' => $this->headers,
-            'json' => json_encode($data),
-          );
-
-          $response = $this->client->get($uri, $options);
+          return $this->client->get($uri, $options)->json();
         }
-        catch (ClientException $e) {
-          drupal_set_message($e->getMessage(), 'error');
-        }
+        catch (RequestException $e) { throw $e; }
         break;
+
       case 'POST':
         try {
-          $options = array(
-            'headers' => $this->headers,
-            'json' => json_encode($data),
-          );
-
-          $response = $this->client->post($uri, $options);
-
+          return $this->client->post($uri, $options)->json();
         }
-        catch (ClientException $e) {
-          drupal_set_message($e->getMessage(), 'error');
-        }
+        catch (RequestException $e) { throw $e; }
         break;
     }
-    // @todo support response code
-    if (!empty($response)) {
-      $body = $response->json();
-      if (!empty($body['error']) || !empty($body['is_error'])) {
-        drupal_set_message($body['code'] . ' : ' .$body['message'], 'error');
-      }
-      return $body;
-    }
+
     return FALSE;
   }
 
