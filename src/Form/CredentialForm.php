@@ -94,7 +94,7 @@ class CredentialForm extends ConfigFormBase {
 //    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));  // @todo: remove the line.
     try {
       $response = $this->client->nspiCall(
-        '/agent-api/subscription/' . trim($form_state->getValue('acquia_identifier')),
+        '/agent-api/subscription',
         array('identifier' => trim($form_state->getValue('acquia_identifier'))),
         trim($form_state->getValue('acquia_key')));
     }
