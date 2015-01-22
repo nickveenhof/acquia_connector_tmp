@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\acquia_connector\Controller\SpiController;
 
 /**
  * Tests the functionality of the Acquia SPI module.
@@ -29,6 +30,8 @@ class AcquiaConnectorSpiTest extends WebTestBase{
   protected $acqtest_503_key = 'TEST_AcquiaConnectorTestKey503';
   protected $acqtest_error_id = 'TEST_AcquiaConnectorTestIDErr';
   protected $acqtest_error_key = 'TEST_AcquiaConnectorTestKeyErr';
+  protected $platformKeys = array('php', 'webserver_type', 'webserver_version', 'apache_modules', 'php_extensions', 'php_quantum', 'database_type', 'database_version', 'system_type', 'system_version', 'mysql');
+
 
   /**
    * Modules to enable.
@@ -93,6 +96,9 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     }
   }
 
+  /**
+   *
+   */
   public function testAcquiaSPIUI() {
     $this->drupalGet($this->status_report_url);
     $this->assertNoText($this->acquiaSPIStrings('spi-status-text'), 'SPI send option does not exist when site is not connected');
@@ -120,6 +126,27 @@ class AcquiaConnectorSpiTest extends WebTestBase{
   }
 
   /**
+   *
+   */
+  public function testAcquiaSPIDataStore() {
+    $data = array(
+      'foo' => 'bar',
+    );
+    $spi = new spiControllerTest();
+    $spi->dataStoreSet(array('testdata' => $data));
+    $stored_data = $spi->dataStoreGet(array('testdata'));
+    $diff = array_diff($stored_data['testdata'], $data);
+    $this->assertTrue(empty($diff), 'Storage can store simple array');
+
+    $this->drupalGet('/');
+     //Platform data should have been written.
+    $stored = $spi->dataStoreGet(array('platform'));
+    $diff = array_diff(array_keys($stored['platform']), $this->platformKeys);
+    $this->assertTrue(empty($diff), 'Platform element contains expected keys');
+
+  }
+
+  /**
    * Helper function connects to valid subscription.
    */
   protected function connectSite() {
@@ -129,5 +156,32 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     );
     $submit_button = 'Connect';
     $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
+  }
+}
+
+class spiControllerTest extends SpiController{
+
+  public function __construct(){}
+
+  /**
+   * Put SPI data in local storage.
+   *
+   * @param array $data Keyed array of data to store.
+   * @param int $expire Expire time or null to use default of 1 day.
+   */
+  public function dataStoreSet($data, $expire = NULL) {
+    parent::dataStoreSet($data, $expire);
+  }
+
+  /**
+   * Get SPI data out of local storage.
+   *
+   * @param array Array of keys to extract data for.
+   *
+   * @return array Stored data or false if no data is retrievable from storage.
+   * D7: acquia_spi_data_store_get
+   */
+  public function dataStoreGet($keys) {
+    return parent::dataStoreGet($keys);
   }
 }
