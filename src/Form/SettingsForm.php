@@ -101,7 +101,7 @@ class SettingsForm extends ConfigFormBase {
     try {
       $this->client->getSubscription($identifier, $key);
     }
-    catch (RequestException $e) {
+    catch (\Exception $e) {
       $error_message = acquia_connector_connection_error_message($e->getCode());
       $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.verify_peer');
       if (empty($error_message) && $ssl_available) {

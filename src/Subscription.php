@@ -51,7 +51,7 @@ class Subscription {
       try {
         $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
       }
-      catch (RequestException $e) {
+      catch (\Exception $e) {
         switch ($e->getCode()) {
           case static::NOT_FOUND:
           case static::EXPIRED:
@@ -98,10 +98,9 @@ class Subscription {
       if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
         //'no_heartbeat' => 1
         try {
-          $subscription = \Drupal::service('acquia_connector.client')
-            ->getSubscription($config->get('identifier'), $config->get('key'), array());
+          $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
         }
-        catch (RequestException $e) {}
+        catch (\Exception $e) {}
       }
       $active = !empty($subscription['active']);
     }

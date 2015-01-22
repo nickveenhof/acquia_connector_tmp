@@ -407,7 +407,7 @@ class SecurityReviewController extends ControllerBase {
       }
 
     }
-    catch (RequestException $e) {
+    catch (\Exception $e) {
       $response = $e->getResponse();
     }
 

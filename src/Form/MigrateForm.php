@@ -38,7 +38,7 @@ class MigrateForm extends ConfigFormBase {
     try {
       $data = $client->nspiCall('/agent-migrate-api/subscription/migration/environments', array('identifier' => $identifier), $key);
     }
-    catch (RequestException $e) {
+    catch (\Exception $e) {
       if ($e->getCode()) {
         acquia_connect_report_restapi_error($e->getCode(), $e->getMessage());
         return $this->redirect('acquia_connector.settings');;

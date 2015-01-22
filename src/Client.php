@@ -12,6 +12,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ClientException;
 
 class Client {
 
@@ -77,7 +78,7 @@ class Client {
       // Don't use nspiCall() - key is not defined yet.
       $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
     }
-    catch (RequestException $e) {
+    catch (\Exception $e) {
       return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
     }
     if ($communication_setting) {
@@ -98,7 +99,7 @@ class Client {
           return $response['body'];
         }
       }
-      catch (RequestException $e) {
+      catch (\Exception $e) {
         return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
       }
     }
@@ -114,7 +115,7 @@ class Client {
    *   (optional)
    *
    * @return array|false or throw Exception
-   * @throws RequestException
+   * @throws \Exception
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
@@ -150,15 +151,17 @@ class Client {
 //      }
     }
 
-    try{
+    try {
       $response = $this->nspiCall('/agent-api/subscription/', $body);
       if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
         return $subscription + $response['result']['body'];
       }
     }
-    catch (RequestException $e){
+    catch (\Exception $e) {
       drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
-      \Drupal::logger('acquia connector')->error($e->getMessage() . '. Response data: @data', array('@data' => json_encode($e->getResponse()->json())));
+      if (method_exists($e->getResponse(), 'json')) {
+        \Drupal::logger('acquia connector')->error($e->getMessage() . '. Response data: @data', array('@data' => $e->getResponse()->json()));
+      }
       throw $e;
     }
 
@@ -186,7 +189,7 @@ class Client {
         return $response['result'];
       }
     }
-    catch (RequestException $e) {
+    catch (\Exception $e) {
       // @todo: Add error message
       dpm($e->getMessage());
     }
@@ -194,10 +197,10 @@ class Client {
   }
 
   public function getDefinition($apiEndpoint) {
-    try{
+    try {
       return $this->request('GET', $apiEndpoint, array());
     }
-    catch (RequestException $e){}
+    catch (\Exception $e){}
     return FALSE;
   }
 
@@ -225,7 +228,7 @@ class Client {
    * @param string $path
    * @param array $data
    * @return array|false
-   * @throws RequestException
+   * @throws \Exception
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
@@ -239,14 +242,14 @@ class Client {
         try {
           return $this->client->get($uri, $options)->json();
         }
-        catch (RequestException $e) { throw $e; }
+        catch (\Exception $e) { throw $e; }
         break;
 
       case 'POST':
         try {
           return $this->client->post($uri, $options)->json();
         }
-        catch (RequestException $e) { throw $e; }
+        catch (\Exception $e) { throw $e; }
         break;
     }
 
