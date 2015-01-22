@@ -152,7 +152,7 @@ class Client {
     }
 
     try {
-      $response = $this->nspiCall('/agent-api/subscription/', $body);
+      $response = $this->nspiCall('/agent-api/subscription', $body);
       if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
         return $subscription + $response['result']['body'];
       }
