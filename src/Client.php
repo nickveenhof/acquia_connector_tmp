@@ -181,8 +181,8 @@ class Client {
       }
     }
     catch (ConnectorException $e) {
-      // @todo: Add error message
-      dpm($e->getCustomMessage());
+      \Drupal::logger('acquia connector')->error($e->getCustomMessage);
+      dpm($e->getCustomMessage()); // @todo Remove debug
     }
     return FALSE;
   }
@@ -192,7 +192,7 @@ class Client {
       return $this->request('GET', $apiEndpoint, array());
     }
     catch (ConnectorException $e) {
-      \Drupal::logger('acquia connector')->error($e->getMessage());
+      \Drupal::logger('acquia connector')->error($e->getCustomMessage);
     }
     return FALSE;
   }
@@ -245,7 +245,10 @@ class Client {
       $custom_error_message = [];
       // Provide custom error from the server.
       try {
-        $custom_error_message = $e->getResponse()->json();
+        $error_response = $e->getResponse();
+        if ($error_response) {
+          $custom_error_message = $error_response->json();
+        }
       }
       catch (\Exception $parseException) {}
       throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
