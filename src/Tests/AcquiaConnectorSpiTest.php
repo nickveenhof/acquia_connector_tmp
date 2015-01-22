@@ -9,6 +9,7 @@ namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Controller\SpiController;
+use Drupal\Component\Serialization\Json;
 
 /**
  * Tests the functionality of the Acquia SPI module.
@@ -31,7 +32,31 @@ class AcquiaConnectorSpiTest extends WebTestBase{
   protected $acqtest_error_id = 'TEST_AcquiaConnectorTestIDErr';
   protected $acqtest_error_key = 'TEST_AcquiaConnectorTestKeyErr';
   protected $platformKeys = array('php', 'webserver_type', 'webserver_version', 'apache_modules', 'php_extensions', 'php_quantum', 'database_type', 'database_version', 'system_type', 'system_version', 'mysql');
-
+  protected $spiDataKeys = array(
+    'spi_data_version',
+    'site_key',
+    'modules',
+    'platform',
+    'quantum',
+    'system_status',
+    'failed_logins',
+    '404s',
+    'watchdog_size',
+    'watchdog_data',
+    'last_nodes',
+    'last_users',
+    'extra_files',
+    'ssl_login',
+    'file_hashes',
+    'hashes_md5',
+    'hashes_sha1',
+    'fileinfo',
+    'distribution',
+    'base_version',
+    'build_data',
+    'roles',
+    'uid_0_present',
+  );
 
   /**
    * Modules to enable.
@@ -143,7 +168,48 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $stored = $spi->dataStoreGet(array('platform'));
     $diff = array_diff(array_keys($stored['platform']), $this->platformKeys);
     $this->assertTrue(empty($diff), 'Platform element contains expected keys');
+  }
 
+  /**
+   *
+   */
+  public function testAcquiaSPIGet() {
+    // Test spiControllerTest::get.
+    $spi = new spiControllerTest();
+    $spi_data = $spi->get();
+    $valid = is_array($spi_data);
+    $this->verbose(print_R($spi_data, TRUE));
+    $this->assertTrue($valid, 'spiController::get returns an array');
+    if ($valid) {
+      foreach ($this->spiDataKeys as $key) {
+        if (!array_key_exists($key, $spi_data)) {
+          $valid = FALSE;
+          break;
+        }
+      }
+      $this->assertTrue($valid, 'Array has expected keys');
+      $private_key = \Drupal::service('private_key')->get();
+      $this->assertEqual(sha1($private_key), $spi_data['site_key'], 'Site key is sha1 of Drupal private key');
+      $this->assertTrue(!empty($spi_data['spi_data_version']), 'SPI data version is set');
+      $vars = Json::decode($spi_data['system_vars']);
+      $this->assertTrue(is_array($vars), 'SPI data system_vars is a JSON-encoded array');
+      $this->assertTrue(isset($vars['user_admin_role']), 'user_admin_role included in SPI data');
+      $this->assertTrue(!empty($spi_data['modules']), 'Modules is not empty');
+      $modules = array('status', 'name', 'version', 'package', 'core', 'project', 'filename', 'module_data');
+      $diff = array_diff(array_keys($spi_data['modules'][0]), $modules);
+      $this->assertTrue(empty($diff), 'Module elements have expected keys');
+      $diff = array_diff(array_keys($spi_data['platform']), $this->platformKeys);
+      $this->assertTrue(empty($diff), 'Platform contains expected keys');
+      $this->assertTrue(isset($spi_data['platform']['php_quantum']['SERVER']), 'Global server data included in SPI data');
+      $this->assertTrue(isset($spi_data['platform']['php_quantum']['SERVER']['SERVER_SOFTWARE']), 'Server software data set within global server info');
+      $this->assertTrue(isset($spi_data['platform']['mysql']['Select_scan']), 'Mysql info in platform contains an expected key');
+      $this->assertTrue(isset($spi_data['file_hashes']['core/includes/database.inc']), 'File hashes array contains an expected key');
+      $roles = Json::decode($spi_data['roles']);
+      $this->assertTrue(is_array($roles), 'Roles is an array');
+      $this->assertTrue(isset($roles) && array_key_exists('anonymous', $roles), 'Roles array contains anonymous user');
+      $this->assertTrue(isset($spi_data['fileinfo']['core/scripts/drupal.sh']), 'Fileinfo contains an expected key');
+      $this->assertTrue(strpos($spi_data['fileinfo']['core/scripts/drupal.sh'], 'mt') === 0, 'Fileinfo element begins with expected value');
+    }
   }
 
   /**
@@ -162,6 +228,21 @@ class AcquiaConnectorSpiTest extends WebTestBase{
 class spiControllerTest extends SpiController{
 
   public function __construct(){}
+
+  /**
+   * Gather site profile information about this site.
+   *
+   * @param string $method
+   *   Optional identifier for the method initiating request.
+   *   Values could be 'cron' or 'menu callback' or 'drush'.
+   *
+   * @return array
+   *   An associative array keyed by types of information.
+   * D7: acquia_spi_get
+   */
+  public function get($method = '') {
+    return parent::get($method);
+  }
 
   /**
    * Put SPI data in local storage.

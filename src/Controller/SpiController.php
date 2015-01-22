@@ -628,7 +628,8 @@ class SpiController extends ControllerBase {
   private function getFileHashes($exclude_dirs = array()) {
     // The list of directories for the third parameter are the only ones that
     // will be recursed into.  Thus, we avoid sending hashes for any others.
-    list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'includes', 'misc', 'scripts'));
+    //list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'core/includes', 'core/misc', 'core/scripts'));
+    list($hashes, $fileinfo) = $this->generateHashes('.', array('core/vendor', 'core/assets'), array('modules', 'profiles', 'themes', 'core')); //@todo need review
     ksort($hashes);
     // Add .htaccess file.
     $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
