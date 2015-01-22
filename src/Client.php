@@ -11,7 +11,7 @@ namespace Drupal\acquia_connector;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 
 class Client {
 
@@ -77,10 +77,10 @@ class Client {
       // Don't use nspiCall() - key is not defined yet.
       $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
     }
-    catch (\Exception $e) {
+    catch (RequestException $e) {
       return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
     }
-    if($communication_setting) {
+    if ($communication_setting) {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
       $pass = $crypt_pass->cryptPass();
 
@@ -98,7 +98,7 @@ class Client {
           return $response['body'];
         }
       }
-      catch (\Exception $e) {
+      catch (RequestException $e) {
         return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
       }
     }
@@ -114,6 +114,7 @@ class Client {
    *   (optional)
    *
    * @return array|false or throw Exception
+   * @throws RequestException
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
@@ -150,14 +151,15 @@ class Client {
     }
 
     try{
-      $response = $this->nspiCall('/agent-api/subscription/' . $id, $body);
+      $response = $this->nspiCall('/agent-api/subscription/', $body);
       if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
         return $subscription + $response['result']['body'];
       }
     }
-    catch (\Exception $e) {
-      // @todo: Add error message
-      dpm($e->getMessage());
+    catch (RequestException $e){
+      drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
+      \Drupal::logger('acquia connector')->error($e->getMessage() . '. Response data: @data', array('@data' => json_encode($e->getResponse()->json())));
+      throw $e;
     }
 
     return FALSE;
@@ -184,7 +186,7 @@ class Client {
         return $response['result'];
       }
     }
-    catch (\Exception $e) {
+    catch (RequestException $e) {
       // @todo: Add error message
       dpm($e->getMessage());
     }
@@ -195,7 +197,7 @@ class Client {
     try{
       return $this->request('GET', $apiEndpoint, array());
     }
-    catch (\Exception $e){}
+    catch (RequestException $e){}
     return FALSE;
   }
 
@@ -223,7 +225,7 @@ class Client {
    * @param string $path
    * @param array $data
    * @return array|false
-   * @throws \Exception
+   * @throws RequestException
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
@@ -232,32 +234,22 @@ class Client {
       'json' => json_encode($data),
     );
 
-    try {
-      switch ($method) {
-        case 'GET':
-          $response = $this->client->get($uri, $options);
-          break;
-        case 'POST':
-          $response = $this->client->post($uri, $options);
-          break;
-      }
+    switch ($method) {
+      case 'GET':
+        try {
+          return $this->client->get($uri, $options)->json();
+        }
+        catch (RequestException $e) { throw $e; }
+        break;
+
+      case 'POST':
+        try {
+          return $this->client->post($uri, $options)->json();
+        }
+        catch (RequestException $e) { throw $e; }
+        break;
     }
-    catch (ClientException $e) {
-      $error = $e->getResponse()->json();
-      dpm($error);
-      if ((!empty($error['error']) || !empty($error['is_error'])) && !empty($error['message']) && !empty($error['code'])) {
-        throw new \Exception($error['message'], $error['code']);
-      }
-      throw new \Exception($e->getMessage(), $e->getCode());
-    }
-    // @todo support response code
-    if (!empty($response)) {
-      $body = $response->json();
-      if ((!empty($body['error']) || !empty($body['is_error'])) && !empty($body['message']) && !empty($body['code'])) {
-        throw new \Exception($body['message'], $body['code']);
-      }
-      return $body;
-    }
+
     return FALSE;
   }
 

@@ -29,7 +29,7 @@ class MigrateController extends ControllerBase {
       try {
         \Drupal::service('acquia_connector.client')->getSubscription($identifier, $key);
       }
-      catch (\Exception $e) {
+      catch (RequestException $e) {
         $error_message = acquia_connector_connection_error_message($e->getCode());
       }
     }

@@ -51,7 +51,7 @@ class Subscription {
       try {
         $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
       }
-      catch (\Exception $e) {
+      catch (RequestException $e) {
         switch ($e->getCode()) {
           case static::NOT_FOUND:
           case static::EXPIRED:
@@ -67,7 +67,7 @@ class Subscription {
       }
       if ($subscription) {
         $config->set('subscription_data', $subscription)->save();
-        // @todo hook signature has changed, doesn't pass active anymore.
+        // @todo hook signature has changed, doesn't pass $active variable anymore.
         \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
       }
     }
@@ -97,7 +97,11 @@ class Subscription {
       // Make sure we have data at least once per day.
       if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
         //'no_heartbeat' => 1
-        $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
+        try {
+          $subscription = \Drupal::service('acquia_connector.client')
+            ->getSubscription($config->get('identifier'), $config->get('key'), array());
+        }
+        catch (RequestException $e) {}
       }
       $active = !empty($subscription['active']);
     }
