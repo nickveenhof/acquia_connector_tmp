@@ -14,6 +14,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_connector\Subscription;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class SetupForm.
@@ -139,17 +140,19 @@ class SetupForm extends ConfigFormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $storage = $form_state->getStorage();
     if (!isset($storage['choose'])) {
-      $response = $this->client->getSubscriptionCredentials($form_state->getValue('email'), $form_state->getValue('pass'));
-
-      if (!empty($response['error'])) {
+      try {
+        $response = $this->client->getSubscriptionCredentials($form_state->getValue('email'), $form_state->getValue('pass'));
+      }
+      catch (ConnectorException $e) {
         // Set form error to prevent switching to the next page.
-        $form_state->setErrorByName('email', $response['message']);
+        if ($e->isCustomized()) {
+          $form_state->setErrorByName('email', $e->getCustomMessage());
+        }
+        else {
+          $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
+        }
       }
-      elseif (empty($response)) {
-        // Email doesn't exist.
-        $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
-      }
-      else {
+      if (!empty($response)) {
         $storage['response'] = $response;
       }
     }

@@ -242,6 +242,7 @@ function acquia_connector_has_update_service() {
  * @param $code
  * @param $message
  * d7: acquia_agent_report_xmlrpc_error().
+ * @todo: Move into Drupal\acquia_connector\ConnectorException;
  */
 function acquia_connect_report_restapi_error($code, $message) {
   drupal_set_message(t('Error: @message (@errno)', array('@message' => $message, '@errno' => $code)), 'error');
@@ -259,6 +260,7 @@ function acquia_connect_report_restapi_error($code, $message) {
  * @param int $errno.
  * @return string or FALSE.
  * d7: acquia_agent_connection_error_message().
+ * @todo: Move into Drupal\acquia_connector\ConnectorException;
  */
 function acquia_connector_connection_error_message($errno) {
   switch ($errno) {

@@ -51,8 +51,8 @@ class Subscription {
       try {
         $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
       }
-      catch (\Exception $e) {
-        switch ($e->getCode()) {
+      catch (ConnectorException $e) {
+        switch ($e->getCustomMessage('code')) {
           case static::NOT_FOUND:
           case static::EXPIRED:
             // Fall through since these values are stored and used by
@@ -100,7 +100,7 @@ class Subscription {
         try {
           $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
         }
-        catch (\Exception $e) {}
+        catch (ConnectorException $e) {}
       }
       $active = !empty($subscription['active']);
     }

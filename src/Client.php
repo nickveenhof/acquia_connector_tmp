@@ -11,8 +11,6 @@ namespace Drupal\acquia_connector;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\ClientException;
 
 class Client {
 
@@ -74,13 +72,8 @@ class Client {
       'authenticator' => $authenticator,
     );
 
-    try {
-      // Don't use nspiCall() - key is not defined yet.
-      $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
-    }
-    catch (\Exception $e) {
-      return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
-    }
+    // Don't use nspiCall() - key is not defined yet.
+    $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
     if ($communication_setting) {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
       $pass = $crypt_pass->cryptPass();
@@ -93,14 +86,9 @@ class Client {
       );
 
       // Don't use nspiCall() - key is not defined yet.
-      try {
-        $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
-        if ($response['body']) {
-          return $response['body'];
-        }
-      }
-      catch (\Exception $e) {
-        return ['message' => $e->getMessage(), 'error' => TRUE, 'code' => $e->getCode()];
+      $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
+      if ($response['body']) {
+        return $response['body'];
       }
     }
     return FALSE;
@@ -157,10 +145,13 @@ class Client {
         return $subscription + $response['result']['body'];
       }
     }
-    catch (\Exception $e) {
+    catch (ConnectorException $e) {
       drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
-      if (method_exists($e->getResponse(), 'json')) {
-        \Drupal::logger('acquia connector')->error($e->getMessage() . '. Response data: @data', array('@data' => $e->getResponse()->json()));
+      if ($e->isCustomized()) {
+        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => $e->getAllCustomMessages()));
+      }
+      else {
+        \Drupal::logger('acquia connector')->error($e->getMessage());
       }
       throw $e;
     }
@@ -189,9 +180,9 @@ class Client {
         return $response['result'];
       }
     }
-    catch (\Exception $e) {
+    catch (ConnectorException $e) {
       // @todo: Add error message
-      dpm($e->getMessage());
+      dpm($e->getCustomMessage());
     }
     return FALSE;
   }
@@ -200,7 +191,9 @@ class Client {
     try {
       return $this->request('GET', $apiEndpoint, array());
     }
-    catch (\Exception $e){}
+    catch (ConnectorException $e) {
+      \Drupal::logger('acquia connector')->error($e->getMessage());
+    }
     return FALSE;
   }
 
@@ -228,7 +221,7 @@ class Client {
    * @param string $path
    * @param array $data
    * @return array|false
-   * @throws \Exception
+   * @throws ConnectorException
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
@@ -237,20 +230,25 @@ class Client {
       'json' => json_encode($data),
     );
 
-    switch ($method) {
-      case 'GET':
-        try {
+    try {
+      switch ($method) {
+        case 'GET':
           return $this->client->get($uri, $options)->json();
-        }
-        catch (\Exception $e) { throw $e; }
-        break;
+          break;
 
-      case 'POST':
-        try {
+        case 'POST':
           return $this->client->post($uri, $options)->json();
-        }
-        catch (\Exception $e) { throw $e; }
-        break;
+          break;
+      }
+    }
+    catch (\Exception $e) {
+      $custom_error_message = [];
+      // Provide custom error from the server.
+      try {
+        $custom_error_message = $e->getResponse()->json();
+      }
+      catch (\Exception $parseException) {}
+      throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
     }
 
     return FALSE;

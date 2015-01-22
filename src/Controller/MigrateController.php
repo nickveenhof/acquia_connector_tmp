@@ -10,7 +10,7 @@ namespace Drupal\acquia_connector\Controller;
 use Drupal\acquia_connector\Migration;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class MigrateController.
@@ -29,8 +29,8 @@ class MigrateController extends ControllerBase {
       try {
         \Drupal::service('acquia_connector.client')->getSubscription($identifier, $key);
       }
-      catch (\Exception $e) {
-        $error_message = acquia_connector_connection_error_message($e->getCode());
+      catch (ConnectorException $e) {
+        $error_message = acquia_connector_connection_error_message($e->getCustomMessage('code'));
       }
     }
     else {

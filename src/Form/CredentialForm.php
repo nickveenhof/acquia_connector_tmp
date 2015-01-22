@@ -14,6 +14,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_connector\Subscription;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class CredentialForm.
@@ -98,27 +99,22 @@ class CredentialForm extends ConfigFormBase {
         array('identifier' => trim($form_state->getValue('acquia_identifier'))),
         trim($form_state->getValue('acquia_key')));
     }
-    catch (\Exception $e) {
-      if ($e->getCode()) {
-        acquia_connect_report_restapi_error($e->getCode(), $e->getMessage());
+    catch (ConnectorException $e) {
+      // Set form error to prevent switching to the next page.
+      if ($e->isCustomized()) {
+        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $form_state->setErrorByName('');
       }
       else {
         $form_state->setErrorByName('', t('Server error, please submit again.'));
       }
-      $response['result'] = FALSE;
+      return;
     }
 
     $response = $response['result'];
     dpm($response); // @todo: Remove debug.
 
-    if (!empty($response['is_error'])) {
-      $form_state->setErrorByName('', t('Server error, please submit again.'));
-    }
-    elseif (isset($response['body']['error'])) {
-      $form_state->setErrorByName('', $response['body']['error']);
-    }
-    elseif (empty($response['body']['subscription_name'])) {
+    if (empty($response['body']['subscription_name'])) {
       $form_state->setErrorByName('acquia_identifier', t('No subscriptions were found.'));
     }
     else {

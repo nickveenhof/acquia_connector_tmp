@@ -170,9 +170,9 @@ class Migration {
     try {
       $data = $client->nspiCall('/agent-migrate-api/subscription/migration/complete', $body, $key);
     }
-    catch (\Exception $e) {
-      if ($e->getCode()) {
-        acquia_connect_report_restapi_error($e->getCode(), $e->getMessage());
+    catch (ConnectorException $e) {
+      if ($e->getCustomMessage('code')) {
+        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $migration['error'] = TRUE;
         return;
       }

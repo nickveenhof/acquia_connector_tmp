@@ -16,7 +16,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\PrivateKey;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class SettingsForm.
@@ -101,8 +101,8 @@ class SettingsForm extends ConfigFormBase {
     try {
       $this->client->getSubscription($identifier, $key);
     }
-    catch (\Exception $e) {
-      $error_message = acquia_connector_connection_error_message($e->getCode());
+    catch (ConnectorException $e) {
+      $error_message = acquia_connector_connection_error_message($e->getCustomMessage('code'));
       $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.verify_peer');
       if (empty($error_message) && $ssl_available) {
         $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_connector.settings:spi.verify_peer to false.');
