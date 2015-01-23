@@ -69,6 +69,7 @@ class NspiController extends ControllerBase {
       }
       else {
         $result = $this->validateAuthenticator($data);
+        $data['body']['spi_def_update'] = TRUE; //@todo neew for update definition
         $spi_data = $data['body'];
         $result['body'] = array('spi_data_received' => TRUE);
         if (isset($spi_data['spi_def_update'])) {
@@ -93,10 +94,10 @@ class NspiController extends ControllerBase {
     }
   }
 
-  function spiDefinition($arg_version) {
+  function spiDefinition(Request $request, $version) {
     $vars = array('file_temporary_path' => array('optional' => FALSE, 'description' => 'file_temporary_path'), 'page_compression' => array('optional' => TRUE, 'description' => 'page_compression'), 'user_admin_role' => array('optional' => TRUE, 'description' => 'user_admin_role'));
     $data = array(
-      'drupal_version' => $arg_version,
+      'drupal_version' => (string) $version,
       'timestamp' => (string) (REQUEST_TIME + 9),
       'acquia_spi_variables' => $vars,
     );

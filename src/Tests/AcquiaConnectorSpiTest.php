@@ -235,10 +235,6 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $this->assertTrue(empty($def_vars), 'SPI definition variables is empty');
     $waived_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_waived_vars');
     $this->assertTrue(empty($waived_vars), 'SPI definition waived variables is empty');
-    //$spi = new spiControllerTest();
-    //$update_res = $spi->updateDefinition();
-   // $this->drupalGet('/system/acquia-spi-send', array('body' => array()));
-    //$this->assertTrue($update_res, 'Update definition call returned true');
     // Connect site on non-error key and id.
     $this->connectSite();
     // Send SPI data.
@@ -249,14 +245,15 @@ class AcquiaConnectorSpiTest extends WebTestBase{
 
     $def_timestamp  = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
     $this->assertNotEqual($def_timestamp, 0, 'SPI definition timestamp set');
-    /*$def_vars = variable_get('acquia_spi_def_vars', array());
+    $def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');
     $this->assertTrue(!empty($def_vars), 'SPI definition variable set');
-    variable_set('acquia_spi_def_waived_vars', array('user_admin_role'));
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.def_waived_vars', array('user_admin_role'))->save();
     // Test that new variables are in SPI data.
-    $spi_data = acquia_spi_get();
-    $vars = drupal_json_decode($spi_data['system_vars']);
+    $spi = new spiControllerTest();
+    $spi_data = $spi->get();
+    $vars = Json::decode($spi_data['system_vars']);
     $this->assertTrue(!empty($vars['file_temporary_path']), 'New variables included in SPI data');
-    $this->assertTrue(!isset($vars['user_admin_role']), 'user_admin_role not included in SPI data');*/
+    $this->assertTrue(!isset($vars['user_admin_role']), 'user_admin_role not included in SPI data');
   }
 
 

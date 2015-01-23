@@ -192,7 +192,7 @@ class Client {
       return $this->request('GET', $apiEndpoint, array());
     }
     catch (ConnectorException $e) {
-      \Drupal::logger('acquia connector')->error($e->getCustomMessage);
+      \Drupal::logger('acquia connector')->error($e->getCustomMessage());
     }
     return FALSE;
   }
