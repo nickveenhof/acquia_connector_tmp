@@ -100,10 +100,10 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $this->status_report_url = 'admin/reports/status';
 
     //local env
-    \Drupal::config('acquia_connector.settings')->set('network_address', 'http://drupal-alerts.local:8083/')->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.server', 'http://drupal-alerts.local:8083/')->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('network_address', 'http://drupal8.local:8083/')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', 'http://drupal8.local:8083/')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
   }
 
 
