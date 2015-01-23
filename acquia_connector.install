@@ -157,8 +157,9 @@ function acquia_connector_requirements($phase) {
 /**
  * Implements hook_install().
  */
+// @todo Is it possible scenario for Drupal 8?
 function acquia_connector_install() {
-  $config = \Drupal::config('acquia_connector.settings');
+  $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
   $credentials = new Subscription();
   // Auto-connect with Acquia Cloud credentials if there's not currently a
   // connection or credentials set.

@@ -327,7 +327,7 @@ function acquia_connector_acquia_subscription_status($subscription = FALSE) {
     // since it can change periodically.
     $salt = \Drupal::config('acquia_connector.settings')->get('search.derived_key_salt');
     if (isset($subscription['derived_key_salt']) && $salt != $subscription['derived_key_salt']) {
-      \Drupal::config('acquia_connector.settings')
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')
         ->set('search.derived_key_salt', $subscription['derived_key_salt'])
         ->save();
     }

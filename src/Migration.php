@@ -196,7 +196,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -216,7 +216,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -237,7 +237,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
 
     // Check for error and abort if appropriate.
@@ -259,7 +259,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
 
     // Check for error and abort if appropriate.
@@ -657,7 +657,7 @@ class Migration {
 
       unset($migration['dir']);
     }
-    \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
   }
 
   /**

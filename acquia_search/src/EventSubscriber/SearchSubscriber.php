@@ -166,7 +166,7 @@ class SearchSubscriber extends Plugin {
       // If the variable doesn't exist, set it using the subscription data.
       $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
       if (isset($subscription['derived_key_salt'])) {
-        \Drupal::config('acquia_connector.settings')->set('search.derived_key_salt', $subscription['derived_key_salt'])->save();
+        \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('search.derived_key_salt', $subscription['derived_key_salt'])->save();
         $salt = $subscription['derived_key_salt'];
       }
     }
