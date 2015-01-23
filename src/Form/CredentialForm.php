@@ -50,6 +50,13 @@ class CredentialForm extends ConfigFormBase {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return ['acquia_connector.settings', 'acquia_search.settings'];
+  }
+
  /**
   * {@inheritdoc}
   */

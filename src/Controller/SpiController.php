@@ -1135,7 +1135,7 @@ class SpiController extends ControllerBase {
       return FALSE;
     }
 
-    $config->set('cron_last', REQUEST_TIME)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('cron_last', REQUEST_TIME)->save();
     $this->handleServerResponse($response);
 
     return $response;
@@ -1282,13 +1282,15 @@ class SpiController extends ControllerBase {
       if ($changed_bool) {
         $this->config('acquia_connector.settings')->set('spi.def_waived_vars', $waived_spi_def_vars);
       }
+
+      $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
       // Finally, save SPI definition data.
       if ($new_optional_vars > 0) {
-        $this->config('acquia_connector.settings')->set('spi.new_optional_data', 1);
+        $config->set('spi.new_optional_data', 1);
       }
-      $this->config('acquia_connector.settings')->set('spi.def_timestamp', $response_data['timestamp']);
-      $this->config('acquia_connector.settings')->set('spi.def_vars', $response_data['acquia_spi_variables']);
-      $this->config('acquia_connector.settings')->save();
+      $config->set('spi.def_timestamp', $response_data['timestamp']);
+      $config->set('spi.def_vars', $response_data['acquia_spi_variables']);
+      $config->save();
       return TRUE;
     }
     return FALSE;

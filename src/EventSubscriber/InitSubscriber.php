@@ -115,16 +115,16 @@ class InitSubscriber implements EventSubscriberInterface {
     }
 
     // Display a message asking to connect to the Acquia Network.
-    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="!acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="!settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
+    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="@acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="@settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
     if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
-      $text = '<a href="!settings">Connect your site to the Acquia Network now</a>. <a href="!more">Learn more</a>.';
+      $text = '<a href="@settings">Connect your site to the Acquia Network now</a>. <a href="@more">Learn more</a>.';
     }
     $message = t(
       $text,
       [
-        '!more' => Url::fromUri('https://docs.acquia.com/network/install')->getUri(),
-        '!acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(),
-        '!settings' => Url::fromRoute('acquia_connector.setup')->toString(),
+        '@more' => Url::fromUri('https://docs.acquia.com/network/install')->getUri(),
+        '@acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(),
+        '@settings' => Url::fromRoute('acquia_connector.setup')->toString(),
       ]);
     drupal_set_message($message, 'warning', FALSE);
   }

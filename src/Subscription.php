@@ -38,7 +38,7 @@ class Subscription {
    * D7: acquia_agent_check_subscription
    */
   public function update($params = array()) {
-    $config = \Drupal::config('acquia_connector.settings');
+    $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $current_subscription = $config->get('subscription_data');
     $subscription = FALSE;
 

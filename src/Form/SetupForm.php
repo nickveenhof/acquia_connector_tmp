@@ -52,6 +52,13 @@ class SetupForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
+  protected function getEditableConfigNames() {
+    return ['acquia_connector.settings', 'acquia_search.settings'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getFormId() {
     return 'acquia_connector_automatic_setup_form';
   }
