@@ -28,7 +28,6 @@ class SearchSubscriber extends Plugin {
    */
   public function preExecuteRequest($event) {
     $request = $event->getRequest();
-    $this->request = $request;
     $request->addParam('request_id', uniqid(), TRUE);
     $endpoint = $this->client->getEndpoint();
     $this->uri = $endpoint->getBaseUri() . $request->getUri();
@@ -42,7 +41,7 @@ class SearchSubscriber extends Plugin {
       $string = $path . $query; // For pings only.
     }
 
-    $cookie = $this->acquia_search_authenticator($string, $this->nonce);
+    $cookie = $this->calculateAuthCookie($string, $this->nonce);
     $request->addHeader('Cookie: ' . $cookie);
     $request->addHeader('User-Agent: ' . 'acquia_search/'. \Drupal::VERSION);
   }
@@ -63,8 +62,8 @@ class SearchSubscriber extends Plugin {
    * @throws \Exception
    */
   protected function authenticateResponse($response, $nonce, $url) {
-    $hmac = $this->acquia_search_extract_hmac($response->getHeaders());
-    if (!$this->acquia_search_valid_response($hmac, $nonce, $response->getBody())) {
+    $hmac = $this->extractHmac($response->getHeaders());
+    if (!$this->validateResponse($hmac, $nonce, $response->getBody())) {
       throw new \Exception('Authentication of search content failed url: '. $url);
     }
     return $response;
@@ -74,10 +73,11 @@ class SearchSubscriber extends Plugin {
    * Validate the authenticity of returned data using a nonce and HMAC-SHA1.
    *
    * @return bool
+   * D7: acquia_search_valid_response()
    */
-  public function acquia_search_valid_response($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
+  public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
     if (empty($derived_key)) {
-      $derived_key = $this->_acquia_search_derived_key($env_id);
+      $derived_key = $this->getDerivedKey($env_id);
     }
     return $hmac == hash_hmac('sha1', $nonce . $string, $derived_key);
   }
@@ -86,8 +86,9 @@ class SearchSubscriber extends Plugin {
    * Look in the headers and get the hmac_digest out
    *
    * @return string hmac_digest
+   * D7: acquia_search_extract_hmac()
    */
-  public function acquia_search_extract_hmac($headers) {
+  public function extractHmac($headers) {
     $reg = array();
     if (is_array($headers)) {
       foreach ($headers as $value) {
@@ -99,77 +100,24 @@ class SearchSubscriber extends Plugin {
     return '';
   }
 
-
-
-//  /**
-//   * Modify a solr base url and construct a hmac authenticator cookie.
-//   *
-//   * @param $url
-//   *  The solr url beng requested - passed by reference and may be altered.
-//   * @param $string
-//   *  A string - the data to be authenticated, or empty to just use the path
-//   *  and query from the url to build the authenticator.
-//   * @param $derived_key
-//   *  Optional string to supply the derived key.
-//   *
-//   * @return
-//   *  An array containing the string to be added as the content of the
-//   *  Cookie header to the request and the nonce.
-//   */
-//  public function acquia_search_auth_cookie($url, $string = '', $derived_key = NULL, $env_id = NULL) {
-//    $uri = parse_url($url);
-//
-//    // Add a scheme - should always be https if available.
-//    if (in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL')) {
-//      $scheme = 'https://';
-//      $port = '';
-//    }
-//    else {
-//      $scheme = 'http://';
-//      $port = (isset($uri['port']) && $uri['port'] != 80) ? ':'. $uri['port'] : '';
-//    }
-//    $path = isset($uri['path']) ? $uri['path'] : '/';
-//    $query = isset($uri['query']) ? '?'. $uri['query'] : '';
-//    $url = $scheme . $uri['host'] . $port . $path . $query;
-//
-//    // 32 character nonce.
-//    $nonce = base64_encode(drupal_random_bytes(24));
-//
-//    if ($string) {
-//      $auth_header = acquia_search_authenticator($string, $nonce, $derived_key, $env_id);
-//    }
-//    else {
-//      $auth_header = acquia_search_authenticator($path . $query, $nonce, $derived_key, $env_id);
-//    }
-//    return array($auth_header, $nonce);
-//  }
-
   /**
    * Get the derived key for the solr hmac using the information shared with acquia.com.
+   * D7: _acquia_search_derived_key().
    */
-  public function _acquia_search_derived_key($env_id = NULL) {
+  public function getDerivedKey($env_id = NULL) {
     if (empty($env_id)) {
       $env_id = $this->client->getEndpoint()->getKey();
-//      $env_id = 'acquia_search_server_1';
     }
     if (!isset($this->derived_key[$env_id])) {
       // If we set an explicit environment, check if this needs to overridden
       // Use the default
-//      $identifier = acquia_agent_settings('acquia_identifier');
       $identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
-//      $key = acquia_agent_settings('acquia_key');
       $key = \Drupal::config('acquia_connector.settings')->get('key');
       // See if we need to overwrite these values
-      if ($env_id) {
-        // Load the explicit environment and a manually set search key.
-//        if ($search_key = apachesolr_environment_variable_get($env_id, 'acquia_search_key')) {
-//          $this->derived_key[$env_id] = $search_key;
-//        }
-      }
       // In any case, this is equal for all subscriptions. Also
       // even if the search sub is different, the main subscription should be
       // active
-      $derived_key_salt = $this->acquia_search_derived_key_salt();
+      $derived_key_salt = $this->getDerivedKeySalt();
 
       // We use a salt from acquia.com in key derivation since this is a shared
       // value that we could change on the AN side if needed to force any
@@ -181,7 +129,7 @@ class SearchSubscriber extends Plugin {
         $this->derived_key[$env_id] = '';
       }
       elseif (!isset($derived_key[$env_id])) {
-        $this->derived_key[$env_id] = $this->_acquia_search_create_derived_key($derived_key_salt, $identifier, $key);
+        $this->derived_key[$env_id] = $this->createDerivedKey($derived_key_salt, $identifier, $key);
       }
     }
 
@@ -205,17 +153,15 @@ class SearchSubscriber extends Plugin {
    *   The derived key salt.
    *
    * @see http://drupal.org/node/1784114
+   * D7: acquia_search_derived_key_salt().
    */
-  public function acquia_search_derived_key_salt() {
-//    $salt = variable_get('acquia_search_derived_key_salt', '');
-    $salt = \Drupal::config('acquia_connector.settings')->get('search.derived_key_salt');
+  public function getDerivedKeySalt() {
+    $salt = \Drupal::config('acquia_connector.settings')->get('search.derived_key_salt'); // D7: acquia_search_derived_key_salt
     if (!$salt) {
       // If the variable doesn't exist, set it using the subscription data.
       $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
-//      $subscription = acquia_agent_settings('acquia_subscription_data');
       if (isset($subscription['derived_key_salt'])) {
         \Drupal::config('acquia_connector.settings')->set('search.derived_key_salt', $subscription['derived_key_salt'])->save();
-//        variable_set('acquia_search_derived_key_salt', $subscription['derived_key_salt']);
         $salt = $subscription['derived_key_salt'];
       }
     }
@@ -224,17 +170,19 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Derive a key for the solr hmac using a salt, id and key.
+   * D7: _acquia_search_create_derived_key().
    */
-  public function _acquia_search_create_derived_key($salt, $id, $key) {
+  public function createDerivedKey($salt, $id, $key) {
     $derivation_string = $id . 'solr' . $salt;
     return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
   }
   /**
    * Creates an authenticator based on a data string and HMAC-SHA1.
+   * D7: acquia_search_authenticator().
    */
-  public function acquia_search_authenticator($string, $nonce, $derived_key = NULL, $env_id = NULL) {
+  public function calculateAuthCookie($string, $nonce, $derived_key = NULL, $env_id = NULL) {
     if (empty($derived_key)) {
-      $derived_key = $this->_acquia_search_derived_key($env_id);
+      $derived_key = $this->getDerivedKey($env_id);
     }
     if (empty($derived_key)) {
       // Expired or invalid subscription - don't continue.
