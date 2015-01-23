@@ -1,6 +1,6 @@
 name: Acquia search
 type: module
-description: 'Provides integration between your Drupal site and Acquia's hosted search service.'
+description: Provides integration between your Drupal site and Acquia's hosted search service.
 package: Acquia
 core: 8.x
 configure: search_api.overview

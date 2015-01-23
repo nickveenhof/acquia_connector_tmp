@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\acquia_connector\EventSubscriber;
+namespace Drupal\acquia_search\EventSubscriber;
 
 use Solarium\Core\Event\Events;
 use Solarium\Core\Plugin\Plugin;
@@ -113,6 +113,7 @@ class SearchSubscriber extends Plugin {
       // Use the default
       $identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
       $key = \Drupal::config('acquia_connector.settings')->get('key');
+
       // See if we need to overwrite these values
       // In any case, this is equal for all subscriptions. Also
       // even if the search sub is different, the main subscription should be

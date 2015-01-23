@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\acquia_connector\Plugin\search_api\backend;
+namespace Drupal\acquia_search\Plugin\search_api\backend;
 
 use Drupal\search_api_solr\Plugin\search_api\backend\SearchApiSolrBackend;
 use Drupal\Core\Config\Config;
@@ -11,7 +11,7 @@ use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\ServerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\acquia_connector\EventSubscriber\SearchSubscriber;
+use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 
 
 /**
