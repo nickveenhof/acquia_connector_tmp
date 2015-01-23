@@ -33,17 +33,6 @@
 //}
 //
 ///**
-// * Implementation of hook_menu_alter().
-// */
-//function acquia_search_menu_alter(&$menu) {
-//  $delete_page = 'admin/config/search/apachesolr/settings/%apachesolr_environment/delete';
-//  if (isset($menu[$delete_page])) {
-//    $menu[$delete_page]['access callback'] = 'acquia_search_environment_delete_access';
-//    $menu[$delete_page]['access arguments'] = array(5);
-//  }
-//}
-//
-///**
 // * Helper function to cache the Acquia Search version.
 // */
 //function _acquia_search_set_version() {
@@ -58,44 +47,11 @@
 //}
 //
 ///**
-// * Tests whether the environment is connected to Acquia Search.
-// */
-//function acquia_search_environment_connected($environment) {
-//  if ($environment['service_class'] == 'AcquiaSearchService') {
-//    return TRUE;
-//  }
-//  $acquia_search_key = apachesolr_environment_variable_get($environment['env_id'], 'acquia_search_key');
-//  if (!empty($acquia_search_key)) {
-//    return TRUE;
-//  }
-//  return FALSE;
-//}
-//
-///**
-// * Delete environment page access.
-// */
-//function acquia_search_environment_delete_access($environment) {
-//  if (strstr($environment['env_id'], ACQUIA_SEARCH_ENVIRONMENT_ID)) {
-//    return FALSE;
-//  }
-//  // Fall back to the original check.
-//  return user_access('administer search');
-//}
-//
-///**
 // * Implementation of hook_form_[form_id]_alter().
 // */
 //function acquia_search_form_apachesolr_settings_alter(&$form, $form_state) {
 //  // Don't alter the form if there is no subscription.
 //  if (acquia_agent_subscription_is_active()) {
-//    // Don't show delete operation for the Default AS environment. This means
-//    // that cloned acquia search environments can be deleted
-//    foreach ($form['apachesolr_host_settings']['table']['#rows'] as &$row) {
-//      if (isset($row['data']['delete']['data']) && strpos($row['data']['delete']['data'], ACQUIA_SEARCH_ENVIRONMENT_ID . '/delete') !== FALSE) {
-//        $row['data']['delete']['data'] = '';
-//        break;
-//      }
-//    }
 //    $form['advanced']['acquia_search_edismax_default'] = array(
 //      '#type' => 'radios',
 //      '#title' => t('Always allow advanced syntax for Acquia Search'),
@@ -104,33 +60,6 @@
 //      '#description' => t('If enabled, all Acquia Search keyword searches may use advanced <a href="@url">Lucene syntax</a> such as wildcard searches, fuzzy searches, proximity searches, boolean operators and more via the Extended Dismax parser. If not enabled, this syntax wll only be used when needed to enable wildcard searches.', array('@url' => 'http://lucene.apache.org/java/2_9_3/queryparsersyntax.html')),
 //      '#weight' => 10,
 //    );
-//  }
-//}
-//
-///**
-// * Implementation of hook_form_[form_id]_alter().
-// */
-//function acquia_search_form_apachesolr_environment_edit_form_alter(&$form, $form_state) {
-//  // Gets environment from form, gets connection status to Acquia Search.
-//  $env_id = isset($form['env_id']['#default_value']) ? $form['env_id']['#default_value'] : '';
-//  $environment = ($env_id) ? apachesolr_environment_load($env_id) : FALSE;
-//
-//  if ($environment && acquia_search_environment_connected($environment)) {
-//    $form['url']['#disabled'] = TRUE;
-//    $form['env_id']['#disabled'] = TRUE;
-//  }
-//  // Don't let the user delete the initial environment.
-//  if ($env_id == ACQUIA_SEARCH_ENVIRONMENT_ID) {
-//    $form['name']['#disabled'] = TRUE;
-//    $form['actions']['delete']['#access'] = FALSE;
-//  }
-//  $form['actions']['save']['#validate'][] = 'acquia_search_environment_edit_form_validate';
-//}
-//
-//function acquia_search_environment_edit_form_validate($form, &$form_state) {
-//  if ($form_state['values']['env_id'] == ACQUIA_SEARCH_ENVIRONMENT_ID) {
-//    // make sure that the environment parameters have not been changed
-//    $form_state['values'] = array_merge($form_state['values'], acquia_search_get_environment());
 //  }
 //}
 //
