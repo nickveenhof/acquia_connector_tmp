@@ -2,8 +2,8 @@
 
 
 /**
-* @file
-  * Install, update, and uninstall functions for the Update Manager module.
+ * @file
+ * Install, update, and uninstall functions for the Acquia Connector module.
  */
 
 use Drupal\Core\Url;

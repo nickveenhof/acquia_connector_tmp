@@ -1,10 +1,25 @@
 <?php
-//
-///**
-// * @file
-// *   Integration between Acquia Drupal and Acquia's hosted solr search service.
-// */
-//
+
+/**
+ * @file
+ *   Integration between Acquia Drupal and Acquia's hosted solr search service.
+ */
+
+
+/**
+ * Helper function to cache the Acquia Search version.
+ */
+function _acquia_search_set_version() {
+  // Cache the version in a variable so we can send it at not extra cost.
+  $version = \Drupal::config('acquia_search.settings')->get('version');
+  $info = system_get_info('module', 'acquia_search');
+  // Send the version, or at least the core compatibility as a fallback.
+  $new_version = isset($info['version']) ? (string) $info['version'] : (string) $info['core'];
+  if ($version != $new_version) {
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('version', $new_version);
+  }
+}
+
 ///**
 // * Implementation of hook_enable().
 // */
@@ -29,20 +44,6 @@
 //        return t("Search is being provided by the !as network service.", array('!as' => $as_link));
 //      }
 //    break;
-//  }
-//}
-//
-///**
-// * Helper function to cache the Acquia Search version.
-// */
-//function _acquia_search_set_version() {
-//  // Cache the version in a variable so we can send it at not extra cost.
-//  $version = variable_get('acquia_search_version', '7.x');
-//  $info = system_get_info('module', 'acquia_search');
-//  // Send the version, or at least the core compatibility as a fallback.
-//  $new_version = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-//  if ($version != $new_version) {
-//    variable_set('acquia_search_version', $new_version);
 //  }
 //}
 //

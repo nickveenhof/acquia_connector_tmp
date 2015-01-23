@@ -1,59 +1,58 @@
 <?php
-//
-///**
-// * Implementation of hook_requirements().
-// */
-//function acquia_search_requirements($phase) {
-//  $requirements = array();
-//  // Ensure translations don't break at install time
-//  $t = get_t();
-//
-//  // Skip install checks if install.php is running. The weak install profile
-//  // API means install.php calls hook_requirements for every module in a profile.
-//  if ($phase == 'install' && defined('MAINTENANCE_MODE') && MAINTENANCE_MODE != 'install') {
-//    if (module_invoke('acquia_agent', 'has_credentials')) {
-//      $severity = REQUIREMENT_OK;
-//    }
-//    else {
-//      $severity = REQUIREMENT_ERROR;
-//    }
-//    $requirements['acquia_search_credentials'] = array(
-//      'description' => $t('In order to use Acquia search module you must have an Acquia Network subscription. Please enter your Acquia Network subscription keys.'),
-//      'severity' => $severity,
-//      'value' => '',
-//    );
-//
-//  }
-//  if ($phase == 'runtime') {
-//    // Check SSL support.
-//    if (in_array('ssl', stream_get_transports(), TRUE)) {
-//      $severity = REQUIREMENT_OK;
-//      $requirements['acquia_search_ssl'] = array(
-//        'description' => $t('The Acquia Search module is using SSL to protect the privacy of your content.'),
-//      );
-//    }
-//    else {
-//      $severity = REQUIREMENT_WARNING;
-//      $requirements['acquia_search_ssl'] = array(
-//        'description' => $t('In order to protect the privacy of your content with the Acquia Search module you must have SSL support enabled in PHP on your host.'),
-//      );
-//    }
-//    $requirements['acquia_search_ssl']['title'] = $t('Acquia Search');
-//    $requirements['acquia_search_ssl']['severity'] = $severity;
-//    $requirements['acquia_search_ssl']['value'] = '';
-//
-//    // Check Apache Solr API version.
-//    if (!defined('APACHESOLR_API_VERSION') || version_compare(APACHESOLR_API_VERSION, '3.0', '<')) {
-//      $requirements['acquia_search_apachesolr']['title'] = $t('Acquia Search');
-//      $requirements['acquia_search_apachesolr']['severity'] = REQUIREMENT_ERROR;
-//      $requirements['acquia_search_apachesolr']['description'] = $t('Apache Solr API Integration requires  API version 3.0.  Please upgrade your Apache Solr Search Integration module');
-//      $requirements['acquia_search_apachesolr']['value'] = $t('Incompatible API version');
-//    }
-//  }
-//  // Update the cached version whenever we may be updating the module.
-//  if ($phase == 'runtime' || $phase == 'update') {
-//    _acquia_search_set_version();
-//  }
-//
-//  return $requirements;
-//}
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Acquia Connector module.
+ */
+
+use Drupal\acquia_connector\Subscription;
+
+/**
+ * Implements hook_requirements().
+ */
+function acquia_search_requirements($phase) {
+  $requirements = array();
+  // Ensure translations don't break at install time
+  // Skip install checks if install.php is running. The weak install profile
+  // API means install.php calls hook_requirements for every module in a profile.
+  if ($phase == 'install' && (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'install')) {
+    $subscription = new Subscription();
+    if ($subscription->hasCredentials()) {
+      $severity = REQUIREMENT_OK;
+    }
+    else {
+      $severity = REQUIREMENT_ERROR;
+    }
+    $requirements['acquia_search_credentials'] = array(
+      'description' => t('In order to use Acquia search module you must have an Acquia Network subscription. Please enter your Acquia Network subscription keys.'),
+      'severity' => $severity,
+      'value' => '',
+    );
+
+  }
+  if ($phase == 'runtime') {
+    // Check SSL support.
+    if (in_array('ssl', stream_get_transports(), TRUE)) {
+      $severity = REQUIREMENT_OK;
+      $requirements['acquia_search_ssl'] = array(
+        'description' => t('The Acquia Search module is using SSL to protect the privacy of your content.'),
+      );
+    }
+    else {
+      $severity = REQUIREMENT_WARNING;
+      $requirements['acquia_search_ssl'] = array(
+        'description' => t('In order to protect the privacy of your content with the Acquia Search module you must have SSL support enabled in PHP on your host.'),
+      );
+    }
+    $requirements['acquia_search_ssl']['title'] = t('Acquia Search');
+    $requirements['acquia_search_ssl']['severity'] = $severity;
+    $requirements['acquia_search_ssl']['value'] = '';
+
+  }
+  // Update the cached version whenever we may be updating the module.
+  if ($phase == 'runtime' || $phase == 'update') {
+    _acquia_search_set_version();
+  }
+
+  return $requirements;
+}
