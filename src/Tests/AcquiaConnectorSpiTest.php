@@ -11,6 +11,12 @@ use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Controller\SpiController;
 use Drupal\Component\Serialization\Json;
 
+use Drupal\acquia_connector\Client;
+
+use Drupal\Component\Utility\Crypt;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use GuzzleHttp\ClientInterface;
+
 /**
  * Tests the functionality of the Acquia SPI module.
  */
@@ -213,6 +219,48 @@ class AcquiaConnectorSpiTest extends WebTestBase{
   }
 
   /**
+   *
+   */
+  public function testAcquiaSPISend() {
+
+  }
+
+  /**
+   *
+   */
+  public function testAcquiaSPIUpdateResponse() {
+    $def_timestamp  = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
+    $this->assertEqual($def_timestamp, 0, 'SPI definition has not been called before');
+    $def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');
+    $this->assertTrue(empty($def_vars), 'SPI definition variables is empty');
+    $waived_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_waived_vars');
+    $this->assertTrue(empty($waived_vars), 'SPI definition waived variables is empty');
+    //$spi = new spiControllerTest();
+    //$update_res = $spi->updateDefinition();
+   // $this->drupalGet('/system/acquia-spi-send', array('body' => array()));
+    //$this->assertTrue($update_res, 'Update definition call returned true');
+    // Connect site on non-error key and id.
+    $this->connectSite();
+    // Send SPI data.
+    $this->drupalGet($this->status_report_url);
+    $this->clickLink($this->acquiaSPIStrings('spi-send-text'));
+    $this->assertText($this->acquiaSPIStrings('spi-data-sent'), 'SPI data was sent');
+    $this->assertNoText($this->acquiaSPIStrings('spi-not-sent'), 'SPI does not say "data has not been sent"');
+
+    $def_timestamp  = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
+    $this->assertNotEqual($def_timestamp, 0, 'SPI definition timestamp set');
+    /*$def_vars = variable_get('acquia_spi_def_vars', array());
+    $this->assertTrue(!empty($def_vars), 'SPI definition variable set');
+    variable_set('acquia_spi_def_waived_vars', array('user_admin_role'));
+    // Test that new variables are in SPI data.
+    $spi_data = acquia_spi_get();
+    $vars = drupal_json_decode($spi_data['system_vars']);
+    $this->assertTrue(!empty($vars['file_temporary_path']), 'New variables included in SPI data');
+    $this->assertTrue(!isset($vars['user_admin_role']), 'user_admin_role not included in SPI data');*/
+  }
+
+
+  /**
    * Helper function connects to valid subscription.
    */
   protected function connectSite() {
@@ -245,6 +293,85 @@ class spiControllerTest extends SpiController{
   }
 
   /**
+   * Checks if NSPI server has an updated SPI data definition.
+   * If it does, then this function updates local copy of SPI definition data.
+   *
+   * @return boolean
+   *   True if SPI definition data has been updated
+   * D7: acquia_spi_update_definition
+   */
+  public   function updateDefinition() {
+    $core_version = substr(\Drupal::VERSION, 0, 1);
+    $spi_def_end_point = 'http://drupal-alerts.local:8083/spi_def/get/' . $core_version;
+    $response = \Drupal::httpClient()->post($spi_def_end_point)->json();
+    $response->getStatusCode();
+    //$response = $this->client->getDefinition($spi_def_end_point);
+    dpm('updateDefinition $response: ');
+    dpm($response);
+
+    if (!$response) {
+      \Drupal::logger('acquia spi')->error('Failed to obtain latest SPI data definition.');
+      return FALSE;
+    }
+    else {
+      $response_data = $response;
+      $expected_data_types = array(
+        'drupal_version' => 'string',
+        'timestamp' => 'string',
+        'acquia_spi_variables' => 'array',
+      );
+      // Make sure that $response_data contains everything expected.
+      foreach($expected_data_types as $key => $values) {
+        if (!array_key_exists($key, $response_data) || gettype($response_data[$key]) != $expected_data_types[$key]) {
+          \Drupal::logger('acquia spi')->error('Received SPI data definition does not match expected pattern while checking "@key". Received and expected data: @data', array('@key' => $key, '@data' => var_export(array_merge(array('expected_data' => $expected_data_types), array('response_data' => $response_data)), 1), TRUE));
+          return FALSE;
+        }
+      }
+      if ($response_data['drupal_version'] != $core_version) {
+        \Drupal::logger('acquia spi')->notice('Received SPI data definition does not match with current version of your Drupal installation. Data received for Drupal @version', array('@version' => $response_data['drupal_version']));
+        return FALSE;
+      }
+    }
+
+    // NSPI response is in expected format.
+    if ((int) $response_data['timestamp'] > (int) $this->config('acquia_connector.settings')->get('spi.def_timestamp')) {
+      // Compare stored variable names to incoming and report on update.
+      $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars', array());
+      $new_vars = $response_data['acquia_spi_variables'];
+      $new_optional_vars = 0;
+      foreach($new_vars as $new_var_name => $new_var) {
+        // Count if received from NSPI optional variable is not present in old local SPI definition
+        // or if it already was in old SPI definition, but was not optional
+        if ($new_var['optional'] && !array_key_exists($new_var_name, $old_vars) ||
+          $new_var['optional'] && isset($old_vars[$new_var_name]) && !$old_vars[$new_var_name]['optional']) {
+          $new_optional_vars++;
+        }
+      }
+      // Clean up waived vars that are not exposed by NSPI anymore.
+      $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars', array());
+      $changed_bool = FALSE;
+      foreach($waived_spi_def_vars as $key => $waived_var) {
+        if (!in_array($waived_var, $new_vars)) {
+          unset($waived_spi_def_vars[$key]);
+          $changed_bool = TRUE;
+        }
+      }
+      if ($changed_bool) {
+        $this->config('acquia_connector.settings')->set('spi.def_waived_vars', $waived_spi_def_vars);
+      }
+      // Finally, save SPI definition data.
+      if ($new_optional_vars > 0) {
+        $this->config('acquia_connector.settings')->set('spi.new_optional_data', 1);
+      }
+      $this->config('acquia_connector.settings')->set('spi.def_timestamp', $response_data['timestamp']);
+      $this->config('acquia_connector.settings')->set('spi.def_vars', $response_data['acquia_spi_variables']);
+      $this->config('acquia_connector.settings')->save();
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  /**
    * Put SPI data in local storage.
    *
    * @param array $data Keyed array of data to store.
@@ -262,7 +389,7 @@ class spiControllerTest extends SpiController{
    * @return array Stored data or false if no data is retrievable from storage.
    * D7: acquia_spi_data_store_get
    */
-  public function dataStoreGet($keys) {
+  public  function dataStoreGet($keys) {
     return parent::dataStoreGet($keys);
   }
 }

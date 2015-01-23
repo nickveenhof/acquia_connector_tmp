@@ -34,6 +34,7 @@ class NspiController extends ControllerBase {
   const ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND = 1900;
   const ACQTEST_SUBSCRIPTION_PROVISION_ERROR = 9000;
   const ACQTEST_SUBSCRIPTION_MESSAGE_LIFETIME = 900; //15*60
+  const ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE = 503;
   const ACQTEST_EMAIL = 'TEST_networkuser@example.com';
   const ACQTEST_PASS = 'TEST_password';
   const ACQTEST_ID = 'TEST_AcquiaConnectorTestID';
@@ -61,10 +62,10 @@ class NspiController extends ControllerBase {
     }
     if (!empty($data['authenticator']['identifier'])) {
       if ($data['authenticator']['identifier'] != self::ACQTEST_ID && $data['authenticator']['identifier'] != self::ACQTEST_ERROR_ID) {
-        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')));
+        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
       }
       if ($data['authenticator']['identifier'] == self::ACQTEST_ERROR_ID) {
-        return new JsonResponse(FALSE);
+        return new JsonResponse(FALSE); //@todo need review
       }
       else {
         $result = $this->validateAuthenticator($data);
@@ -88,8 +89,18 @@ class NspiController extends ControllerBase {
       }
     }
     else {
-      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
+  }
+
+  function spiDefinition($arg_version) {
+    $vars = array('file_temporary_path' => array('optional' => FALSE, 'description' => 'file_temporary_path'), 'page_compression' => array('optional' => TRUE, 'description' => 'page_compression'), 'user_admin_role' => array('optional' => TRUE, 'description' => 'user_admin_role'));
+    $data = array(
+      'drupal_version' => $arg_version,
+      'timestamp' => (string) (REQUEST_TIME + 9),
+      'acquia_spi_variables' => $vars,
+    );
+    return new JsonResponse($data);
   }
 
 
@@ -114,14 +125,11 @@ class NspiController extends ControllerBase {
     }
 
     if (!isset($data['body']) || !isset($data['body']['email'])) {
-      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
-
     $account = user_load_by_mail($data['body']['email']);
-
     if (empty($account) || $account->isAnonymous()) {
-      $err = $this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found'));
-      return new JsonResponse($err);
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
     else {
       $result = array();
@@ -177,18 +185,18 @@ class NspiController extends ControllerBase {
     );
     $result = $this->basicAuthenticator($fields, $data);
     if (!empty($result['error'])) {
-      return new JsonResponse($result);
+      return new JsonResponse($result, self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
 
     if (!empty($data['body']['email'])) {
       $account = user_load_by_mail($data['body']['email']);
       \Drupal::logger('getCredentials password')->debug($account->getPassword());
       if (empty($account) || $account->isAnonymous()) {
-        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')));
+        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
       }
     }
     else {
-      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
 
     $client = new testClient();
@@ -204,7 +212,7 @@ class NspiController extends ControllerBase {
       return new JsonResponse($result);
     }
     else {
-      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Incorrect password.')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Incorrect password.')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
   }
 
@@ -213,7 +221,7 @@ class NspiController extends ControllerBase {
    * @param $id
    * @return JsonResponse
    */
-  public function getSubscription(Request $request, $id) {
+  public function getSubscription(Request $request) {
     $data_decode = json_decode($request->getContent(), TRUE); //todo
     $data = json_decode($data_decode, TRUE);
 
@@ -225,7 +233,7 @@ class NspiController extends ControllerBase {
       return new JsonResponse($result);
     }
     unset($result['secret']);
-    return new JsonResponse($result);
+    return new JsonResponse($result, self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
   }
 
   /**
@@ -241,13 +249,12 @@ class NspiController extends ControllerBase {
     );
 
     $result = $this->basicAuthenticator($fields, $data);
-    \Drupal::logger('validateAuthenticato basicAuthenticator')->error(print_R($result, TRUE));
     if (!empty($result['error'])) {
       return $result;
     }
 
     if (strpos($data['authenticator']['identifier'], 'TEST_') !== 0) {
-      return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_NOT_FOUND, t('Subscription not found.'));
+      return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_NOT_FOUND, t('Subscription not found'));
     }
 
     switch ($data['authenticator']['identifier']) {
@@ -327,18 +334,18 @@ class NspiController extends ControllerBase {
     );
     $result = $this->basicAuthenticator($fields, $data);
     if (!empty($result['error'])) {
-      return new JsonResponse($result);
+      return new JsonResponse($result, self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
     if (!empty($data['body']['identifier'])) {
       if (strpos($data['body']['identifier'], 'TEST_') !== 0) {
-        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')));
+        return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
       }
     }
     else {
-      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
     if ($data['body']['identifier'] == self::ACQTEST_ERROR_ID) {
-      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND, t("Hosting not available under your subscription. Upgrade your subscription to continue with import.")));
+      return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND, t("Hosting not available under your subscription. Upgrade your subscription to continue with import.")), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
     $result = array();
     $result['is_error'] = FALSE;

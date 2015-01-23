@@ -302,11 +302,11 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
     $is_active = $subscription->isActive();
     $this->assertTrue($is_active, 'Subscription is active after successful connection.');
+    // Make another request which will trigger 503 server error.
+    $check_subscription  = $subscription->update();
     // Hold onto subcription data for comparison.
     $stored = \Drupal::config('acquia_connector.settings');
     $current_subscription = $stored->get('subscription_data');
-    // Make another request which will trigger 503 server error.
-    $check_subscription  = $subscription->update();
     $this->assertNotIdentical($check_subscription, '503', 'Subscription is not storing 503.');
     $this->assertTrue(is_array($check_subscription), 'Storing subscription array data.');
     $this->assertIdentical($current_subscription, $check_subscription, 'Subscription data is the same.');
@@ -347,7 +347,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $submit_button = 'Migrate';
     $this->drupalPostForm($this->migrate_path, $edit_fields, $submit_button);
     $this->drupalGet($this->migrate_path);
-    $this->assertNoFieldChecked('migrate-files', "The migrate files checkbox is not checked.");
+    $this->assertNoFieldChecked('migrate_files', "The migrate files checkbox is not checked.");
   }
 
 
