@@ -238,7 +238,7 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $config = \Drupal::config('acquia_connector.settings');
+    $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $values = $form_state->getValues();
     $config->set('module_diff_data', $values['module_diff_data'])
       ->set('acquia_dynamic_banner', $values['acquia_dynamic_banner'])

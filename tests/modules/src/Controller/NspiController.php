@@ -288,7 +288,7 @@ class NspiController extends ControllerBase {
     // Record connections.
     $connections = \Drupal::config('acquia_connector.settings')->get('test_connections' . $data['authenticator']['identifier']);
     $connections++;
-    \Drupal::config('acquia_connector.settings')->set('test_connections' . $data['authenticator']['identifier'], $connections)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('test_connections' . $data['authenticator']['identifier'], $connections)->save();
     if ($connections == 3 && $data['authenticator']['identifier'] == self::ACQTEST_503_ID) {
       // Trigger a 503 response on 3rd call to this (1st is
       // acquia.agent.subscription and 2nd is acquia.agent.validate)

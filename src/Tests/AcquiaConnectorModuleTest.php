@@ -78,10 +78,10 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     \Drupal::config('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();*/
 
     //local
-    \Drupal::config('acquia_connector.settings')->set('network_address', 'http://drupal-alerts.local:8083/')->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.server', 'http://drupal-alerts.local:8083/')->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('network_address', 'http://drupal8.local:8083/')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', 'http://drupal8.local:8083/')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
   }
 
   /**
@@ -178,8 +178,8 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $this->assertText($this->acquiaConnectorStrings('migrate'), 'Acquia Cloud Migrate description exists');
 
     // Connect via automatic setup.
-    \Drupal::config('acquia_connector.settings')->clear('identifier')->save();
-    \Drupal::config('acquia_connector.settings')->clear('key')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->clear('identifier')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->clear('key')->save();
     $edit_fields = array(
       'email' => $this->acqtest_email,
       'pass' => $this->acqtest_pass,
@@ -235,7 +235,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $this->assertFalse($check_subscription, 'Subscription is false after failed attempt to connect.');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 1, 'Still have made only 1 HTTP request');
     // Test default from acquia_agent_settings().
-    $stored = \Drupal::config('acquia_connector.settings');
+    $stored = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $current_subscription = $stored->get('subscription_data');
     // Not identical since acquia_agent_has_credentials() causes stored to be
     // deleted.
@@ -337,7 +337,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $this->assertText($this->acquiaConnectorStrings('migrate-select-environments'), 'Environment selection label appears.');
     $this->assertText($this->acquiaConnectorStrings('migrate-files-label'), 'The files label controls do appear.');
 
-    \Drupal::config('acquia_connector.settings')->set('migrate.cloud', 'test')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', 'test')->save();
     $this->drupalGet($this->migrate_path);
     $this->assertText($this->acquiaConnectorStrings('migrate-files-label'), 'The files label controls do appear after setting the migration variable.');
     $edit_fields = array(
@@ -363,7 +363,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
       'href' => $test_url,
     );
     // Set some sample test data.
-    \Drupal::config('acquia_connector.settings')->set('subscription_data', $test_data)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('subscription_data', $test_data)->save();
     // Test StatusControllerTest::getIdFromSub
     $getIdFromSub = new StatusControllerTest();
     $key = $getIdFromSub->getIdFromSub($test_data);
