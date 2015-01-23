@@ -52,6 +52,10 @@ class SearchSubscriber extends Plugin {
    * @param PostExecuteRequestEvent $event
    */
   public function postExecuteRequest($event) {
+    // @todo: Get all endpoint responses without authorisation cooke.
+    if ($event->getRequest()->getHandler() == 'admin/ping') {
+      return;
+    }
     $this->authenticateResponse($event->getResponse(), $this->nonce, $this->uri);
   }
 
