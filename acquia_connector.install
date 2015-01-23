@@ -172,7 +172,7 @@ function acquia_connector_install() {
       ->save();
 
     if ($credentials->update()) {
-      $text = t('Your site has been automatically connected to the Acquia Network. <a href="!url">Change subscription</a>', array('!url' => url('admin/config/system/acquia-agent/setup')));
+      $text = t('Your site has been automatically connected to the Acquia Network. <a href="@url">Change subscription</a>', array('@url' => url('admin/config/system/acquia-agent/setup')));
       drupal_set_message($text, 'status', FALSE);
     }
   }
