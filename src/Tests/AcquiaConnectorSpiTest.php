@@ -9,6 +9,7 @@ namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Controller\SpiController;
+use Drupal\acquia_connector\Controller\VariablesController;
 use Drupal\Component\Serialization\Json;
 
 use Drupal\acquia_connector\Client;
@@ -305,6 +306,58 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $this->assertText(ACQUIA_SPI_METHOD_CALLBACK, 'NSPI messages printed on status page'); //@todo need replace on constant
   }
 
+  /**
+   *
+   *
+   */
+  public function testAcquiaSPISetVariables() {
+    $spi = new spiControllerTest();
+    $spi_data = $spi->get();
+    $vars = Json::decode($spi_data['system_vars']);
+    $this->verbose(print_r($vars, TRUE));
+    $this->assertTrue(empty($vars['acquia_spi_saved_variables']['variables']), 'Have not saved any variables');
+    // Set error reporting so variable is saved.
+    $edit = array(
+      'error_level' => 'verbose',
+    );
+    $this->drupalPostForm('admin/config/development/logging', $edit, 'Save configuration');
+
+    // Turn off error reporting.
+    $set_variables = array('error_level' => 'hide');
+    $variables = new VariablesControllerTest();
+    $variables->setVariables($set_variables);
+
+    $new = \Drupal::config('system.logging')->get('error_level');
+    $this->assertTrue($new === 'hide', 'Set error reporting to log only');
+    $vars = Json::decode($variables->getVariablesData());
+    $this->assertTrue(in_array('error_level', $vars['acquia_spi_saved_variables']['variables']), 'SPI data reports error level was saved');
+    $this->assertTrue(isset($vars['acquia_spi_saved_variables']['time']), 'Set time for saved variables');
+
+    // Attemp to set variable that is not whitelisted.
+    $current = \Drupal::config('system.site')->get('name');
+    $set_variables = array('site_name' => 0);
+    $variables->setVariables($set_variables);
+    $after = \Drupal::config('system.site')->get('name');
+    $this->assertIdentical($current, $after, 'Non-whitelisted variable cannot be automatically set');
+    $vars = Json::decode($variables->getVariablesData());
+    $this->assertFalse(in_array('site_name', $vars['acquia_spi_saved_variables']['variables']), 'SPI data does not include anything about trying to save clean url');
+
+    // Test override of approved variable list.
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.set_variables_override', FALSE)->save();
+    $set_variables = array('acquia_spi_set_variables_automatic' => 'test_variable');
+    $variables->setVariables($set_variables);
+    $vars = Json::decode($variables->getVariablesData());
+    $this->verbose(print_r($vars, TRUE));
+    $this->assertFalse(isset($vars['test_variable']), 'Using default list of approved list of variables');
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.set_variables_override', TRUE)->save();
+    $set_variables = array('acquia_spi_set_variables_automatic' => 'test_variable');
+    $variables->setVariables($set_variables);
+    $vars = Json::decode($variables->getVariablesData());
+    $this->verbose(print_r($vars, TRUE));
+    $this->assertIdentical($vars['acquia_spi_set_variables_automatic'], 'test_variable', 'Altered approved list of variables that can be set');
+
+  }
+
 
   /**
    * Helper function connects to valid subscription.
@@ -319,6 +372,10 @@ class AcquiaConnectorSpiTest extends WebTestBase{
   }
 }
 
+/**
+ * Class spiControllerTest
+ * @package Drupal\acquia_connector\Tests
+ */
 class spiControllerTest extends SpiController{
   protected $client;
 
@@ -336,7 +393,6 @@ class spiControllerTest extends SpiController{
    *
    * @return array
    *   An associative array keyed by types of information.
-   * D7: acquia_spi_get
    */
   public function get($method = '') {
     return parent::get($method);
@@ -374,5 +430,25 @@ class spiControllerTest extends SpiController{
   public function sendFullSpi($method = '') {
     return parent::sendFullSpi($method);
   }
+}
 
+/**
+ * Class VariablesControllerTest
+ * @package Drupal\acquia_connector\Tests
+ */
+class  VariablesControllerTest extends VariablesController{
+  /**
+   * @param array $set_variables
+   * @return NULL|void
+   */
+  public function setVariables($set_variables) {
+    parent::setVariables($set_variables);
+  }
+
+  /**
+   * @return array
+   */
+  public function getVariablesData() {
+    return parent::getVariablesData();
+  }
 }
