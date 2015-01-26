@@ -69,7 +69,7 @@ class NspiController extends ControllerBase {
       }
       else {
         $result = $this->validateAuthenticator($data);
-        $data['body']['spi_def_update'] = TRUE; //@todo neew for update definition
+        $data['body']['spi_def_update'] = TRUE; //@todo need for update definition
         $spi_data = $data['body'];
         $result['body'] = array('spi_data_received' => TRUE);
         if (isset($spi_data['spi_def_update'])) {
@@ -151,7 +151,6 @@ class NspiController extends ControllerBase {
    */
   protected function basicAuthenticator($fields, $data) {
     $result = array();
-    //\Drupal::logger('basicAuthenticator')->info(print_r($data, TRUE));
     foreach ($fields as $field => $type) {
       if (empty($data['authenticator'][$field]) || !$type($data['authenticator'][$field])) {
         return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_MESSAGE_INVALID, t('Authenticator field @field is missing or invalid.', array('@field' => $field)));
@@ -313,9 +312,11 @@ class NspiController extends ControllerBase {
     $result['secret']['nid'] = '91990';
     $result['secret']['node'] = $data['authenticator']['identifier'] . '_NODE';
     $result['secret']['key'] = $key;
+    //$result['secret']['nonce'] = '';
     $result['authenticator'] = $data['authenticator'];
     $result['authenticator']['hash'] = '';
     $result['authenticator']['time'] += 1;
+    $result['authenticator']['nonce'] = $data['authenticator']['nonce'];
     return $result;
   }
 

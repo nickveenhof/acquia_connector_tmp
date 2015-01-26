@@ -222,7 +222,37 @@ class AcquiaConnectorSpiTest extends WebTestBase{
    *
    */
   public function testAcquiaSPISend() {
+    // Connect site on invalid credentials.
+    $edit_fields = array(
+      'acquia_identifier' => $this->acqtest_error_id,
+      'acquia_key' => $this->acqtest_error_key,
+    );
+    $submit_button = 'Connect';
+    $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
+    // Attempt to send something.
 
+    $client = \Drupal::service('acquia_connector.client');
+    // Connect site on valid credentials.
+    $this->connectSite();
+
+    // Check that result is an array.
+    $spi = new spiControllerTest();
+    $spi_data =  $spi->get();
+    unset($spi_data['spi_def_update']);
+    $result = $client->sendNspi($this->acqtest_id, $this->acqtest_key, $spi_data);
+    $this->assertTrue(is_array($result), 'SPI update result is an array');
+
+    // Trigger a validation error on response.
+    $spi_data['test_validation_error'] = TRUE;
+    unset($spi_data['spi_def_update']);
+    $result = $client->sendNspi($this->acqtest_id, $this->acqtest_key, $spi_data);
+    $this->assertFalse($result, 'SPI result is false if validation error.');
+    unset($spi_data['test_validation_error']);
+
+    // Trigger a SPI definition update response.
+    $spi_data['spi_def_update'] = TRUE;
+    $result = $client->sendNspi($this->acqtest_id, $this->acqtest_key, $spi_data);
+    $this->assertTrue(!empty($result['body']['update_spi_definition']), 'SPI result array has expected "update_spi_definition" key.');
   }
 
   /**
@@ -256,6 +286,25 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $this->assertTrue(!isset($vars['user_admin_role']), 'user_admin_role not included in SPI data');
   }
 
+  /**
+   *
+   */
+  public function testAcquiaSPIMessages() {
+    $this->connectSite();
+
+    $spi = new spiControllerTest();
+    $response =  $spi->sendFullSpi();
+    $this->assertTrue(!isset($response['body']['nspi_messages']), 'No NSPI messages when send_method not set');
+
+    $method = $this->randomString();
+    $response = $spi->sendFullSpi($method);
+    $this->assertIdentical($response['body']['nspi_messages'][0], $method, 'NSPI messages when send_method is set');
+
+    $this->drupalGet($this->status_report_url);
+    $this->clickLink($this->acquiaSPIStrings('spi-send-text'));
+    $this->assertText(ACQUIA_SPI_METHOD_CALLBACK, 'NSPI messages printed on status page'); //@todo need replace on constant
+  }
+
 
   /**
    * Helper function connects to valid subscription.
@@ -271,8 +320,12 @@ class AcquiaConnectorSpiTest extends WebTestBase{
 }
 
 class spiControllerTest extends SpiController{
+  protected $client;
 
-  public function __construct(){}
+  public function __construct(){
+    $client = \Drupal::service('acquia_connector.client');
+    $this->client = $client;
+  }
 
   /**
    * Gather site profile information about this site.
@@ -287,85 +340,6 @@ class spiControllerTest extends SpiController{
    */
   public function get($method = '') {
     return parent::get($method);
-  }
-
-  /**
-   * Checks if NSPI server has an updated SPI data definition.
-   * If it does, then this function updates local copy of SPI definition data.
-   *
-   * @return boolean
-   *   True if SPI definition data has been updated
-   * D7: acquia_spi_update_definition
-   */
-  public   function updateDefinition() {
-    $core_version = substr(\Drupal::VERSION, 0, 1);
-    $spi_def_end_point = 'http://drupal-alerts.local:8083/spi_def/get/' . $core_version;
-    $response = \Drupal::httpClient()->post($spi_def_end_point)->json();
-    $response->getStatusCode();
-    //$response = $this->client->getDefinition($spi_def_end_point);
-    dpm('updateDefinition $response: ');
-    dpm($response);
-
-    if (!$response) {
-      \Drupal::logger('acquia spi')->error('Failed to obtain latest SPI data definition.');
-      return FALSE;
-    }
-    else {
-      $response_data = $response;
-      $expected_data_types = array(
-        'drupal_version' => 'string',
-        'timestamp' => 'string',
-        'acquia_spi_variables' => 'array',
-      );
-      // Make sure that $response_data contains everything expected.
-      foreach($expected_data_types as $key => $values) {
-        if (!array_key_exists($key, $response_data) || gettype($response_data[$key]) != $expected_data_types[$key]) {
-          \Drupal::logger('acquia spi')->error('Received SPI data definition does not match expected pattern while checking "@key". Received and expected data: @data', array('@key' => $key, '@data' => var_export(array_merge(array('expected_data' => $expected_data_types), array('response_data' => $response_data)), 1), TRUE));
-          return FALSE;
-        }
-      }
-      if ($response_data['drupal_version'] != $core_version) {
-        \Drupal::logger('acquia spi')->notice('Received SPI data definition does not match with current version of your Drupal installation. Data received for Drupal @version', array('@version' => $response_data['drupal_version']));
-        return FALSE;
-      }
-    }
-
-    // NSPI response is in expected format.
-    if ((int) $response_data['timestamp'] > (int) $this->config('acquia_connector.settings')->get('spi.def_timestamp')) {
-      // Compare stored variable names to incoming and report on update.
-      $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars', array());
-      $new_vars = $response_data['acquia_spi_variables'];
-      $new_optional_vars = 0;
-      foreach($new_vars as $new_var_name => $new_var) {
-        // Count if received from NSPI optional variable is not present in old local SPI definition
-        // or if it already was in old SPI definition, but was not optional
-        if ($new_var['optional'] && !array_key_exists($new_var_name, $old_vars) ||
-          $new_var['optional'] && isset($old_vars[$new_var_name]) && !$old_vars[$new_var_name]['optional']) {
-          $new_optional_vars++;
-        }
-      }
-      // Clean up waived vars that are not exposed by NSPI anymore.
-      $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars', array());
-      $changed_bool = FALSE;
-      foreach($waived_spi_def_vars as $key => $waived_var) {
-        if (!in_array($waived_var, $new_vars)) {
-          unset($waived_spi_def_vars[$key]);
-          $changed_bool = TRUE;
-        }
-      }
-      if ($changed_bool) {
-        $this->config('acquia_connector.settings')->set('spi.def_waived_vars', $waived_spi_def_vars);
-      }
-      // Finally, save SPI definition data.
-      if ($new_optional_vars > 0) {
-        $this->config('acquia_connector.settings')->set('spi.new_optional_data', 1);
-      }
-      $this->config('acquia_connector.settings')->set('spi.def_timestamp', $response_data['timestamp']);
-      $this->config('acquia_connector.settings')->set('spi.def_vars', $response_data['acquia_spi_variables']);
-      $this->config('acquia_connector.settings')->save();
-      return TRUE;
-    }
-    return FALSE;
   }
 
   /**
@@ -388,5 +362,38 @@ class spiControllerTest extends SpiController{
    */
   public  function dataStoreGet($keys) {
     return parent::dataStoreGet($keys);
+  }
+
+  /**
+   * Gather full SPI data and send to Acquia Network.
+   *
+   * @param string $method Optional identifier for the method initiating request.
+   *   Values could be 'cron' or 'menu callback' or 'drush'.
+   * @return mixed FALSE if data not sent else NSPI result array
+   */
+  public function sendFullSpi($method = '') {
+    return parent::sendFullSpi($method);
+  }
+
+}
+
+class clientTest extends Client{
+
+  public function __construct(){
+
+  }
+
+  /**
+   * Get Acquia subscription from Acquia Network.
+   *
+   * @param string $id Network ID
+   * @param string $key Network Key
+   * @param array $body
+   *   (optional)
+   *
+   * @return array|false
+   */
+  public function sendNspi($id, $key, array $body = array()) {
+    return parent::sendNspi($id, $key, $body);
   }
 }
