@@ -1,0 +1,5 @@
+host: 'search.acquia.com'
+path: false
+derived_key_salt: false
+derived_key: false
+version: '8.x'
