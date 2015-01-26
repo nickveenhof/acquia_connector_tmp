@@ -1,9 +1,8 @@
 <?php
+
 /**
- * Created by PhpStorm.
- * User: ben.jeavons
- * Date: 2/11/14
- * Time: 7:17 PM
+ * @file
+ * Contains \Drupal\acquia_connector\Client.
  */
 
 namespace Drupal\acquia_connector;

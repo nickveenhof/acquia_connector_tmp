@@ -30,9 +30,9 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, FormBuilderInterface $form_builder, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings) {
     // @todo Research right way to add default configuration.
-    $configuration['host'] = \Drupal::config('acquia_connector.settings')->get('subscription_data.heartbeat_data.search_cores.balancer');
+    $configuration['host'] = \Drupal::config('acquia_connector.settings')->get('subscription_data.heartbeat_data.search_cores.balancer'); // @todo use acquia_search.settings
     $configuration['port'] = 80; // @todo - add to settings
-    $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('subscription_data.heartbeat_data.search_cores.core_id');
+    $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('subscription_data.heartbeat_data.search_cores.core_id'); // @todo use acquia_search.settings
     $configuration['solr_version'] = 4; // @todo - add to settings
     return parent::__construct($configuration, $plugin_id, $plugin_definition, $form_builder, $module_handler, $search_api_solr_settings);
   }

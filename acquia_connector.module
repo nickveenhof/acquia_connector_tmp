@@ -285,32 +285,3 @@ function acquia_connector_connection_error_message($errno) {
   }
   return FALSE;
 }
-
-/**
- * Implementation of hook_acquia_subscription_status().
- *
- * @param array|bool $subscription
- */
-function acquia_connector_acquia_subscription_status($subscription = FALSE) {
-  if (!empty($subscription['active'])) {
-//    acquia_search_enable_acquia_solr_environment();
-    // Refresh the salt with the subscription data returned by the heartbeat
-    // since it can change periodically.
-    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt');
-    if (isset($subscription['derived_key_salt']) && $salt != $subscription['derived_key_salt']) {
-      \Drupal::configFactory()->getEditable('acquia_search.settings')
-        ->set('derived_key_salt', $subscription['derived_key_salt'])
-        ->save();
-    }
-  }
-  else {
-    if (is_int($subscription)) {
-      switch ($subscription) {
-        case SUBSCRIPTION_NOT_FOUND:
-        case SUBSCRIPTION_EXPIRED:
-//          acquia_search_disable();
-          break;
-      }
-    }
-  }
-}

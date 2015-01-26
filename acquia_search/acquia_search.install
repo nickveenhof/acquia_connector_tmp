@@ -16,29 +16,28 @@ function acquia_search_requirements($phase) {
   // Skip install checks if install.php is running. The weak install profile
   // API means install.php calls hook_requirements for every module in a profile.
   if ($phase == 'install' && (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'install')) {
-    try {
+    if (class_exists('Drupal\acquia_connector\Subscription')) {
       $subscription = new Subscription();
       if ($subscription->hasCredentials()) {
         $severity = REQUIREMENT_OK;
-        // Send a heartbeat so the Acquia Network knows the module is enabled.
-        // This causes an invocation of hook_acquia_subscription_status() which is
-        // implemented in this module to set up the environment.
-//        _acquia_search_set_version(); // @todo: review this - the module can not have config before install.
-        $subscription->update();
       }
       else {
         $severity = REQUIREMENT_ERROR;
       }
+      $requirements['acquia_search_credentials'] = array(
+        'description' => t('In order to use Acquia search module you must have an Acquia Network subscription. Please enter your Acquia Network subscription keys.'),
+        'severity' => $severity,
+        'value' => '',
+      );
     }
-    catch (\Exception $e) {
-      // @todo: Add message if acquia_connector is not enabled.
+    else {
       $severity = REQUIREMENT_ERROR;
+      $requirements['acquia_search_credentials'] = array(
+        'description' => t('In order to use Acquia search module you must enable and configure the Acquia Connector module.'),
+        'severity' => $severity,
+        'value' => '',
+      );
     }
-    $requirements['acquia_search_credentials'] = array(
-      'description' => t('In order to use Acquia search module you must have an Acquia Network subscription. Please enter your Acquia Network subscription keys.'),
-      'severity' => $severity,
-      'value' => '',
-    );
 
   }
   if ($phase == 'runtime') {
@@ -66,6 +65,19 @@ function acquia_search_requirements($phase) {
   }
 
   return $requirements;
+}
+
+/**
+ * Implements hook_install().
+ */
+function acquia_search_install() {
+  $subscription = new Subscription();
+  // Send a heartbeat so the Acquia Network knows the module is enabled.
+  // This causes an invocation of hook_acquia_subscription_status() which is
+  // implemented in this module to set up the environment.
+  _acquia_search_set_version();
+//  module_load_include('module', 'acquia_search');
+  acquia_search_acquia_subscription_status($subscription->update());
 }
 
 /**
