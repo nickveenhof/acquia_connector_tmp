@@ -7,6 +7,7 @@ use Drupal\Core\Config\Config;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\ServerInterface;
@@ -68,6 +69,8 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
    * {@inheritdoc}
    */
   public function viewSettings() {
+    $uri = Url::fromUri('http://www.acquia.com/products-services/acquia-search', array('absolute' => TRUE));
+    drupal_set_message(t("Search is being provided by the !as network service.", array('!as' => \Drupal::l(t('Acquia Search'), $uri))));
     return parent::viewSettings();
   }
 

@@ -18,19 +18,3 @@ function _acquia_search_set_version() {
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('version', $new_version)->save();
   }
 }
-
-///**
-// * Implementation of hook_help().
-// */
-//function acquia_search_help($path, $arg) {
-//  switch ($path) {
-//    case 'admin/config/search/apachesolr':
-//      $env_id = isset($arg[5]) ? $arg[5] : apachesolr_default_environment();
-//      $environment = apachesolr_environment_load($env_id);
-//      if (acquia_search_environment_connected($environment) && acquia_agent_subscription_is_active()) {
-//        $as_link = l(t('Acquia Search'), 'http://www.acquia.com/products-services/acquia-search');
-//        return t("Search is being provided by the !as network service.", array('!as' => $as_link));
-//      }
-//    break;
-//  }
-//}
