@@ -5,7 +5,6 @@
  *   Integration between Acquia Drupal and Acquia's hosted solr search service.
  */
 
-
 /**
  * Helper function to cache the Acquia Search version.
  */
@@ -16,21 +15,10 @@ function _acquia_search_set_version() {
   // Send the version, or at least the core compatibility as a fallback.
   $new_version = isset($info['version']) ? (string) $info['version'] : (string) $info['core'];
   if ($version != $new_version) {
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('version', $new_version);
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('version', $new_version)->save();
   }
 }
 
-///**
-// * Implementation of hook_enable().
-// */
-//function acquia_search_enable() {
-//  // Send a heartbeat so the Acquia Network knows the module is enabled.
-//  // This causes an invocation of hook_acquia_subscription_status() which is
-//  // implemented in this module to set up the environment.
-//  _acquia_search_set_version();
-//  acquia_agent_check_subscription();
-//}
-//
 ///**
 // * Implementation of hook_help().
 // */
@@ -46,52 +34,3 @@ function _acquia_search_set_version() {
 //    break;
 //  }
 //}
-//
-///**
-// * Implementation of hook_form_[form_id]_alter().
-// */
-//function acquia_search_form_apachesolr_settings_alter(&$form, $form_state) {
-//  // Don't alter the form if there is no subscription.
-//  if (acquia_agent_subscription_is_active()) {
-//    $form['advanced']['acquia_search_edismax_default'] = array(
-//      '#type' => 'radios',
-//      '#title' => t('Always allow advanced syntax for Acquia Search'),
-//      '#default_value' => variable_get('acquia_search_edismax_default', 0),
-//      '#options' => array(0 => t('Disabled'), 1 => t('Enabled')),
-//      '#description' => t('If enabled, all Acquia Search keyword searches may use advanced <a href="@url">Lucene syntax</a> such as wildcard searches, fuzzy searches, proximity searches, boolean operators and more via the Extended Dismax parser. If not enabled, this syntax wll only be used when needed to enable wildcard searches.', array('@url' => 'http://lucene.apache.org/java/2_9_3/queryparsersyntax.html')),
-//      '#weight' => 10,
-//    );
-//  }
-//}
-//
-///**
-// * Implementation of hook_apachesolr_modify_query().
-// *
-// * Possibly alters the query type ('defType') param to edismax.
-// */
-//function acquia_search_apachesolr_query_alter($query) {
-//  $environment = apachesolr_environment_load($query->solr('getId'));
-//  // @todo - does it make sense to check $caller too?
-//  if (!acquia_search_environment_connected($environment) || $query->getParam('qt') || $query->getParam('defType')) {
-//    // This is a 'mlt' query or something else custom.
-//    return;
-//  }
-//  // Set the qt to edismax if we have keywords, and we always use it, or are
-//  // using a wildcard (* or ?).
-//  $keys = $query->getParam('q');
-//  if ($keys && (($wildcard = preg_match('/\S+[*?]/', $keys)) || variable_get('acquia_search_edismax_default', 0))) {
-//    $query->addParam('defType', 'edismax');
-//    if ($wildcard) {
-//      $keys = preg_replace_callback('/(\S+[*?]\S*)/', '_acquia_search_lower', $keys);
-//      $query->replaceParam('q', $keys);
-//    }
-//  }
-//}
-//
-///**
-// * Convert to lower-case any keywords containing a wildcard.
-// */
-//function _acquia_search_lower($matches) {
-//  return drupal_strtolower($matches[1]);
-//}
-//

@@ -19,6 +19,11 @@ function acquia_search_requirements($phase) {
     $subscription = new Subscription();
     if ($subscription->hasCredentials()) {
       $severity = REQUIREMENT_OK;
+      // Send a heartbeat so the Acquia Network knows the module is enabled.
+      // This causes an invocation of hook_acquia_subscription_status() which is
+      // implemented in this module to set up the environment.
+      _acquia_search_set_version();
+      $subscription->update();
     }
     else {
       $severity = REQUIREMENT_ERROR;

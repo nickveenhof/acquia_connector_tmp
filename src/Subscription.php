@@ -34,6 +34,8 @@ class Subscription {
    * This check also sends a heartbeat to the Acquia Network unless
    * $params['no_heartbeat'] == 1.
    *
+   * @param array $params
+   *
    * @return FALSE, integer (error number), or subscription data.
    * D7: acquia_agent_check_subscription
    */

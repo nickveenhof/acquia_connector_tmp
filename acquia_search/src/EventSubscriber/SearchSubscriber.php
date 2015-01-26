@@ -6,6 +6,8 @@ use Solarium\Core\Event\Events;
 use Solarium\Core\Plugin\Plugin;
 use Drupal\Component\Utility\Crypt;
 use Symfony\Component\EventDispatcher\Event;
+use Solarium\Core\Client\Response;
+use Solarium\Exception\HttpException;
 
 class SearchSubscriber extends Plugin {
 
@@ -43,7 +45,7 @@ class SearchSubscriber extends Plugin {
 
     $cookie = $this->calculateAuthCookie($string, $this->nonce);
     $request->addHeader('Cookie: ' . $cookie);
-    $request->addHeader('User-Agent: ' . 'acquia_search/'. \Drupal::VERSION);
+    $request->addHeader('User-Agent: ' . 'acquia_search/'. \Drupal::config('acquia_search.settings')->get('version'));
   }
 
   /**
@@ -52,6 +54,10 @@ class SearchSubscriber extends Plugin {
    * @param PostExecuteRequestEvent $event
    */
   public function postExecuteRequest($event) {
+    $response = $event->getResponse();
+    if($response->getStatusCode() != 200) {
+      throw new HttpException($response->getStatusMessage());
+    }
     // @todo: Get all endpoint responses without authorisation cooke.
     if ($event->getRequest()->getHandler() == 'admin/ping') {
       return;
@@ -68,7 +74,7 @@ class SearchSubscriber extends Plugin {
   protected function authenticateResponse($response, $nonce, $url) {
     $hmac = $this->extractHmac($response->getHeaders());
     if (!$this->validateResponse($hmac, $nonce, $response->getBody())) {
-      throw new \Exception('Authentication of search content failed url: '. $url);
+      throw new HttpException('Authentication of search content failed url: '. $url);
     }
     return $response;
   }
