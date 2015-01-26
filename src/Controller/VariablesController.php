@@ -204,7 +204,7 @@ class VariablesController extends ControllerBase {
     $whitelist = \Drupal::config('acquia_connector.settings')->get('spi.set_variables_automatic');
     foreach($set_variables as $key => $value) {
       // Approved variables get set immediately unless ignored.
-      if (1 || in_array($key, $whitelist) && !in_array($key, $ignored)) { // @todo: remove 1
+      if (in_array($key, $whitelist) && !in_array($key, $ignored)) { // @todo: remove 1
         if (!empty($this->mapping[$key])) {
           // state
           if ($this->mapping[$key][0] == 'state' and !empty($this->mapping[$key][1])) {

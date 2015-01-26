@@ -114,28 +114,19 @@ class Client {
     // Include version number information.
     acquia_connector_load_versions();
     if (IS_ACQUIA_DRUPAL) {
-      $params['version']  = ACQUIA_DRUPAL_VERSION;
-      $params['series']   = ACQUIA_DRUPAL_SERIES;
-      $params['branch']   = ACQUIA_DRUPAL_BRANCH;
-      $params['revision'] = ACQUIA_DRUPAL_REVISION;
+      $body['version']  = ACQUIA_DRUPAL_VERSION;
+      $body['series']   = ACQUIA_DRUPAL_SERIES;
+      $body['branch']   = ACQUIA_DRUPAL_BRANCH;
+      $body['revision'] = ACQUIA_DRUPAL_REVISION;
     }
-    // @todo
-    // Include Acquia Search module version number.
-    if (\Drupal::moduleHandler()->moduleExists('acquia_search')) {
-//      foreach (array('acquia_search', 'apachesolr') as $name) {
-//        $info = system_get_info('module', $name);
-//        // Send the version, or at least the core compatibility as a fallback.
-//        $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-//      }
-    }
-    // @todo
+
     // Include Acquia Search for Search API module version number.
-    if (\Drupal::moduleHandler()->moduleExists('search_api_acquia')) {
-//      foreach (array('search_api_acquia', 'search_api', 'search_api_solr') as $name) {
-//        $info = system_get_info('module', $name);
-//        // Send the version, or at least the core compatibility as a fallback.
-//        $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-//      }
+    if (\Drupal::moduleHandler()->moduleExists('acquia_search')) {
+      foreach (array('acquia_search', 'search_api', 'search_api_solr') as $name) {
+        $info = system_get_info('module', $name);
+        // Send the version, or at least the core compatibility as a fallback.
+        $body['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
+      }
     }
 
     try {
@@ -180,8 +171,7 @@ class Client {
       }
     }
     catch (ConnectorException $e) {
-      \Drupal::logger('acquia connector')->error($e->getCustomMessage);
-      dpm($e->getCustomMessage()); // @todo Remove debug
+      \Drupal::logger('acquia connector')->error('Error: ' . $e->getCustomMessage());
     }
     return FALSE;
   }

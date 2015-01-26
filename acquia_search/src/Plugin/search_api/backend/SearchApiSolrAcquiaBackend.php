@@ -30,10 +30,27 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, FormBuilderInterface $form_builder, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings) {
     // @todo Research right way to add default configuration.
-    $configuration['host'] = \Drupal::config('acquia_connector.settings')->get('subscription_data.heartbeat_data.search_cores.balancer'); // @todo use acquia_search.settings
     $configuration['port'] = 80; // @todo - add to settings
-    $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('subscription_data.heartbeat_data.search_cores.core_id'); // @todo use acquia_search.settings
+    $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('identifier'); // @todo use acquia_search.settings
     $configuration['solr_version'] = 4; // @todo - add to settings
+
+    $subscription = $configuration['host'] = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+    $search_host = \Drupal::config('acquia_search.settings')->get('host');
+    // Adding the subscription specific colony to the heartbeat data
+    if (!empty($subscription['heartbeat_data']['search_service_colony'])) {
+      $search_host = $subscription['heartbeat_data']['search_service_colony'];
+    }
+    // Check if we are on Acquia Cloud hosting. @see NN-2503
+    if (!empty($_ENV['AH_SITE_ENVIRONMENT']) && !empty($_ENV['AH_CURRENT_REGION'])) {
+      if ($_ENV['AH_CURRENT_REGION'] == 'us-east-1' && $search_host == 'search.acquia.com') {
+        $search_host = 'internal-search.acquia.com';
+      }
+      elseif (strpos($search_host, 'search-' . $_ENV['AH_CURRENT_REGION']) === 0) {
+        $search_host = 'internal-' . $search_host;
+      }
+    }
+    $configuration['host'] = $search_host;
+
     return parent::__construct($configuration, $plugin_id, $plugin_definition, $form_builder, $module_handler, $search_api_solr_settings);
   }
 
