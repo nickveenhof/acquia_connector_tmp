@@ -376,24 +376,3 @@ class spiControllerTest extends SpiController{
   }
 
 }
-
-class clientTest extends Client{
-
-  public function __construct(){
-
-  }
-
-  /**
-   * Get Acquia subscription from Acquia Network.
-   *
-   * @param string $id Network ID
-   * @param string $key Network Key
-   * @param array $body
-   *   (optional)
-   *
-   * @return array|false
-   */
-  public function sendNspi($id, $key, array $body = array()) {
-    return parent::sendNspi($id, $key, $body);
-  }
-}
