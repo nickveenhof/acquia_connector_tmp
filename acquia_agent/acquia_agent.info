@@ -1,6 +1,0 @@
-name: Acquia agent
-description: "Allows Drupal to securely communicate with the Acquia Network, and checks for updates to Acquia Drupal."
-package: 'Acquia Network Connector'
-core: 8.x
-type: module
-# configure = admin/config/system/acquia-agent

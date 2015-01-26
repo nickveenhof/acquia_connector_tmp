@@ -152,8 +152,16 @@ class SecurityReviewController extends ControllerBase {
     return $check_result;
   }
 
+  /**
+   * @param $module
+   * @param $check_name
+   * @param $message
+   * @param $variables
+   * @param $type
+   * D7: _acquia_spi_security_review_log().
+   */
   private function _securityReviewLog($module, $check_name, $message, $variables, $type) {
-    module_invoke_all('acquia_spi_security_review_log', $module, $check_name, $message, $variables, $type);
+    \Drupal::moduleHandler()->invokeAll('acquia_spi_security_review_log', [$module, $check_name, $message, $variables, $type]);
   }
 
   /**
@@ -292,6 +300,7 @@ class SecurityReviewController extends ControllerBase {
    * Check if $base_url is set in settings.php.
    * @param null $last_check
    * @return array
+   * d7: acquia_spi_security_review_check_base_url().
    */
   private function checkBaseUrl($last_check = NULL) {
     // Support different methods to check for $base_url.
@@ -328,6 +337,7 @@ class SecurityReviewController extends ControllerBase {
    * Check for sensitive temporary files like settings.php~.
    * @param null $last_check
    * @return array
+   * acquia_spi_security_review_check_temporary_files().
    */
   private function checkTemporaryFiles($last_check = NULL) {
     $result = TRUE;
@@ -355,6 +365,7 @@ class SecurityReviewController extends ControllerBase {
    *
    * @param null $last_check
    * @return array
+   * d7: acquia_spi_security_review_check_views_access().
    */
   private function checkViewsAccess($last_check = NULL) {
     $result = TRUE;
@@ -379,6 +390,7 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Check if PHP files written to the files directory can be executed.
+   * d7: acquia_spi_security_review_check_executable_php().
    */
   private function checkExecutablePHP($last_check = NULL) {
     global $base_url;
@@ -472,10 +484,10 @@ class SecurityReviewController extends ControllerBase {
     return array('result' => $check_result, 'value' => $check_result_value);
   }
 
-
   /**
    * Check for formats that either do not have HTML filter that can be used by
    * untrusted users, or if they do check if unsafe tags are allowed.
+   * d7: acquia_spi_security_review_check_input_formats().
    */
   private function checkInputFormats() {
     $result = TRUE;
@@ -551,6 +563,7 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * @return array
+   * d7: acquia_spi_security_review_check_php_filter().
    */
   protected function checkPhpFilter() {
     $result = TRUE;
@@ -581,6 +594,7 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Helper function defines file extensions considered unsafe.
+   * D7: acquia_spi_security_review_unsafe_extensions().
    */
   public function unsafeExtensions() {
     return array(
@@ -602,6 +616,7 @@ class SecurityReviewController extends ControllerBase {
    * Helper function defines HTML tags that are considered unsafe.
    *
    * Based on wysiwyg_filter_get_elements_blacklist().
+   * D7: acquia_spi_security_review_unsafe_tags().
    */
   public function unsafeTags() {
     return array(
@@ -653,7 +668,8 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Helper function for user-defined or default unstrusted Drupal roles.
    *
-   * @return An associative array with the role id as the key and the role name as value.
+   * @return array An associative array with the role id as the key and the role name as value.
+   * D7: acquia_spi_security_review_untrusted_roles().
    */
   public function untrustedRoles() {
     $defaults = $this->defaultUntrustedRoles();
@@ -666,6 +682,7 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Helper function defines the default untrusted Drupal roles.
+   * D7: _acquia_spi_security_review_default_untrusted_roles().
    */
   public function defaultUntrustedRoles() {
     $roles = array(DRUPAL_ANONYMOUS_RID => t('anonymous user'));

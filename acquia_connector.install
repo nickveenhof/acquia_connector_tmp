@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * @file
  * Install, update, and uninstall functions for the Acquia Connector module.
@@ -80,7 +79,7 @@ function acquia_connector_requirements($phase) {
           'description' => t($description, array('@interval' => $interval, '@config-page' => $config_url, '@spi-send' => Url::fromRoute('acquia_connector.send', array(), array('query' => array('destination' => 'admin/reports/status', 'key' => $key)))->toString())),
         );
       }
-      //SPI STATUS
+
       // Inform users on subscription status. Either we know they are active,
       // or we know they have credentials but not active (not set up yet) or
       // we have credentials but an inactive subscription (either bad
