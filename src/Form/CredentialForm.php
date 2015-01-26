@@ -119,7 +119,6 @@ class CredentialForm extends ConfigFormBase {
     }
 
     $response = $response['result'];
-    dpm($response); // @todo: Remove debug.
 
     if (empty($response['body']['subscription_name'])) {
       $form_state->setErrorByName('acquia_identifier', t('No subscriptions were found.'));

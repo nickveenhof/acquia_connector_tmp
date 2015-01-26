@@ -4,17 +4,3 @@
  * @file
  *   Integration between Acquia Drupal and Acquia's hosted solr search service.
  */
-
-/**
- * Helper function to cache the Acquia Search version.
- */
-function _acquia_search_set_version() {
-  // Cache the version in a variable so we can send it at not extra cost.
-  $version = \Drupal::config('acquia_search.settings')->get('version');
-  $info = system_get_info('module', 'acquia_search');
-  // Send the version, or at least the core compatibility as a fallback.
-  $new_version = isset($info['version']) ? (string) $info['version'] : (string) $info['core'];
-  if ($version != $new_version) {
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('version', $new_version)->save();
-  }
-}

@@ -330,7 +330,7 @@ class Client {
    * D7: acquia_agent_call().
    */
   public function nspiCall($method, $params, $key = NULL) {
-    dpm('Method called: ' . $method);
+    dpm('Method called: ' . $method); // @todo: remove debug
     if (empty($key)) {
       $config = \Drupal::config('acquia_connector.settings');
       $key = $config->get('key');
