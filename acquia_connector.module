@@ -90,44 +90,44 @@ function acquia_connector_cron() {
  * Implements hook_toolbar().
  */
 function acquia_connector_toolbar() {
-  $link = array(
+  $link = [
     '#type' => 'link',
-    '#options' => array(
-      'html' => TRUE
-    ),
-  );
+    '#theme_wrappers' => [],
+    '#type' => 'link',
+    '#options' => ['html' => TRUE,],
+  ];
 
   $subscription_class = new Subscription();
 
   if ($subscription_class->isActive()) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
-
+    // @todo Fix CSS
     if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
-      $icon = '<img src="' . base_path() . 'core/misc/message-24-ok.png" alt="ok" style="vertical-align: middle;" />';
+      $icon = '<img src="' . base_path() . 'core/misc/icons/73b355/check.svg" alt="ok" style="vertical-align: middle;" />';
       $link['#title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
       $link['#options']['attributes']['class'][] = "acquia-active-subscription";
-      $link['#href'] = $subscription['href'];
+      $link['#url'] = Url::fromUri($subscription['href']);
     }
   }
 
-  if (empty($link['#href'])) {
+  if (empty($link['#url'])) {
     // Yes, this uses inline CSS, which sounds bad, but including a CSS file
     // just for this sounds equally bad.
-    $icon = '<img src="' . base_path() . 'core/misc/message-16-error.png" alt="error" style="vertical-align: middle;" />';
+    $icon = '<img src="' . base_path() . 'core/misc/icons/ea2800/error.svg" alt="error" style="vertical-align: middle;" />';
     $link['#title'] = t("!icon Subscription not active", array('!icon' => $icon));
     $link['#attributes']['class'][] = "acquia-inactive-subscription";
-    $link['#href'] = 'http://acquia.com/network';
+    $link['#url'] = Url::fromUri('https://insight.acquia.com');
   }
 
-  return array(
-    'acquia_connector' => array(
+  return [
+    'acquia_connector' => [
       '#type' => 'toolbar_item',
       'tab' => $link,
       '#weight' => 200,
-    ),
-  );
+    ],
+  ];
 }
 
 /**
@@ -235,4 +235,53 @@ function acquia_connector_has_update_service() {
   }
 
   return $subscription;
+}
+
+/**
+ * Set error message.
+ * @param $code
+ * @param $message
+ * d7: acquia_agent_report_xmlrpc_error().
+ * @todo: Move into Drupal\acquia_connector\ConnectorException;
+ */
+function acquia_connect_report_restapi_error($code, $message) {
+  drupal_set_message(t('Error: @message (@errno)', array('@message' => $message, '@errno' => $code)), 'error');
+}
+
+
+/**
+ * Returns an error message for the most recent (failed) attempt to connect
+ * to the Acquia Network during the current page request. If there were no
+ * failed attempts, returns FALSE.
+ *
+ * This function assumes that the most recent XML-RPC error came from the
+ * Acquia Network; otherwise, it will not work correctly.
+ *
+ * @param int $errno.
+ * @return string or FALSE.
+ * d7: acquia_agent_connection_error_message().
+ * @todo: Move into Drupal\acquia_connector\ConnectorException;
+ */
+function acquia_connector_connection_error_message($errno) {
+  switch ($errno) {
+    case Subscription::NOT_FOUND:
+      return t('The identifier you have provided does not exist in the Acquia Network or is expired. Please make sure you have used the correct value and try again.');
+      break;
+    case Subscription::EXPIRED:
+      return t('Your Acquia Network subscription has expired. Please renew your subscription so that you can resume using Acquia Network services.');
+      break;
+    case Subscription::MESSAGE_FUTURE:
+      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
+      break;
+    case Subscription::MESSAGE_EXPIRED:
+      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
+      break;
+    case Subscription::VALIDATION_ERROR:
+      return t('The identifier and key you have provided for the Acquia Network do not match. Please make sure you have used the correct values and try again.');
+      break;
+    default:
+      return t('There is an error communicating with the Acquia Network at this time. Please check your identifier and key and try again.');
+      break;
+  }
+  return FALSE;
 }

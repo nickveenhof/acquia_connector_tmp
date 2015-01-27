@@ -14,6 +14,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_connector\Subscription;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class CredentialForm.
@@ -47,6 +48,13 @@ class CredentialForm extends ConfigFormBase {
       $container->get('config.factory'),
       $container->get('acquia_connector.client')
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return ['acquia_connector.settings', 'acquia_search.settings'];
   }
 
  /**
@@ -91,18 +99,32 @@ class CredentialForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));
-
-    if (!empty($response['error'])) {
-      // Set form error to prevent switching to the next page.
-      $form_state->setErrorByName('acquia_identifier', $response['message']);
+//    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));  // @todo: remove the line.
+    try {
+      $response = $this->client->nspiCall(
+        '/agent-api/subscription',
+        array('identifier' => trim($form_state->getValue('acquia_identifier'))),
+        trim($form_state->getValue('acquia_key')));
     }
-    elseif (empty($response)) {
-      // Subscription doesn't exist.
-      $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
+    catch (ConnectorException $e) {
+      // Set form error to prevent switching to the next page.
+      if ($e->isCustomized()) {
+        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        $form_state->setErrorByName('');
+      }
+      else {
+        $form_state->setErrorByName('', t('Server error, please submit again.'));
+      }
+      return;
+    }
+
+    $response = $response['result'];
+
+    if (empty($response['body']['subscription_name'])) {
+      $form_state->setErrorByName('acquia_identifier', t('No subscriptions were found.'));
     }
     else {
-      $form_state->setValue('subscription', $response['subscription_name']);
+      $form_state->setValue('subscription', $response['body']['subscription_name']);
     }
   }
 

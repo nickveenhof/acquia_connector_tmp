@@ -7,11 +7,10 @@
 
 namespace Drupal\acquia_connector\Controller;
 
-use Drupal\acquia_connector\Form\MigrateForm;
 use Drupal\acquia_connector\Migration;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class MigrateController.
@@ -19,36 +18,39 @@ use Symfony\Component\HttpFoundation\Request;
 class MigrateController extends ControllerBase {
 
   /**
-   *
+   * acquia_connector.migrate route callback.
    */
-  public function migratePage(Request $request) {
+  public function migratePage() {
     $config = $this->config('acquia_connector.settings');
     $identifier = $config->get('identifier');
     $key = $config->get('key');
 
     if (!empty($identifier) && !empty($key)) {
-      if (\Drupal::service('acquia_connector.client')->validateCredentials($identifier, $key)) {
-        $form_builder = \Drupal::formBuilder();
-        return $form_builder->getForm('Drupal\acquia_connector\Form\MigrateForm');
+      try {
+        \Drupal::service('acquia_connector.client')->getSubscription($identifier, $key);
       }
-      else {
-        $error = acquia_agent_connection_error_message();
+      catch (ConnectorException $e) {
+        $error_message = acquia_connector_connection_error_message($e->getCustomMessage('code'));
       }
     }
     else {
-      $error = $this->t('Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key.');
+      $error_message = $this->t('Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key.');
     }
 
     // If there was an error.
-    if (!empty($error)) {
-      drupal_set_message($this->t('There was an error in communicating with Acquia.com. @err', array('@err' => $error)), 'error');
+    if (!empty($error_message)) {
+      drupal_set_message($this->t('There was an error in communicating with Acquia.com. @err', array('@err' => $error_message)), 'error');
+    }
+    else {
+      $form_builder = \Drupal::formBuilder();
+      return $form_builder->getForm('Drupal\acquia_connector\Form\MigrateForm');
     }
 
     $this->redirect('acquia_connector.settings');
   }
 
   /**
-   * Menu callback for checking client upload.
+   * acquia_connector.migrate_check route callback for checking client upload.
    */
   public function migrateCheck() {
     $return = array('compatible' => TRUE);

@@ -116,7 +116,7 @@ class VariablesController extends ControllerBase {
     $types = NodeType::loadMultiple();
     if (!empty($types)) {
       foreach ($types as $name => $NodeType) {
-        dpm('Node type: ' . $NodeType->type);
+//        dpm('Node type: ' . $NodeType->type);   // @todo: $nodeType->type removed in latest dev.
 //        $variables[] = 'comment_' . $name;
       }
     }
@@ -204,7 +204,7 @@ class VariablesController extends ControllerBase {
     $whitelist = \Drupal::config('acquia_connector.settings')->get('spi.set_variables_automatic');
     foreach($set_variables as $key => $value) {
       // Approved variables get set immediately unless ignored.
-      if (1 || in_array($key, $whitelist) && !in_array($key, $ignored)) {
+      if (in_array($key, $whitelist) && !in_array($key, $ignored)) { // @todo: remove 1
         if (!empty($this->mapping[$key])) {
           // state
           if ($this->mapping[$key][0] == 'state' and !empty($this->mapping[$key][1])) {
@@ -221,8 +221,8 @@ class VariablesController extends ControllerBase {
             $mapping_row_copy = $this->mapping[$key];
             $config_name = array_shift($mapping_row_copy);
             $variable_name = implode('.', $mapping_row_copy);
-            \Drupal::config($config_name)->set($variable_name, $value);
-            \Drupal::config($config_name)->save();
+            \Drupal::configFactory()->getEditable($config_name)->set($variable_name, $value);
+            \Drupal::configFactory()->getEditable($config_name)->save();
             $saved[] = $key;
           }
         }
@@ -230,8 +230,8 @@ class VariablesController extends ControllerBase {
         elseif (preg_match('/^([^\s]+):([^\s]+)$/ui', $key, $regs)) {
           $config_name = $regs[1];
           $variable_name = $regs[2];
-          \Drupal::config($config_name)->set($variable_name, $value);
-          \Drupal::config($config_name)->save();
+          \Drupal::configFactory()->getEditable($config_name)->set($variable_name, $value);
+          \Drupal::configFactory()->getEditable($config_name)->save();
           $saved[] = $key;
           dpm('Set Variable (variable):' . $key . ' = ' . print_r($value, 1)); // @todo: remove dpm
         }
@@ -242,8 +242,8 @@ class VariablesController extends ControllerBase {
       }
     }
     if (!empty($saved)) {
-      \Drupal::config('acquia_connector.settings')->set('spi.saved_variables', array('variables' => $saved, 'time' => time()));
-      \Drupal::config('acquia_connector.settings')->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.saved_variables', array('variables' => $saved, 'time' => time()));
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->save();
       \Drupal::logger('acquia spi')->notice('Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)));
     }
     else {

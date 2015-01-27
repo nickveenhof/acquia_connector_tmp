@@ -34,11 +34,13 @@ class Subscription {
    * This check also sends a heartbeat to the Acquia Network unless
    * $params['no_heartbeat'] == 1.
    *
+   * @param array $params
+   *
    * @return FALSE, integer (error number), or subscription data.
    * D7: acquia_agent_check_subscription
    */
   public function update($params = array()) {
-    $config = \Drupal::config('acquia_connector.settings');
+    $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $current_subscription = $config->get('subscription_data');
     $subscription = FALSE;
 
@@ -48,9 +50,11 @@ class Subscription {
     }
     else {
       // Get our subscription data
-      $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
-      if (!empty($subscription['error'])) {
-        switch ($subscription['code']) {
+      try {
+        $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
+      }
+      catch (ConnectorException $e) {
+        switch ($e->getCustomMessage('code')) {
           case static::NOT_FOUND:
           case static::EXPIRED:
             // Fall through since these values are stored and used by
@@ -63,19 +67,19 @@ class Subscription {
             $subscription = $current_subscription;
         }
       }
-
-      $config->set('subscription_data', $subscription)->save();
-
-      // @todo hook signature has changed, doesn't pass active anymore.
-      \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', $subscription);
+      if ($subscription) {
+        $config->set('subscription_data', $subscription)->save();
+        // @todo hook signature has changed, doesn't pass $active variable anymore.
+        \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
+      }
     }
-
 
     return $subscription;
   }
 
   /**
    * Helper function to check if an identifer and key exist.
+   * d7: acquia_agent_has_credentials().
    */
   public function hasCredentials() {
     $config = \Drupal::config('acquia_connector.settings');
@@ -95,7 +99,10 @@ class Subscription {
       // Make sure we have data at least once per day.
       if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
         //'no_heartbeat' => 1
-        $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
+        try {
+          $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
+        }
+        catch (ConnectorException $e) {}
       }
       $active = !empty($subscription['active']);
     }

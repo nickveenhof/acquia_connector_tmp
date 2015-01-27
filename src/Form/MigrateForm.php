@@ -13,6 +13,7 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class SetupForm.
@@ -29,24 +30,37 @@ class MigrateForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
+  protected function getEditableConfigNames() {
+    return ['acquia_connector.settings', 'acquia_search.settings'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
     $identifier = $config->get('identifier');
     $key = $config->get('key');
     $client = \Drupal::service('acquia_connector.client');
-    $data = $client->acquia_agent_call('/agent-migrate-api/subscription/migration/environments', array('identifier' => $identifier), $key);
-
     $error = NULL;
-    if (!$data || !isset($data['result'])) {
+    try {
+      $data = $client->nspiCall('/agent-migrate-api/subscription/migration/environments', array('identifier' => $identifier), $key);
+    }
+    catch (ConnectorException $e) {
+      if ($e->isCustomized()) {
+        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        return $this->redirect('acquia_connector.settings');;
+      }
       $error = $this->t('Server error, please submit again.');
     }
-    else {
+
+    if (!empty($data['result'])) {
       // Response is in $data['result'].
       $result = $data['result'];
-      if (!empty($result['is_error'])) {
+      if (!empty($result['is_error'])) {  // @todo - review at nspi side
         $error = $this->t('Server error, unable to retrieve environments for migration');
       }
-      elseif (!empty($result['body']['error'])) {
+      elseif (!empty($result['body']['error'])) {  // @todo - review at nspi side
         $error = $result['body']['error'];
       }
       elseif (empty($result['body']['environments'])) {

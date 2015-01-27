@@ -1,27 +1,43 @@
 <?php
 
 /**
- * Implementation of hook_requirements().
+ * @file
+ * Install, update, and uninstall functions for the Acquia Connector module.
+ */
+
+use Drupal\acquia_connector\Subscription;
+
+/**
+ * Implements hook_requirements().
  */
 function acquia_search_requirements($phase) {
   $requirements = array();
   // Ensure translations don't break at install time
-  $t = get_t();
-
   // Skip install checks if install.php is running. The weak install profile
   // API means install.php calls hook_requirements for every module in a profile.
-  if ($phase == 'install' && defined('MAINTENANCE_MODE') && MAINTENANCE_MODE != 'install') {
-    if (module_invoke('acquia_agent', 'has_credentials')) {
-      $severity = REQUIREMENT_OK;
+  if ($phase == 'install' && (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'install')) {
+    if (class_exists('Drupal\acquia_connector\Subscription')) {
+      $subscription = new Subscription();
+      if ($subscription->hasCredentials()) {
+        $severity = REQUIREMENT_OK;
+      }
+      else {
+        $severity = REQUIREMENT_ERROR;
+      }
+      $requirements['acquia_search_credentials'] = array(
+        'description' => t('In order to use Acquia search module you must have an Acquia Network subscription. Please enter your Acquia Network subscription keys.'),
+        'severity' => $severity,
+        'value' => '',
+      );
     }
     else {
       $severity = REQUIREMENT_ERROR;
+      $requirements['acquia_search_credentials'] = array(
+        'description' => t('In order to use Acquia search module you must enable and configure the Acquia Connector module.'),
+        'severity' => $severity,
+        'value' => '',
+      );
     }
-    $requirements['acquia_search_credentials'] = array(
-      'description' => $t('In order to use Acquia search module you must have an Acquia Network subscription. Please enter your Acquia Network subscription keys.'),
-      'severity' => $severity,
-      'value' => '',
-    );
 
   }
   if ($phase == 'runtime') {
@@ -29,26 +45,19 @@ function acquia_search_requirements($phase) {
     if (in_array('ssl', stream_get_transports(), TRUE)) {
       $severity = REQUIREMENT_OK;
       $requirements['acquia_search_ssl'] = array(
-        'description' => $t('The Acquia Search module is using SSL to protect the privacy of your content.'),
+        'description' => t('The Acquia Search module is using SSL to protect the privacy of your content.'),
       );
     }
     else {
       $severity = REQUIREMENT_WARNING;
       $requirements['acquia_search_ssl'] = array(
-        'description' => $t('In order to protect the privacy of your content with the Acquia Search module you must have SSL support enabled in PHP on your host.'),
+        'description' => t('In order to protect the privacy of your content with the Acquia Search module you must have SSL support enabled in PHP on your host.'),
       );
     }
-    $requirements['acquia_search_ssl']['title'] = $t('Acquia Search');
+    $requirements['acquia_search_ssl']['title'] = t('Acquia Search');
     $requirements['acquia_search_ssl']['severity'] = $severity;
     $requirements['acquia_search_ssl']['value'] = '';
 
-    // Check Apache Solr API version.
-    if (!defined('APACHESOLR_API_VERSION') || version_compare(APACHESOLR_API_VERSION, '3.0', '<')) {
-      $requirements['acquia_search_apachesolr']['title'] = $t('Acquia Search');
-      $requirements['acquia_search_apachesolr']['severity'] = REQUIREMENT_ERROR;
-      $requirements['acquia_search_apachesolr']['description'] = $t('Apache Solr API Integration requires  API version 3.0.  Please upgrade your Apache Solr Search Integration module');
-      $requirements['acquia_search_apachesolr']['value'] = $t('Incompatible API version');
-    }
   }
   // Update the cached version whenever we may be updating the module.
   if ($phase == 'runtime' || $phase == 'update') {
@@ -59,114 +68,29 @@ function acquia_search_requirements($phase) {
 }
 
 /**
- * Implementation of hook_install().
+ * Implements hook_install().
  */
 function acquia_search_install() {
-  return;
-  $facets = _acquia_search_get_default_facets();
-
-  //apachesolr_save_enabled_facets(ACQUIA_SEARCH_ENVIRONMENT_ID, $facets);
-
-  $theme_key = variable_get('theme_default', 'bartik');
-  $block_regions = array_keys(system_region_list($theme_key));
-  $region = _acquia_search_find_block_region($block_regions);
-
-  if (empty($region)) {
-    drupal_set_message(t('We were unable to auto-detect where to put the filter blocks for your faceted search engine. To get started adding blocks, go to the <a href="@active_filter_config_form">filter configuration screen</a>.', array('@active_filter_config_form' => url('admin/config/apachesolr/active_filters'))));
-    return;
-  }
-
-  foreach ($facets['apachesolr_search'] as $delta => $facet_field) {
-    $blocks[] = array (
-      'module' => 'apachesolr_search',
-      'delta' => $delta,
-    );
-  }
-
-  $blocks[] = array (
-    'module' => 'apachesolr',
-    'delta' => 'sort',
-    'weight' => -1
-  );
-
-  foreach ($blocks as $block) {
-    $block['cache'] = DRUPAL_CACHE_PER_PAGE;
-    $block['theme'] = $theme_key;
-    $block['region'] = $region;
-    $block['status'] = 1;
-    // {block}.pages is type 'text', so it cannot have a
-    // default value, and is not null, so we must provide one.
-    $block['pages']  = '';
-    // Make sure the block does not already exist.
-    if (!db_query("SELECT 1 FROM {block} WHERE theme = ':theme' AND module = ':module' AND delta = ':delta'",
-      array(':theme' => $block['theme'], ':module' => $block['module'], ':delta' => $block['delta']))->fetchField()){
-      drupal_write_record('blocks', $block);
-    }
-  }
+  $subscription = new Subscription();
+  // Send a heartbeat so the Acquia Network knows the module is enabled.
+  // This causes an invocation of hook_acquia_subscription_status() which is
+  // implemented in this module to set up the environment.
+  _acquia_search_set_version();
+//  module_load_include('module', 'acquia_search');
+  $subscription->update();
+//  acquia_search_acquia_subscription_status($subscription->update());
 }
 
 /**
- * Helper function for hook_install().
+ * Helper function to cache the Acquia Search version.
  */
-function _acquia_search_find_block_region($block_regions = array()) {
-  $regions_to_look_for = array (
-     'left', /* garland & zen */
-     'sidebar_first', /* acquia */
-  );
-
-  if ($matches = array_intersect($block_regions, $regions_to_look_for)) {
-    return array_shift($matches);
-  }
-}
-
-/**
- * Helper function for hook_install().
- */
-function _acquia_search_get_default_facets() {
-
-  $default_enabled_facets['apachesolr_search']['bundle'] = 'bundle';
-  $default_enabled_facets['apachesolr_search']['is_uid'] = 'is_uid';
-
-  return $default_enabled_facets;
-}
-
-
-/**
- * Implementation of hook_uninstall().
- */
-function acquia_search_uninstall() {
-  variable_del('acquia_search_path');
-  variable_del('acquia_search_base_url');
-  variable_del('acquia_search_derived_key_salt');
-}
-
-/**
- * Clear out old variables.
- */
-function acquia_search_update_7000() {
-  variable_del('acquia_search_host');
-  variable_del('acquia_search_port');
-  variable_del('acquia_search_path');
-}
-
-/**
- * Removing acquia_search_url variable as it has been split up
- * to acquia_search_base_url and acquia_search_path
- */
-function acquia_search_update_7001() {
-  variable_del('acquia_search_url');
-}
-
-/**
- * Remove apachesolr_service_class if it was set to AcquiaSearchService.
- *
- * This can be left set incorrectly when upgrading from Drupal 6 to Drupal 7.
- */
-function acquia_search_update_7002() {
-  // No need to set apachesolr_service_class for Acquia, since each
-  // environment can have a separate class.
-  $class = variable_get('apachesolr_service_class', '');
-  if ($class && strpos($class, 'Acquia') === 0) {
-    variable_del('apachesolr_service_class');
+function _acquia_search_set_version() {
+  // Cache the version in a variable so we can send it at not extra cost.
+  $version = \Drupal::config('acquia_search.settings')->get('version');
+  $info = system_get_info('module', 'acquia_search');
+  // Send the version, or at least the core compatibility as a fallback.
+  $new_version = isset($info['version']) ? (string) $info['version'] : (string) $info['core'];
+  if ($version != $new_version) {
+    \Drupal::configFactory()->getEditable('acquia_search.settings')->set('version', $new_version)->save();
   }
 }

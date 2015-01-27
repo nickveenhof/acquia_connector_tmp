@@ -16,7 +16,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\PrivateKey;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\acquia_connector\ConnectorException;
 
 /**
  * Class SettingsForm.
@@ -47,7 +47,7 @@ class SettingsForm extends ConfigFormBase {
   /**
    * Constructs a \Drupal\aggregator\SettingsForm object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
@@ -79,6 +79,13 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
+  protected function getEditableConfigNames() {
+    return ['acquia_connector.settings', 'acquia_search.settings'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getFormId() {
     return 'acquia_connector_settings_form';
   }
@@ -98,11 +105,14 @@ class SettingsForm extends ConfigFormBase {
     }
 
     // Check our connection to the Acquia Network and validity of the credentials.
-    if (!$this->client->validateCredentials($identifier, $key)) {
-      $error_message = array(); // acquia_agent_connection_error_message();
+    try {
+      $this->client->getSubscription($identifier, $key);
+    }
+    catch (ConnectorException $e) {
+      $error_message = acquia_connector_connection_error_message($e->getCustomMessage('code'));
       $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.verify_peer');
       if (empty($error_message) && $ssl_available) {
-        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_agent_verify_peer to false.');
+        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_connector.settings:spi.verify_peer to false.');
       }
       drupal_set_message($error_message, 'error', FALSE);
     }
@@ -112,7 +122,7 @@ class SettingsForm extends ConfigFormBase {
     );
     if (!empty($subscription)) {
       $form['subscription'] = array(
-        '#markup' => $this->t('Subscription: @sub <a href="!url">change</a>', array('@sub' => $subscription, '!url' => $this->url('acquia_connector.setup'))),
+        '#markup' => $this->t('Subscription: @sub <a href="@url">change</a>', array('@sub' => $subscription, '@url' => $this->url('acquia_connector.setup'))),
       );
     }
     $form['connection'] = array(
@@ -124,7 +134,7 @@ class SettingsForm extends ConfigFormBase {
     $form['migrate'] = array(
       '#type' => 'details',
       '#title' => $this->t('Acquia Cloud Migrate'),
-      '#description' => $this->t('Transfer a fully-functional copy of your site to Acquia Cloud. <a href="!url">Learn more</a>.', array('!url' => Url::fromUri('https://docs.acquia.com/cloud/site/import/connector')->getUri())),
+      '#description' => $this->t('Transfer a fully-functional copy of your site to Acquia Cloud. <a href="@url">Learn more</a>.', array('@url' => Url::fromUri('https://docs.acquia.com/cloud/site/import/connector')->getUri())),
       // Collapse migrate if Acquia hosting.
       '#open' => !\Drupal::request()->server->has('AH_SITE_GROUP'),
     );
@@ -161,7 +171,7 @@ class SettingsForm extends ConfigFormBase {
         '#weight' => 0,
       );
 
-      $form['connection']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href="!url">Learn more</a>.', array('!url' => $help_url));
+      $form['connection']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href="@url">Learn more</a>.', array('@url' => $help_url));
       $form['connection']['description']['#weight'] = '-1';
 
       $form['connection']['spi']['admin_priv'] = array(
@@ -183,7 +193,7 @@ class SettingsForm extends ConfigFormBase {
         '#type' => 'checkbox',
         '#title' => t('Source code'),
         '#default_value' => (int) $config->get('module_diff_data', 1) && $ssl_available,
-        '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
+        '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="@url">Learn more</a>.', array('@url' => $help_url)),
         '#disabled' => !$ssl_available,
       );
       $form['connection']['acquia_dynamic_banner'] = array(
@@ -195,7 +205,7 @@ class SettingsForm extends ConfigFormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Allow Insight to update list of approved variables.'),
         '#default_value' => (int) $config->get('set_variables_override', 0),
-        '#description' => $this->t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href="!url">Learn more</a>.', array('!url' => $help_url)),
+        '#description' => $this->t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href="@url">Learn more</a>.', array('@url' => $help_url)),
       );
 
       $use_cron = $config->get('use_cron');
@@ -228,7 +238,7 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $config = \Drupal::config('acquia_connector.settings');
+    $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $values = $form_state->getValues();
     $config->set('module_diff_data', $values['module_diff_data'])
       ->set('acquia_dynamic_banner', $values['acquia_dynamic_banner'])

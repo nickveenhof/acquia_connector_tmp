@@ -11,11 +11,14 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Path;
+use Drupal\Core\StreamWrapper\PrivateStream;
+use Drupal\Core\Url;
 use Drupal\acquia_connector\Subscription;
 use Drupal\acquia_connector\Controller;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Drupal\Core\StreamWrapper\PublicStream;
 
 /**
  * Init (i.e., hook_init()) subscriber that displays a message asking you to join
@@ -58,6 +61,21 @@ class InitSubscriber implements EventSubscriberInterface {
     if (PHP_SAPI == 'cli') {
       return;
     }
+    // Check that there's no form submission in progress.
+    if (\Drupal::request()->server->get('REQUEST_METHOD') == 'POST') {
+      return;
+    }
+    // Check that we're not on an AJAX overlay page.
+    if(\Drupal::request()->isXmlHttpRequest()) {
+      return;
+    }
+
+    // Check that we're not serving a private file or image
+    $controller_name = \Drupal::request()->attributes->get('_controller');
+    if (strpos($controller_name, 'FileDownloadController') !== FALSE || strpos($controller_name, 'ImageStyleDownloadController') !== FALSE) {
+      return;
+    }
+
     $config = $this->configFactory->get('acquia_connector.settings');
     // Get the last time we processed data.
     $last = $this->state->get('acquia_connector.boot_last', 0);
@@ -74,7 +92,6 @@ class InitSubscriber implements EventSubscriberInterface {
       $this->state->set('acquia_connector.boot_last', $now);
     }
 
-    $config = $this->configFactory->get('acquia_connector.settings');
     if ($config->get('hide_signup_messages')) {
       return;
     }
@@ -85,8 +102,6 @@ class InitSubscriber implements EventSubscriberInterface {
     if (\Drupal::service('path.matcher')->matchPath($current_path,'admin/config/system/acquia-connector/*')) {
       return;
     }
-
-    // @todo: Check that there's no form submission in progress.
 
     // Check that the user has 'administer site configuration' permission.
     if (!\Drupal::currentUser()->hasPermission('administer site configuration')) {
@@ -99,9 +114,19 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // @todo: Check that we're not serving a file.
-
-    // ...display annoying signup message.
+    // Display a message asking to connect to the Acquia Network.
+    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="@acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="@settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
+    if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
+      $text = '<a href="@settings">Connect your site to the Acquia Network now</a>. <a href="@more">Learn more</a>.';
+    }
+    $message = t(
+      $text,
+      [
+        '@more' => Url::fromUri('https://docs.acquia.com/network/install')->getUri(),
+        '@acquia-free' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri(),
+        '@settings' => Url::fromRoute('acquia_connector.setup')->toString(),
+      ]);
+    drupal_set_message($message, 'warning', FALSE);
   }
 
   /**

@@ -166,14 +166,16 @@ class Migration {
     if (isset($migration['redirect']) && is_array($migration['redirect']['data'])) {
       $body += $migration['redirect']['data'];
     }
-    $data = $client->acquia_agent_call('/agent-migrate-api/subscription/migration/complete', $body, $key);
 
-    if (!empty($data['result']['error'])) {
-      drupal_set_message(t('Error: @message (@errno)', array('@message' => $data['result']['message'], '@errno' => $data['result']['code'])), 'error');
-      $migration['error'] = TRUE;
-      return;
+    try {
+      $data = $client->nspiCall('/agent-migrate-api/subscription/migration/complete', $body, $key);
     }
-    elseif (!$data || !isset($data['result'])) {
+    catch (ConnectorException $e) {
+      if ($e->getCustomMessage('code')) {
+        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        $migration['error'] = TRUE;
+        return;
+      }
       $migration['error'] = t("Server error, please submit again.");
       return;
     }
@@ -194,7 +196,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -214,7 +216,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -235,7 +237,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
 
     // Check for error and abort if appropriate.
@@ -257,7 +259,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
     }
 
     // Check for error and abort if appropriate.
@@ -539,7 +541,6 @@ class Migration {
       if (!($response->hasHeader('Location') && $redirect_url = $response->getHeader('Location'))) {
         $redirect_url = $response->getEffectiveUrl();
       }
-      drupal_set_message('$redirect_url: ' . $redirect_url); // @todo: remove debug
       $parsed = parse_url($redirect_url);
       parse_str($parsed['query'], $query);
       if (!empty($query['err'])) {
@@ -583,7 +584,8 @@ class Migration {
    *
    * @param $now
    * @param $return
-   * @param $stage
+   * @param $secret
+   * @return string a string containing the calculated message digest as lowercase hexits
    */
   public function getToken($now, $return, $secret) {
     return hash_hmac('sha256', $now . $return, $secret);
@@ -655,7 +657,7 @@ class Migration {
 
       unset($migration['dir']);
     }
-    \Drupal::config('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
   }
 
   /**

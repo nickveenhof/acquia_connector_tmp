@@ -1,9 +1,8 @@
 <?php
+
 /**
- * Created by PhpStorm.
- * User: ben.jeavons
- * Date: 2/11/14
- * Time: 7:17 PM
+ * @file
+ * Contains \Drupal\acquia_connector\Client.
  */
 
 namespace Drupal\acquia_connector;
@@ -11,7 +10,6 @@ namespace Drupal\acquia_connector;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
 
 class Client {
 
@@ -73,9 +71,9 @@ class Client {
       'authenticator' => $authenticator,
     );
 
+    // Don't use nspiCall() - key is not defined yet.
     $communication_setting = $this->request('POST', '/agent-api/subscription/communication', $data);
-
-    if($communication_setting) {
+    if ($communication_setting) {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
       $pass = $crypt_pass->cryptPass();
 
@@ -86,31 +84,13 @@ class Client {
         'authenticator' => $authenticator,
       );
 
+      // Don't use nspiCall() - key is not defined yet.
       $response = $this->request('POST', '/agent-api/subscription/credentials', $data);
-      if($response['body']){
-        dpm('getSubscriptionCredentials $response: ');
-        dpm($response);
+      if ($response['body']) {
         return $response['body'];
       }
     }
     return FALSE;
-  }
-
-  /**
-   * Validate Network ID/Key pair to Acquia Network.
-   *
-   * @param string $id Network ID
-   * @param string $key Network Key
-   * @return bool
-   */
-  public function validateCredentials($id, $key) {
-    try {
-      $this->getSubscription($id, $key);
-      return TRUE;
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
   }
 
   /**
@@ -121,17 +101,12 @@ class Client {
    * @param array $body
    *   (optional)
    *
-   * @return array|false
+   * @return array|false or throw Exception
+   * @throws \Exception
    * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
-    $body += array('identifier' => $id, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
-    $authenticator =  $this->buildAuthenticator($key, $body);
-    $data = array(
-      'body' => $body,
-      'authenticator' => $authenticator,
-    );
-
+    $body['identifier'] = $id;
     // There is an identifier and key, so attempt communication.
     $subscription = array();
     $subscription['timestamp'] = REQUEST_TIME;
@@ -139,39 +114,36 @@ class Client {
     // Include version number information.
     acquia_connector_load_versions();
     if (IS_ACQUIA_DRUPAL) {
-      $params['version']  = ACQUIA_DRUPAL_VERSION;
-      $params['series']   = ACQUIA_DRUPAL_SERIES;
-      $params['branch']   = ACQUIA_DRUPAL_BRANCH;
-      $params['revision'] = ACQUIA_DRUPAL_REVISION;
-    }
-    // @todo
-    // Include Acquia Search module version number.
-    if (\Drupal::moduleHandler()->moduleExists('acquia_search')) {
-//      foreach (array('acquia_search', 'apachesolr') as $name) {
-//        $info = system_get_info('module', $name);
-//        // Send the version, or at least the core compatibility as a fallback.
-//        $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-//      }
-    }
-    // @todo
-    // Include Acquia Search for Search API module version number.
-    if (\Drupal::moduleHandler()->moduleExists('search_api_acquia')) {
-//      foreach (array('search_api_acquia', 'search_api', 'search_api_solr') as $name) {
-//        $info = system_get_info('module', $name);
-//        // Send the version, or at least the core compatibility as a fallback.
-//        $params['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
-//      }
+      $body['version']  = ACQUIA_DRUPAL_VERSION;
+      $body['series']   = ACQUIA_DRUPAL_SERIES;
+      $body['branch']   = ACQUIA_DRUPAL_BRANCH;
+      $body['revision'] = ACQUIA_DRUPAL_REVISION;
     }
 
-    try{
-      $response = $this->request('POST', '/agent-api/subscription', $data);
-      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
-        return $subscription + $response['body'];
+    // Include Acquia Search for Search API module version number.
+    if (\Drupal::moduleHandler()->moduleExists('acquia_search')) {
+      foreach (array('acquia_search', 'search_api', 'search_api_solr') as $name) {
+        $info = system_get_info('module', $name);
+        // Send the version, or at least the core compatibility as a fallback.
+        $body['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
       }
     }
-    catch (RequestException $e){
+
+    try {
+      $response = $this->nspiCall('/agent-api/subscription', $body);
+      if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
+        return $subscription + $response['result']['body'];
+      }
+    }
+    catch (ConnectorException $e) {
       drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
-      \Drupal::logger('acquia connector')->error($e->getMessage() . '. Response data: @data', array('@data' => json_encode($e->getResponse()->json())));
+      if ($e->isCustomized()) {
+        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => $e->getAllCustomMessages()));
+      }
+      else {
+        \Drupal::logger('acquia connector')->error($e->getMessage());
+      }
+      throw $e;
     }
 
     return FALSE;
@@ -189,38 +161,27 @@ class Client {
    */
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
-    $authenticator =  $this->buildAuthenticator($key, $body);
-    dpm('sendNspi $authenticator: '); // @todo: remove debug
-    dpm($authenticator);
-    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
-    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
-    $ssl = \Drupal::request()->isSecure();
-    $data = array(
-      'body' => $body,
-      'authenticator' => $authenticator,
-      'ip' => $ip,
-      'host' => $host,
-      'ssl' => $ssl,
-    );
-    dpm('sendNspi $data: '); // @todo: remove debug
-    dpm($data);
+    dpm('sendNspi $body: ');  // @todo: remove debug
+    dpm($body);               // @todo: remove debug
 
     try{
-      $response = $this->request('POST', '/spi-api/site', $data);
-      if (!empty($response['authenticator']) && $this->validateResponse($key, $response, $authenticator)) {
-        return $response;
+      $response = $this->nspiCall('/spi-api/site', $body);
+      if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
+        return $response['result'];
       }
     }
-    catch (\Exception $e){}
+    catch (ConnectorException $e) {
+      \Drupal::logger('acquia connector')->error('Error: ' . $e->getCustomMessage());
+    }
     return FALSE;
   }
 
   public function getDefinition($apiEndpoint) {
-    try{
-      $response = $this->request('GET', $apiEndpoint, array());
-      return $response;
+    try {
+      return $this->request('GET', $apiEndpoint, array());
     }
-    catch (\Exception $e){
+    catch (ConnectorException $e) {
+      \Drupal::logger('acquia connector')->error($e->getCustomMessage());
     }
     return FALSE;
   }
@@ -249,7 +210,7 @@ class Client {
    * @param string $path
    * @param array $data
    * @return array|false
-   * @throws RequestException
+   * @throws ConnectorException
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
@@ -258,20 +219,28 @@ class Client {
       'json' => json_encode($data),
     );
 
-    switch ($method) {
-      case 'GET':
-        try {
+    try {
+      switch ($method) {
+        case 'GET':
           return $this->client->get($uri, $options)->json();
-        }
-        catch (RequestException $e) { throw $e; }
-        break;
+          break;
 
-      case 'POST':
-        try {
+        case 'POST':
           return $this->client->post($uri, $options)->json();
+          break;
+      }
+    }
+    catch (\Exception $e) {
+      $custom_error_message = [];
+      // Provide custom error from the server.
+      try {
+        $error_response = $e->getResponse();
+        if ($error_response) {
+          $custom_error_message = $error_response->json();
         }
-        catch (RequestException $e) { throw $e; }
-        break;
+      }
+      catch (\Exception $parseException) {}
+      throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
     }
 
     return FALSE;
@@ -342,14 +311,21 @@ class Client {
 
   /**
    * Prepare and send a REST request to Acquia Network with an authenticator.
+   *
+   * @param string $method
+   * @param array $params
+   * @param string $key or NULL
+   * @return array or throw Exception
    * D7: acquia_agent_call().
    */
-  public function acquia_agent_call($method, $params, $key = NULL) {
+  public function nspiCall($method, $params, $key = NULL) {
+    dpm('Method called: ' . $method); // @todo: remove debug
     if (empty($key)) {
       $config = \Drupal::config('acquia_connector.settings');
       $key = $config->get('key');
     }
     $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
+    // @todo: Remove $_SERVER
     $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
     $ssl = \Drupal::request()->isSecure();
