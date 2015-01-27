@@ -29,7 +29,7 @@ datasource_configs:
 tracker: default
 tracker_config: {  }
 server: acquia_search_server
-status: true
+status: false
 langcode: en
 dependencies:
   config:

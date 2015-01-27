@@ -1,14 +1,14 @@
 id: acquia_search_server
 name: 'Acquia Search API Solr server'
 description: ''
-status: true
+status: false
 backend: search_api_solr_acquia
 backend_config:
   clean_ids: true
   site_hash: true
   scheme: http
-  host: localhost
-  port: 8983
+  host: search.acquia.com
+  port: 80
   path: /solr
   http:
     http_user: ''

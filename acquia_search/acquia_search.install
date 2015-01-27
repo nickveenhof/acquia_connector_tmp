@@ -77,7 +77,8 @@ function acquia_search_install() {
   // implemented in this module to set up the environment.
   _acquia_search_set_version();
 //  module_load_include('module', 'acquia_search');
-  acquia_search_acquia_subscription_status($subscription->update());
+  $subscription->update();
+//  acquia_search_acquia_subscription_status($subscription->update());
 }
 
 /**
