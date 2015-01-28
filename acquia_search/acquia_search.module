@@ -7,6 +7,7 @@
 
 use Drupal\search_api\Entity\Server;
 use Drupal\search_api\Entity\Index;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * Implementation of hook_acquia_subscription_status().
@@ -74,4 +75,23 @@ function acquia_search_get_search_host($subscription = array()) {
     }
   }
   return $search_host;
+}
+
+/**
+ * Implements hook_entity_operation_alter().
+ * Don't allow delete default server and index.
+ * @param array $operations
+ * @param \EntityInterface $entity
+ */
+function acquia_search_entity_operation_alter(array &$operations, EntityInterface $entity) {
+  if (empty($operations['delete'])) {
+    return;
+  }
+  $do_not_delete = [
+    'acquia_search_server',
+    'acquia_search_index',
+  ];
+  if (array_search($entity->id(), $do_not_delete) !== FALSE) {
+    unset($operations['delete']);
+  }
 }
