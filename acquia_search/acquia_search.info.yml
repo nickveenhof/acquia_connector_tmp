@@ -8,3 +8,4 @@ version: VERSION
 dependencies:
  - acquia_connector
  - search_api_solr
+ - views

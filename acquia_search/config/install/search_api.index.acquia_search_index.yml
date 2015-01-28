@@ -3,7 +3,7 @@ name: 'Acquia Search Solr Index'
 description: ''
 read_only: false
 options:
-  index_directly: true
+  index_directly: false
   cron_limit: 50
   processors:
     language:
