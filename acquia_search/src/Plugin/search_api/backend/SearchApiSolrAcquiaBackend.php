@@ -29,6 +29,12 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
    * {@inheritdoc}
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, FormBuilderInterface $form_builder, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings) {
+    if ($configuration['scheme'] == 'https') {
+      $configuration['port'] = 443;
+    }
+    else {
+      $configuration['port'] = 80;
+    }
     $configuration['host'] = acquia_search_get_search_host();
     $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('identifier');
     return parent::__construct($configuration, $plugin_id, $plugin_definition, $form_builder, $module_handler, $search_api_solr_settings);
@@ -172,7 +178,6 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
     $form['host']['#disabled'] = TRUE;
     $form['port']['#disabled'] = TRUE;
     $form['path']['#disabled'] = TRUE;
-    $form['advanced']['solr_version']['#disabled'] = TRUE;
 
     return $form;
   }
