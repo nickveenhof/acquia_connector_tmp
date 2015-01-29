@@ -43,7 +43,7 @@ function acquia_search_acquia_subscription_status($subscription = FALSE) {
           $server->set('status', FALSE);
           $server->save();
           $index = Index::load('acquia_search_index');
-          $index->set('status', TRUE);
+          $index->set('status', FALSE);
           $index->save();
           break;
       }
