@@ -2,17 +2,16 @@
 
 /**
  * @file
- * Contains \Drupal\acquia_search\Tests\AcquiaSearchTest
+ * Contains \Drupal\acquia_search\Tests\Unit\AcquiaSearchTest.
  */
 
-namespace Drupal\acquia_search\Tests;
+namespace Drupal\Tests\acquia_search\Unit;
 
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests settings configuration of individual aggregator plugins.
- *
+ * @coversDefaultClass \Drupal\acquia_search\EventSubscriber\SearchSubscriber
  * @group acquia_search
  */
 class AcquiaSearchTest extends UnitTestCase {
@@ -22,7 +21,7 @@ class AcquiaSearchTest extends UnitTestCase {
    */
   protected function setUp() {
     // Include Solarium autoloader.
-    require_once __DIR__ . '../../../../../search_api_solr/vendor/autoload.php';
+    require_once __DIR__ . '../../../../../../search_api_solr/vendor/autoload.php';
   }
 
   /**
