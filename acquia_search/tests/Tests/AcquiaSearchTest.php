@@ -40,11 +40,11 @@ class AcquiaSearchTest extends UnitTestCase {
     $searchSubscriber = $this->getMockBuilder('Drupal\acquia_search\EventSubscriber\SearchSubscriber')
       ->setMethods(['getDerivedKey'])
       ->getMock();
-    $derivered_key = $searchSubscriber->createDerivedKey('1', '2', '3');
+    $derived_key = $searchSubscriber->createDerivedKey('1', '2', '3');
     $searchSubscriber->expects($this->any())
       ->method('getDerivedKey')
-      ->willReturn($derivered_key);
-    $this->assertEquals('acquia_solr_time=' . REQUEST_TIME . '; acquia_solr_nonce=2; acquia_solr_hmac=' . hash_hmac('sha1', REQUEST_TIME . '2' . '1', $derivered_key) . ';',
+      ->willReturn($derived_key);
+    $this->assertEquals('acquia_solr_time=' . REQUEST_TIME . '; acquia_solr_nonce=2; acquia_solr_hmac=' . hash_hmac('sha1', REQUEST_TIME . '2' . '1', $derived_key) . ';',
       $searchSubscriber->calculateAuthCookie('1', '2'));
   }
 }
