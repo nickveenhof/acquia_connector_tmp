@@ -6,7 +6,8 @@ subscription_name: ''
 use_cron: true
 debug: false
 cron_interval: 30
-migrate_files: true
+migrate:
+  files: true
 hide_signup_messages: false
 ah:
   network:

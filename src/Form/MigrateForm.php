@@ -104,7 +104,7 @@ class MigrateForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => $this->t('Migrate files directory'),
       '#description' => $this->t('Include files directory and all files in migration. If you are experiencing migration errors it is recommended you do not send the files directory.'),
-      '#default_value' => $config->get('migrate_files'),
+      '#default_value' => $config->get('migrate.files'),
     );
     $form['reduce_db_size'] = array(
       '#type' => 'checkbox',

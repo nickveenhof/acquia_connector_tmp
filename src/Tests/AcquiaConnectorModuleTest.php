@@ -230,7 +230,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $this->assertFalse($check_subscription, 'Subscription is false after failed attempt to connect.');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 1, 'Still have made only 1 HTTP request');
     // Test default from acquia_agent_settings().
-    $stored = \Drupal::configFactory()->getEditable('acquia_connector.settings');
+    $stored = \Drupal::config('acquia_connector.settings');
     $current_subscription = $stored->get('subscription_data');
     // Not identical since acquia_agent_has_credentials() causes stored to be
     // deleted.
