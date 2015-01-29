@@ -9,6 +9,7 @@ namespace Drupal\Tests\acquia_search\Unit;
 
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 use Drupal\Tests\UnitTestCase;
+use Drupal\Core\State;
 
 /**
  * @coversDefaultClass \Drupal\acquia_search\EventSubscriber\SearchSubscriber
@@ -34,8 +35,14 @@ class AcquiaSearchTest extends UnitTestCase {
     $this->salt = $this->randomMachineName(32);
 
     // Include Solarium autoloader.
-    require_once '/Users/mixnovichstanislav/Sites/devdesktop/drupal8/modules/contrib/search_api_solr/vendor/autoload.php'; //@todo
-    //require_once __DIR__ . '../../../../../search_api_solr/vendor/autoload.php'; //@todo
+    $dirs = drupal_phpunit_contrib_extension_directory_roots();
+    $extensions = [];
+    foreach ($dirs as $path) {
+      $extensions += drupal_phpunit_find_extension_directories($path);
+    }
+    require_once $extensions['search_api_solr'] . '/vendor/autoload.php';
+    unset($extensions);
+
     $this->searchSubscriber = new SearchSubscriber();
     $this->derivedKey = $this->searchSubscriber->createDerivedKey($this->salt, $this->id, $this->key);
   }
