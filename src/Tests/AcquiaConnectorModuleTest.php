@@ -52,6 +52,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
    */
   public function setUp() {
     parent::setUp();
+    GLOBAL $base_url;
     // Create and log in our privileged user.
     $this->privileged_user = $this->drupalCreateUser(array(
       'administer site configuration',
@@ -72,14 +73,8 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $this->settings_path = 'admin/config/system/acquia-connector';
     $this->migrate_path = 'admin/config/system/acquia-agent/migrate';
 
-    //nspi.dev
-    /*\Drupal::config('acquia_connector.settings')->set('spi.server', 'http://nspi.acquia.dev')->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
-    \Drupal::config('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();*/
-
     //local
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('network_address', 'http://drupal8.local:8083/')->save();
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', 'http://drupal8.local:8083/')->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', $base_url)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
   }
