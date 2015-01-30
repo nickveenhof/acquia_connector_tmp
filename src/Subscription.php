@@ -98,9 +98,8 @@ class Subscription {
 
       // Make sure we have data at least once per day.
       if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
-        //'no_heartbeat' => 1
         try {
-          $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), array());
+          $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), ['no_heartbeat' => 1]);
         }
         catch (ConnectorException $e) {}
       }
