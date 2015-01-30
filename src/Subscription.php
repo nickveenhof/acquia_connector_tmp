@@ -46,7 +46,7 @@ class Subscription {
 
     if (!$this->hasCredentials()) {
       // If there is not an identifier or key, delete any old subscription data.
-      $config->clear('subscription_data')->save();
+      $config->clear('subscription_data')->set('subscription_data', ['active' => FALSE])->save();
     }
     else {
       // Get our subscription data
