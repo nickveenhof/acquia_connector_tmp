@@ -1279,11 +1279,11 @@ class SpiController extends ControllerBase {
           $changed_bool = TRUE;
         }
       }
-      if ($changed_bool) {
-        $this->config('acquia_connector.settings')->set('spi.def_waived_vars', $waived_spi_def_vars);
-      }
 
       $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
+      if ($changed_bool) {
+        $config->set('spi.def_waived_vars', $waived_spi_def_vars);
+      }
       // Finally, save SPI definition data.
       if ($new_optional_vars > 0) {
         $config->set('spi.new_optional_data', 1);

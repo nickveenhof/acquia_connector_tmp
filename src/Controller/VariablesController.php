@@ -124,7 +124,6 @@ class VariablesController extends ControllerBase {
       if (!empty($this->mapping[$name])) {
         // state
         if ($this->mapping[$name][0] == 'state' and !empty($this->mapping[$name][1])) {
-          dpm('YES! (state):' . $name . ' = ' . print_r(\Drupal::state()->get($this->mapping[$name][1]), 1)); // @todo: remove dpm
           $data[$name] = \Drupal::state()->get($this->mapping[$name][1]);
         }
         elseif($this->mapping[$name][0] == 'callback') {
@@ -138,14 +137,13 @@ class VariablesController extends ControllerBase {
             $data[$name] = $value;
           }
           else {
-            dpm('YES! (variable - not set):' . $name . ' = 0' ); // @todo: remove dpm
             $data[$name] = 0;
           }
         }
       }
       else {
-        // @todo: log errors
-        dpm('Variable is not implemented: ' . $name);
+        // @todo: Implement D8 way to update variables mapping.
+        $data[$name] = 'Variable not implemented.';
       }
     }
 

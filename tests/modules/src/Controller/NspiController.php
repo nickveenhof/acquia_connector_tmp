@@ -14,7 +14,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\acquia_connector\Client;
 
-
+/**
+ * Class NspiController
+ * @package Drupal\acquia_connector_test\Controller
+ */
 class NspiController extends ControllerBase {
 
   protected $data = array();
@@ -42,7 +45,6 @@ class NspiController extends ControllerBase {
   const ACQTEST_EXPIRED_KEY = 'TEST_AcquiaConnectorTestKeyExp';
   const ACQTEST_503_ID = 'TEST_AcquiaConnectorTestID503';
   const ACQTEST_503_KEY = 'TEST_AcquiaConnectorTestKey503';
-
 
   public function nspiUpdate(Request $request) {
     $data_decode = json_decode($request->getContent(), TRUE);//todo
@@ -101,7 +103,6 @@ class NspiController extends ControllerBase {
     return new JsonResponse($data);
   }
 
-
   /**
    * @param Request $request
    * @return array|bool|\stdClass
@@ -130,7 +131,6 @@ class NspiController extends ControllerBase {
       return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
     else {
-      $result = array();
       $result = array(
         'algorithm' => 'sha512',
         'hash_setting' => substr($account->getPassword(), 0, 12),
@@ -278,7 +278,6 @@ class NspiController extends ControllerBase {
 
     if ($key === self::ACQTEST_EXPIRED_KEY) {
       return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_EXPIRED, t('Subscription expired.'));
-
     }
 
     // Record connections.
@@ -376,14 +375,12 @@ class NspiController extends ControllerBase {
     return new JsonResponse(array('TRUE'));
   }
 
-
   /**
    * @return bool
    */
   public function access() {
     return AccessResultAllowed::allowed();
   }
-
 
   /**
    * Format the error response.
@@ -405,7 +402,7 @@ class NspiController extends ControllerBase {
  * Class testClient
  * @package Drupal\acquia_connector_test\Controller
  */
-class testClient extends Client{
+class testClient extends Client {
 
   public function __construct() {}
 
@@ -420,4 +417,3 @@ class testClient extends Client{
     return parent::hash($key, $time, $nonce, $params);
   }
 }
-
