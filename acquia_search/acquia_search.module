@@ -9,6 +9,7 @@ use Drupal\search_api\Entity\Server;
 use Drupal\search_api\Entity\Index;
 use Drupal\views\Entity\View;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\acquia_connector\Subscription;
 
 /**
  * Implementation of hook_acquia_subscription_status().
@@ -36,8 +37,8 @@ function acquia_search_acquia_subscription_status($subscription = FALSE) {
   else {
     if (is_int($subscription)) {
       switch ($subscription) {
-        case SUBSCRIPTION_NOT_FOUND:
-        case SUBSCRIPTION_EXPIRED:
+        case Subscription::NOT_FOUND:
+        case Subscription::EXPIRED:
           // Disable search
           $server = Server::load('acquia_search_server');
           $server->set('status', FALSE);

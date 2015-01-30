@@ -132,7 +132,13 @@ class Client {
     try {
       $response = $this->nspiCall('/agent-api/subscription', $body);
       if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
-        return $subscription + $response['result']['body'];
+        $subscription += $response['result']['body'];
+        // Subscription activated.
+        if (is_numeric($this->config->get('subscription_data')) && is_array($response['result']['body'])) {
+          \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
+          \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('subscription_data', $subscription)->save();
+        }
+        return $subscription;
       }
     }
     catch (ConnectorException $e) {

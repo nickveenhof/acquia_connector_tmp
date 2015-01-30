@@ -59,18 +59,18 @@ class Subscription {
           case static::EXPIRED:
             // Fall through since these values are stored and used by
             // acquia_search_acquia_subscription_status()
-            break;
+            $subscription = $e->getCustomMessage('code');
+          break;
           default:
             // Likely server error (503) or connection timeout (-110) so leave
             // current subscription in place. _acquia_agent_request() logged an
             // error message.
-            $subscription = $current_subscription;
+            return $current_subscription;
         }
       }
       if ($subscription) {
-        $config->set('subscription_data', $subscription)->save();
-        // @todo hook signature has changed, doesn't pass $active variable anymore.
         \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
+        $config->set('subscription_data', $subscription)->save();
       }
     }
 

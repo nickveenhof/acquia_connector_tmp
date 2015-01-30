@@ -109,6 +109,12 @@ class CredentialForm extends ConfigFormBase {
     catch (ConnectorException $e) {
       // Set form error to prevent switching to the next page.
       if ($e->isCustomized()) {
+        // @todo - review.
+        // Allow to connect with expired subscription
+        if ($e->getCustomMessage('code') == Subscription::EXPIRED) {
+          $form_state->setValue('subscription', 'Expired subscription.');
+          return;
+        }
         acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $form_state->setErrorByName('');
       }
