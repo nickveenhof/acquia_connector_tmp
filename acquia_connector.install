@@ -35,7 +35,6 @@ function acquia_connector_requirements($phase) {
   switch ($phase) {
     case 'runtime':
       acquia_connector_load_versions();
-      //SEND DATA TO NSPI
       $config = \Drupal::config('acquia_connector.settings');
       $use_cron = $config->get('use_cron'); //variable_get('acquia_spi_use_cron', 1);
       $last_sent = $config->get('cron_last', 0); //variable_get('acquia_spi_cron_last', 0);
@@ -151,28 +150,4 @@ function acquia_connector_requirements($phase) {
   }
 
   return $requirements;
-}
-
-/**
- * Implements hook_install().
- */
-// @todo Is it possible scenario for Drupal 8?
-function acquia_connector_install() {
-  $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
-  $credentials = new Subscription();
-  // Auto-connect with Acquia Cloud credentials if there's not currently a
-  // connection or credentials set.
-  if (!$credentials->hasCredentials() && !$config->get('subscription_data')
-    && $config->get('ah.network_key') && $config->get('ah.network_identifier')) {
-
-    // @todo Use settings for AH stuff instead?
-    $config->set('identifier', $config->get('ah.network_identifier'))
-      ->set('key', $config->get('ah.network_key'))
-      ->save();
-
-    if ($credentials->update()) {
-      $text = t('Your site has been automatically connected to the Acquia Network. <a href="@url">Change subscription</a>', array('@url' => url('admin/config/system/acquia-agent/setup')));
-      drupal_set_message($text, 'status', FALSE);
-    }
-  }
 }
