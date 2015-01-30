@@ -12,32 +12,26 @@ use Drupal\acquia_connector\Controller\SpiController;
 use Drupal\acquia_connector\Controller\VariablesController;
 use Drupal\Component\Serialization\Json;
 
-use Drupal\acquia_connector\Client;
-
-use Drupal\Component\Utility\Crypt;
-use Drupal\Core\Config\ConfigFactoryInterface;
-use GuzzleHttp\ClientInterface;
-
 /**
  * Tests the functionality of the Acquia SPI module.
  */
-class AcquiaConnectorSpiTest extends WebTestBase{
+class AcquiaConnectorSpiTest extends WebTestBase {
   protected $strictConfigSchema = FALSE;
   protected $privileged_user;
   protected $setup_path;
   protected $credentials_path;
   protected $settings_path;
   protected $status_report_url;
-  protected $acqtest_email = 'TEST_networkuser@example.com';
-  protected $acqtest_pass = 'TEST_password';
-  protected $acqtest_id =  'TEST_AcquiaConnectorTestID';
-  protected $acqtest_key = 'TEST_AcquiaConnectorTestKey';
-  protected $acqtest_expired_id = 'TEST_AcquiaConnectorTestIDExp';
-  protected $acqtest_expired_key = 'TEST_AcquiaConnectorTestKeyExp';
-  protected $acqtest_503_id = 'TEST_AcquiaConnectorTestID503';
-  protected $acqtest_503_key = 'TEST_AcquiaConnectorTestKey503';
-  protected $acqtest_error_id = 'TEST_AcquiaConnectorTestIDErr';
-  protected $acqtest_error_key = 'TEST_AcquiaConnectorTestKeyErr';
+  protected $acqtest_email        = 'TEST_networkuser@example.com';
+  protected $acqtest_pass         = 'TEST_password';
+  protected $acqtest_id           = 'TEST_AcquiaConnectorTestID';
+  protected $acqtest_key          = 'TEST_AcquiaConnectorTestKey';
+  protected $acqtest_expired_id   = 'TEST_AcquiaConnectorTestIDExp';
+  protected $acqtest_expired_key  = 'TEST_AcquiaConnectorTestKeyExp';
+  protected $acqtest_503_id       = 'TEST_AcquiaConnectorTestID503';
+  protected $acqtest_503_key      = 'TEST_AcquiaConnectorTestKey503';
+  protected $acqtest_error_id     = 'TEST_AcquiaConnectorTestIDErr';
+  protected $acqtest_error_key    = 'TEST_AcquiaConnectorTestKeyErr';
   protected $platformKeys = array('php', 'webserver_type', 'webserver_version', 'apache_modules', 'php_extensions', 'php_quantum', 'database_type', 'database_version', 'system_type', 'system_version', 'mysql');
   protected $spiDataKeys = array(
     'spi_data_version',
@@ -237,7 +231,7 @@ class AcquiaConnectorSpiTest extends WebTestBase{
 
     // Check that result is an array.
     $spi = new spiControllerTest();
-    $spi_data =  $spi->get();
+    $spi_data = $spi->get();
     unset($spi_data['spi_def_update']);
     $result = $client->sendNspi($this->acqtest_id, $this->acqtest_key, $spi_data);
     $this->assertTrue(is_array($result), 'SPI update result is an array');
@@ -259,7 +253,7 @@ class AcquiaConnectorSpiTest extends WebTestBase{
    *
    */
   public function testAcquiaSPIUpdateResponse() {
-    $def_timestamp  = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
+    $def_timestamp = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
     $this->assertEqual($def_timestamp, 0, 'SPI definition has not been called before');
     $def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');
     $this->assertTrue(empty($def_vars), 'SPI definition variables is empty');
@@ -273,7 +267,7 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $this->assertText($this->acquiaSPIStrings('spi-data-sent'), 'SPI data was sent');
     $this->assertNoText($this->acquiaSPIStrings('spi-not-sent'), 'SPI does not say "data has not been sent"');
 
-    $def_timestamp  = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
+    $def_timestamp = \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp');
     $this->assertNotEqual($def_timestamp, 0, 'SPI definition timestamp set');
     $def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');
     $this->assertTrue(!empty($def_vars), 'SPI definition variable set');
@@ -293,7 +287,7 @@ class AcquiaConnectorSpiTest extends WebTestBase{
     $this->connectSite();
 
     $spi = new spiControllerTest();
-    $response =  $spi->sendFullSpi();
+    $response = $spi->sendFullSpi();
     $this->assertTrue(!isset($response['body']['nspi_messages']), 'No NSPI messages when send_method not set');
 
     $method = $this->randomString();
@@ -375,10 +369,10 @@ class AcquiaConnectorSpiTest extends WebTestBase{
  * Class spiControllerTest
  * @package Drupal\acquia_connector\Tests
  */
-class spiControllerTest extends SpiController{
+class spiControllerTest extends SpiController {
   protected $client;
 
-  public function __construct(){
+  public function __construct() {
     $client = \Drupal::service('acquia_connector.client');
     $this->client = $client;
   }
@@ -415,7 +409,7 @@ class spiControllerTest extends SpiController{
    * @return array Stored data or false if no data is retrievable from storage.
    * D7: acquia_spi_data_store_get
    */
-  public  function dataStoreGet($keys) {
+  public function dataStoreGet($keys) {
     return parent::dataStoreGet($keys);
   }
 
@@ -435,7 +429,7 @@ class spiControllerTest extends SpiController{
  * Class VariablesControllerTest
  * @package Drupal\acquia_connector\Tests
  */
-class  VariablesControllerTest extends VariablesController{
+class VariablesControllerTest extends VariablesController {
   /**
    * @param array $set_variables
    * @return NULL|void
