@@ -119,7 +119,6 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     }
   }
 
-
   public function testAcquiaConnectorGetConnected() {
     // Check for call to get connected.
     $this->drupalGet('admin');
@@ -258,9 +257,9 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $stored = \Drupal::config('acquia_connector.settings');
     $current_subscription = $stored->get('subscription_data');
     $this->assertIdentical($check_subscription, $current_subscription, 'Stored expected subscription data.');
+    $this->drupalGet('admin'); //@todo
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, '1 additional HTTP request made via acquia_agent_check_subscription().');
     $this->drupalGet('/');
-    $this->drupalGet('admin');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, 'No extra requests made during visits to other pages.');
 
     // Reset HTTP request counter;
@@ -342,7 +341,7 @@ class AcquiaConnectorModuleTest extends WebTestBase{
     $submit_button = 'Migrate';
     $this->drupalPostForm($this->migrate_path, $edit_fields, $submit_button);
     $this->drupalGet($this->migrate_path);
-    $this->assertNoFieldChecked('migrate_files', "The migrate files checkbox is not checked.");
+    $this->assertNoFieldChecked('edit-migrate-files', "The migrate files checkbox is not checked.");
   }
 
 
