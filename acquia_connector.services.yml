@@ -10,3 +10,7 @@ services:
   acquia_connector.spi:
     class: Drupal\acquia_connector\Controller\SpiController
     arguments: ['@acquia_connector.client']
+  logger.acquia_connector:
+    class: Drupal\acquia_connector\CronService
+    tags:
+      - { name: logger }

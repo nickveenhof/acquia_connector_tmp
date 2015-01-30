@@ -15,21 +15,6 @@ function acquia_agent_menu_alter(&$items) {
 }
 
 /**
- * Implementation of hook_watchdog().
- */
-function acquia_agent_watchdog($log_entry) {
-  // Make sure that even when cron failures prevent hook_cron() from being
-  // called, we still send out a heartbeat.
-  $cron_failure_messages = array(
-    'Cron has been running for more than an hour and is most likely stuck.',
-    'Attempting to re-run cron while it is already running.',
-  );
-  if (in_array($log_entry['message'], $cron_failure_messages, TRUE)) {
-    acquia_agent_check_subscription();
-  }
-}
-
-/**
  * @defgroup acquia_admin_menu Alter or add to the administration menu.
  * @{
  * The admin_menu module is enabled by default - we alter it to add our icon and
