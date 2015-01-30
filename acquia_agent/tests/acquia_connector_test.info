@@ -1,6 +1,0 @@
-name = "Acquia Connector Test"
-description = "Support module for Acquia Network Connector tests."
-package = Testing
-core = 7.x
-
-hidden = TRUE
