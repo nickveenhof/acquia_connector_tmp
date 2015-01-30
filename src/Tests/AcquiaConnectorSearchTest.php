@@ -22,6 +22,9 @@ class AcquiaConnectorSearchTest extends WebTestBase {
   protected $salt;
   protected $derivedKey;
   protected $url;
+  protected $server;
+  protected $index;
+  protected $settings_path;
 
   protected $acquia_search_environment_id = 'acquia_search';
 
@@ -55,6 +58,9 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $this->id = $this->randomString(10);
     $this->key = $this->randomString(32);
     $this->salt = $this->randomString(32);
+    $this->server = 'acquia_search_server';
+    $this->index = 'acquia_search_index';
+    $this->settings_path = 'admin/config/search/search-api';
 
     //connect
     $this->connect();
@@ -83,9 +89,14 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $admin_user = $this->createAdminUser();
     $this->drupalLogin($admin_user);
 
-    $edit_fields = array(
+   /* $edit_fields = array(
       'acquia_identifier' => 'ACDW-66194',
       'acquia_key' => 'fbfc879b06195a0957f1cdf527a69463',
+    );*/
+
+    $edit_fields = array(
+      'acquia_identifier' => $this->randomString(8),
+      'acquia_key' => $this->randomString(8),
     );
     $submit_button = 'Connect';
     $this->drupalPostForm('admin/config/system/acquia-connector/credentials', $edit_fields, $submit_button);
@@ -154,11 +165,11 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    */
   public function testEnvironment() {
     // Connect site on key and id.
-    $this->drupalGet('admin/config/search/search-api');
-    $environment =  Server::load('acquia_search_server');
+   // $this->drupalGet('admin/config/search/search-api');
+   // $environment =  Server::load('acquia_search_server');
     // Test all the things!
     // Check if the environment is a valid variable
-    $this->assertTrue($environment, t('Acquia Search environment saved.'), 'Acquia Search');
+ //   $this->assertTrue($environment, t('Acquia Search environment saved.'), 'Acquia Search');
     // Check if the url is the same as the one we wanted to save.
     //$this->assertEqual($this->url, $environment['url'], t('Acquia Search is connected to the expected URL.'), 'Acquia Search'); //@todo
   }
@@ -167,27 +178,47 @@ class AcquiaConnectorSearchTest extends WebTestBase {
 
   /**
    * Tests that the Acquia Search environment shows up in the interface and that
-   * administrators cannot delete it.
-   *
-   * Tests executed:
-   * - Acquia Search environment is present in the UI.
-   * - Acquia Search is reflected as the default environment in the UI.
-   * - Admin user receives 403 when attempting to delete the environment.
    */
   public function testEnvironmentUI() {
+    $this->drupalGet($this->settings_path);
+    //Check the Acquia Search Server is displayed
+    $this->assertLinkByHref('/admin/config/search/search-api/server/' . $this->server, 0, t('The Acquia Search Server is displayed in the UI.'));
+    //Check the Acquia Search Index is displayed
+    $this->assertLinkByHref('/admin/config/search/search-api/index/' . $this->index, 0, t('The Acquia Search Index is displayed in the UI.'));
+  }
+
+  /**
+   *
+   *
+   */
+  public function testServerUI() {
     $settings_path = 'admin/config/search/search-api';
     $this->drupalGet($settings_path);
-    $this->assertText('Acquia Search', t('The Acquia Search environment is displayed in the UI.'), 'Acquia Search');
+    $this->clickLink('Edit', 0);
 
-    //@todo
-    $path = 'admin/config/search/search-api/' . $this->acquia_search_environment_id . '/edit';
-    $options = array('query' => array('destination' => $settings_path));
-    $url = Url::fromUri('base://' . $path, $options);
-    $link = \Drupal::l(t('Acquia Search'), $url);
-    $raw = t('!environment <em>(Default)</em>', array('!environment' => $link));
-    $this->assertRaw($raw, t('The Acquia Search environment is reflected as the default in the UI.'), 'Acquia Search');
+    //Server is enabled
+    $this->assertNoFieldChecked('edit-status', t('Acquia Search Server enabled.'), 'Acquia Search');
 
-    $this->drupalGet('admin/config/search/search-api/' . $this->acquia_search_environment_id . '/delete');
-    $this->assertResponse(403, t('The Acquia Search environment cannot be deleted via the UI.'));
+    //check backend
+    $this->assertText('Backend', 'The Backend checkbox label exists');
+    $this->assertFieldChecked('edit-backend-search-api-solr-acquia', t('Is used as a backend  Acquia Solr'), 'Acquia Search');
+
+    //check field Solr server URI
+    $this->assertText('Solr server URI', 'The Solr server URI label exist');
+
+    //check http-protocol
+    $this->assertText('HTTP protocol', 'HTTP protocol');
+    $this->assertOptionSelected('edit-backend-config-scheme', 'http', t('By default selected HTTP protocol'), 'Acquia Search');
+    $this->assertText('Solr host', 'Solr host');
+    $this->assertText('Solr port',  t('The Solr port label exist'), 'Acquia Search');
+    $this->assertText('Solr path', t('The Solr path label exist'), 'Acquia Search');
+    $this->assertText('Basic HTTP authentication', t('The basic HTTP authentication label exist'), 'Acquia Search');
+
+    $this->assertText('Solr version override', t('The selectbox "Solr version label" exist'), 'Acquia Search');
+    $this->assertOptionSelected('edit-backend-config-advanced-solr-version', '4', t('By default selected Solr version 4.x'), 'Acquia Search');
+
+    $this->assertText('HTTP method', t('The HTTP method label exist'));
+    $this->assertOptionSelected('edit-backend-config-advanced-http-method', 'AUTO', t('By default selected AUTO HTTP method'), 'Acquia Search');
+
   }
 }
