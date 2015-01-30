@@ -92,7 +92,7 @@ class Subscription {
   public function isActive() {
     $active = FALSE;
     // Subscription cannot be active if we have no credentials.
-    if($this->hasCredentials()){
+    if($this->hasCredentials()) {
       $config = \Drupal::config('acquia_connector.settings');
       $subscription = $config->get('subscription_data');
 

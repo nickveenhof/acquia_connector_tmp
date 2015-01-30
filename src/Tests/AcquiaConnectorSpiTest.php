@@ -64,7 +64,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'toolbar', 'devel', 'acquia_connector_test', 'node'); //@todo devel node(function getQuantum() 1101 line)
+  public static $modules = array('acquia_connector', 'toolbar', 'devel', 'acquia_connector_test', 'node'); //@todo rmove devel
 
   /**
    * {@inheritdoc}

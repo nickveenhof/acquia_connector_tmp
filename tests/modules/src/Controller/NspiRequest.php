@@ -1,4 +1,5 @@
 <?php
+
 namespace Drupal\acquia_connector_test\Controller;
 
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
@@ -6,18 +7,15 @@ use Symfony\Component\HttpKernel\Event;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-
 class NspiRequest implements EventSubscriberInterface {
-
-  public function __construct() {}
 
   /**
    * @param GetResponseEvent $event
    */
   public function onKernelRequest(GetResponseEvent $event) {
-    $route =  \Drupal::Request()->attributes->get('_route');
+    $route = $event->getRequest()->attributes->get('_route');
     $patch = explode(".", $route);
-    if((isset($patch['0']) && $patch['0'] == 'acquia_connector_test')){
+    if((isset($patch['0']) && $patch['0'] == 'acquia_connector_test')) {
       $requests =  \Drupal::state()->get('acquia_connector_test_request_count', 0);
       $requests++;
       \Drupal::state()->set('acquia_connector_test_request_count', $requests);
@@ -33,4 +31,3 @@ class NspiRequest implements EventSubscriberInterface {
   }
 
 }
-

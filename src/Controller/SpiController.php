@@ -834,7 +834,7 @@ class SpiController extends ControllerBase {
     $store = array();
     foreach ($keys as $key) {
       if ($cache = \Drupal::cache()->get('acquia.spi.' . $key)) {
-        if(!empty($cache->data)){
+        if (!empty($cache->data)) {
           $store[$key] = $cache->data;
         }
       }

@@ -6,16 +6,13 @@
 
 namespace Drupal\acquia_connector_test\Controller;
 
-//use SebastianBergmann\Exporter\Exception;
 use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
-use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\acquia_connector\Client;
-use Drupal\Core\Url;
 
 
 class NspiController extends ControllerBase {
@@ -47,7 +44,7 @@ class NspiController extends ControllerBase {
   const ACQTEST_503_KEY = 'TEST_AcquiaConnectorTestKey503';
 
 
-  public function nspiUpdate(Request $request){
+  public function nspiUpdate(Request $request) {
     $data_decode = json_decode($request->getContent(), TRUE);//todo
     $data = json_decode($data_decode, TRUE);//todo
 
@@ -217,9 +214,8 @@ class NspiController extends ControllerBase {
   }
 
   /**
-   * @param Request $request
-   * @param $id
-   * @return JsonResponse
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function getSubscription(Request $request) {
     $data_decode = json_decode($request->getContent(), TRUE); //todo
@@ -237,7 +233,7 @@ class NspiController extends ControllerBase {
   }
 
   /**
-   * @param $data
+   * @param array $data
    * @return array
    */
   protected function validateAuthenticator($data) {
@@ -321,8 +317,8 @@ class NspiController extends ControllerBase {
   }
 
   /**
-   * @param Request $request
-   * @return JsonResponse
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function cloudMigrationEnvironments(Request $request) {
     $data_decode = json_decode($request->getContent(), TRUE); //todo
@@ -363,23 +359,20 @@ class NspiController extends ControllerBase {
     return new JsonResponse($result);
   }
 
-
   /**
-   * @param Request $request
+   * @param \Symfony\Component\HttpFoundation\Request $request
    * @param $id
-   * @return Response
-   *
+   * @return \Symfony\Component\HttpFoundation\Response
    */
   public function testMigrationUpload(Request $request, $id) {
     return new Response('', Response::HTTP_OK);
   }
 
   /**
-   * @param Request $request
-   * @return JsonResponse
-   * @return JsonResponse
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
-  public function testMigrationComplete(Request $request){
+  public function testMigrationComplete(Request $request) {
     return new JsonResponse(array('TRUE'));
   }
 
@@ -400,7 +393,6 @@ class NspiController extends ControllerBase {
    * @return array
    */
   protected function errorResponse($code, $message) {
-    //\Drupal::logger('errorResponse')->info($message);
     return array(
       'code' => $code,
       'message' => $message,
@@ -425,7 +417,6 @@ class testClient extends Client{
    * @return string
    */
   public function testHash($key, $time, $nonce, $params = array()) {
-    //\Drupal::logger('testHash')->error(print_R($params, TRUE));
     return parent::hash($key, $time, $nonce, $params);
   }
 }
