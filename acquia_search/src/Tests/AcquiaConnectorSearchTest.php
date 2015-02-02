@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Definition of Drupal\acquia_connector\Tests\AcquiaConnectorSearchTest.
+ * Definition of Drupal\acquia_search\Tests\AcquiaConnectorSearchTest.
  */
 
-namespace Drupal\acquia_connector\Tests;
+namespace Drupal\acquia_search\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_search\EventSubscriber;

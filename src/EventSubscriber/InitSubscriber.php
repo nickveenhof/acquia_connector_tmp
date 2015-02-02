@@ -115,7 +115,7 @@ class InitSubscriber implements EventSubscriberInterface {
     }
 
     // Display a message asking to connect to the Acquia Network.
-    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="@acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="@settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
+    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="@acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="@settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Connector modules.';
     if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
       $text = '<a href="@settings">Connect your site to the Acquia Network now</a>. <a href="@more">Learn more</a>.';
     }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\acquia_connector\Unit\AcquiaConnectorSearchUnitTest.
+ * Contains \Drupal\acquia_connector\Tests\Unit\AcquiaConnectorUnitTest.
  */
 
 namespace Drupal\Tests\acquia_connector\Unit;
@@ -12,7 +12,7 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\acquia_connector\Client;
 
 /**
- * @coversDefaultClass \Drupal\acquia_connector
+ * @coversDefaultClass \Drupal\acquia_connector\Client
  * @group Acquia
  */
 class AcquiaConnectorUnitTest extends UnitTestCase {
@@ -79,7 +79,6 @@ class AcquiaConnectorUnitTest extends UnitTestCase {
   }
 }
 
-
 class clientTest extends Client{
   public function __construct(){}
 
@@ -113,4 +112,3 @@ class StatusControllerTest extends StatusController{
     return parent::getIdFromSub($sub_data);
   }
 }
-
