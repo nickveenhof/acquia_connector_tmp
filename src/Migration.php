@@ -174,7 +174,7 @@ class Migration {
     }
     catch (ConnectorException $e) {
       if ($e->getCustomMessage('code')) {
-        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        acquia_connector_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $migration['error'] = TRUE;
         return;
       }

@@ -48,7 +48,7 @@ class MigrateForm extends ConfigFormBase {
     }
     catch (ConnectorException $e) {
       if ($e->isCustomized()) {
-        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        acquia_connector_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         return $this->redirect('acquia_connector.settings');;
       }
       $error = $this->t('Server error, please submit again.');

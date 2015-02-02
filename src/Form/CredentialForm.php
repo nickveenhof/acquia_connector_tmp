@@ -115,7 +115,7 @@ class CredentialForm extends ConfigFormBase {
           $form_state->setValue('subscription', 'Expired subscription.');
           return;
         }
-        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        acquia_connector_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $form_state->setErrorByName('');
       }
       else {
