@@ -286,7 +286,7 @@ class Client {
    */
   protected function hash($key, $time, $nonce, $params = array()) {
     $string = $time . ':' . $nonce;
-    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
+    return CryptConnector::acquiaHash($key, $string);
   }
 
   /**

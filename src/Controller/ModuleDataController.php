@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\acquia_connector\Subscription;
+use Drupal\acquia_connector\CryptConnector;
 use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
@@ -65,7 +66,7 @@ class ModuleDataController extends ControllerBase {
       return FALSE;
     }
     $string = $data['authenticator']['time'] . ':' . $data['authenticator']['nonce'] . ':' . $message;
-    $hash = sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
+    $hash = CryptConnector::acquiaHash($key, $string);
     if ($hash == $data['authenticator']['hash']) {
       return TRUE;
     }

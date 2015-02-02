@@ -2,7 +2,6 @@
 
 namespace Drupal\acquia_connector;
 
-//use Drupal\Core\Password;
 use Drupal\Core\Password\PhpassHashedPassword;
 
 class CryptConnector extends PhpassHashedPassword {
@@ -28,5 +27,15 @@ class CryptConnector extends PhpassHashedPassword {
     }
 
     return $crypt_pass;
+  }
+
+  /**
+   * Helper function. Calculate sha1 hash.
+   * @param $key
+   * @param $string
+   * @return string
+   */
+  static function acquiaHash($key, $string) {
+    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
 }

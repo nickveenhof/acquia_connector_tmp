@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\acquia_connector\Client;
+use Drupal\acquia_connector\CryptConnector;
 
 /**
  * Class NspiController
@@ -79,8 +80,7 @@ class NspiController extends ControllerBase {
         if (isset($spi_data['send_method'])) {
           $result['body']['nspi_messages'][] = $spi_data['send_method'];
         }
-        $client = new testClient();
-        $result['authenticator']['hash'] = $client->testHash($result['secret']['key'], $result['authenticator']['time'], $result['authenticator']['nonce'], $result['body']);
+        $result['authenticator']['hash'] = CryptConnector::acquiaHash($result['secret']['key'], $result['authenticator']['time'] . ':' . $result['authenticator']['nonce']);
         if (isset($spi_data['test_validation_error'])) {
           $result['authenticator']['nonce'] = 'TEST'; // Force a validation fail.
         }
@@ -196,8 +196,7 @@ class NspiController extends ControllerBase {
       return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
 
-    $client = new testClient();
-    $hash = $client->testHash($account->getPassword(), $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
+    $hash = CryptConnector::acquiaHash($account->getPassword(), $data['authenticator']['time'] . ':' . $data['authenticator']['nonce']);
     if ($hash === $data['authenticator']['hash']) {
       $result = array();
       $result['is_error'] = FALSE;
@@ -223,8 +222,7 @@ class NspiController extends ControllerBase {
 
     $result = $this->validateAuthenticator($data);
     if (empty($result['error'])) {
-      $client = new testClient();
-      $result['authenticator']['hash'] = $client->testHash($result['secret']['key'], $result['authenticator']['time'], $result['authenticator']['nonce'], $result['body']);
+      $result['authenticator']['hash'] = CryptConnector::acquiaHash($result['secret']['key'], $result['authenticator']['time'] . ':' . $result['authenticator']['nonce']);
       unset($result['secret']);
       return new JsonResponse($result);
     }
@@ -268,9 +266,8 @@ class NspiController extends ControllerBase {
         break;
     }
 
-    $client = new testClient();
-    $hash = $client->testHash($key, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
-    $hash_simple = $client->testHash($key, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
+    $hash = CryptConnector::acquiaHash($key, $data['authenticator']['time'] . ':' . $data['authenticator']['nonce']);
+    $hash_simple = CryptConnector::acquiaHash($key, $data['authenticator']['time'] . ':' . $data['authenticator']['nonce']);
 
     if (($hash !== $data['authenticator']['hash']) && ($hash_simple != $data['authenticator']['hash'])) {
       return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('HMAC validation error: ') . "{$hash} != {$data['authenticator']['hash']}");
@@ -395,25 +392,5 @@ class NspiController extends ControllerBase {
       'message' => $message,
       'error' => TRUE,
     );
-  }
-}
-
-/**
- * Class testClient
- * @package Drupal\acquia_connector_test\Controller
- */
-class testClient extends Client {
-
-  public function __construct() {}
-
-  /**
-   * @param $key
-   * @param $time
-   * @param $nonce
-   * @param array $params
-   * @return string
-   */
-  public function testHash($key, $time, $nonce, $params = array()) {
-    return parent::hash($key, $time, $nonce, $params);
   }
 }
