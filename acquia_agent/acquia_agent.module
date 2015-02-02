@@ -15,36 +15,5 @@ function acquia_agent_menu_alter(&$items) {
 }
 
 /**
- * @defgroup acquia_admin_menu Alter or add to the administration menu.
- * @{
- * The admin_menu module is enabled by default - we alter it to add our icon and
- * subscription information.
- */
-
-/**
- * Implementation of hook_admin_menu().
- */
- function acquia_agent_admin_menu() {
-  // Add link to show current subscription status
-  $links[] = array(
-    'title' => 'acquia_subscription_status',
-    'path' => 'http://acquia.com',
-    'weight' => -80,
-    'parent_path' => '<root>',
-    'options' => array('extra class' => 'admin-menu-action acquia-subscription-status', 'html' => TRUE),
-  );
-
-  return $links;
-}
-
-/**
- * Render an icon to display in the Administration Menu.
- */
-function acquia_agent_menu_icon() {
-  return '<img class="admin-menu-icon" src="' . base_path() . drupal_get_path('module', 'acquia_agent') . '/acquia.ico" height = "16" alt="" />';
-}
-
-
-/**
  * @} End of "acquia_admin_menu".
  */

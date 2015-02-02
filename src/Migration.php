@@ -7,7 +7,6 @@
 
 namespace Drupal\acquia_connector;
 
-use Guzzle\Http\ClientInterface;
 use GuzzleHttp\Post\PostFile;
 use Drupal\Core\Url;
 use Drupal\Core\DrupalKernel;
@@ -48,6 +47,7 @@ class Migration {
    *
    * @param array $environment
    *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
+   * @return array $migration
    */
   public function prepare($environment) {
     // Internal migration store is an array because objects cannot be stored
@@ -125,9 +125,11 @@ class Migration {
   /**
    * Test migration setup and destination.
    *
-   * @param Array of migration information.
+   * @param array
+   *  Array of migration information.
    *
-   * @return boolean Whether migration can continue.
+   * @return boolean
+   *  Whether migration can continue.
    */
   public function testSetup(&$migration) {
     $url = $migration['env']['url'];
@@ -350,7 +352,7 @@ class Migration {
     $exclude[] = basename($migration['dir']);
 
     if (!\Drupal::config('acquia_connector.settings')->get('migrate.files')) {
-      $exclude[] = drupal_realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files');
+      $exclude[] = \Drupal::service('file_system')->realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files');
     }
 
     return $exclude;

@@ -101,13 +101,12 @@ function acquia_connector_toolbar() {
 
   if ($subscription_class->isActive()) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
-    // @todo Fix CSS
     if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
       $icon = '<img src="' . base_path() . 'core/misc/icons/73b355/check.svg" alt="ok" style="vertical-align: middle;" />';
       $link['#title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
-      $link['#options']['attributes']['class'][] = "acquia-active-subscription";
+      $link['#options']['attributes']['class'][] = 'acquia-active-subscription';
       $link['#url'] = Url::fromUri($subscription['href']);
     }
   }
@@ -120,6 +119,8 @@ function acquia_connector_toolbar() {
     $link['#attributes']['class'][] = "acquia-inactive-subscription";
     $link['#url'] = Url::fromUri('https://insight.acquia.com');
   }
+  $link['#options']['attributes']['class'][] = 'trigger';
+  $link['#options']['attributes']['class'][] = 'toolbar-item';
 
   return [
     'acquia_connector' => [
