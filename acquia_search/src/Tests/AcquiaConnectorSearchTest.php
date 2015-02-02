@@ -59,6 +59,17 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $this->index = 'acquia_search_index';
     $this->settings_path = 'admin/config/search/search-api';
 
+    // Create a new content type
+    $content_type = $this->drupalCreateContentType();
+
+    // Add a node of the new content type.
+    $node_data = array(
+      'type' => $content_type->id(),
+    );
+
+    //create node
+    $this->drupalCreateNode($node_data);
+
     //connect
     $this->connect();
 
