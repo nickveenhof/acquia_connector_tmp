@@ -1229,8 +1229,6 @@ class SpiController extends ControllerBase {
     $spi_def_end_point = '/spi_def/get/' . $core_version;
 
     $response = $this->client->getDefinition($spi_def_end_point);
-    dpm('updateDefinition $response: ');
-    dpm($response);
 
     if (!$response) {
       \Drupal::logger('acquia spi')->error('Failed to obtain latest SPI data definition.');
@@ -1259,7 +1257,7 @@ class SpiController extends ControllerBase {
     // NSPI response is in expected format.
     if ((int) $response_data['timestamp'] > (int) $this->config('acquia_connector.settings')->get('spi.def_timestamp')) {
       // Compare stored variable names to incoming and report on update.
-      $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars', array());
+      $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars');
       $new_vars = $response_data['acquia_spi_variables'];
       $new_optional_vars = 0;
       foreach($new_vars as $new_var_name => $new_var) {
@@ -1271,7 +1269,7 @@ class SpiController extends ControllerBase {
         }
       }
       // Clean up waived vars that are not exposed by NSPI anymore.
-      $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars', array());
+      $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars');
       $changed_bool = FALSE;
       foreach($waived_spi_def_vars as $key => $waived_var) {
         if (!in_array($waived_var, $new_vars)) {

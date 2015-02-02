@@ -184,8 +184,6 @@ class VariablesController extends ControllerBase {
    * D7: acquia_spi_set_variables
    */
   public function setVariables($set_variables) {
-    dpm('----set variables----');
-    dpm($set_variables);
     \Drupal::logger('acquia spi')->notice('SPI set variables: @messages', array('@messages' => implode(', ', $set_variables)));
     if (empty($set_variables)) {
       return;
@@ -206,16 +204,14 @@ class VariablesController extends ControllerBase {
         if (!empty($this->mapping[$key])) {
           // state
           if ($this->mapping[$key][0] == 'state' and !empty($this->mapping[$key][1])) {
-            dpm('Set Variable (state):' . $key . ' = ' . print_r(\Drupal::state()->get($this->mapping[$key][1]), 1)); // @todo: remove dpm
             \Drupal::state()->set($this->mapping[$key][1], $value);
             $saved[] = $key;
           }
           elseif($this->mapping[$key][0] == 'callback') {
-            // @todo implemets setter
+            // @todo implement setter
           }
           // variable
           else {
-            dpm('Set Variable (variable):' . $key . ' = ' . print_r($value, 1)); // @todo: remove dpm
             $mapping_row_copy = $this->mapping[$key];
             $config_name = array_shift($mapping_row_copy);
             $variable_name = implode('.', $mapping_row_copy);
@@ -231,11 +227,10 @@ class VariablesController extends ControllerBase {
           \Drupal::configFactory()->getEditable($config_name)->set($variable_name, $value);
           \Drupal::configFactory()->getEditable($config_name)->save();
           $saved[] = $key;
-          dpm('Set Variable (variable):' . $key . ' = ' . print_r($value, 1)); // @todo: remove dpm
         }
         else {
           // @todo: log errors
-          dpm('Variable is not implemented (set): ' . $key);
+          \Drupal::logger('acquia spi')->notice('Variable is not implemented: ' . $key);
         }
       }
     }
@@ -245,7 +240,7 @@ class VariablesController extends ControllerBase {
       \Drupal::logger('acquia spi')->notice('Saved variables from the Acquia Network: @variables', array('@variables' => implode(', ', $saved)));
     }
     else {
-      \Drupal::logger('acquia spi')->notice('Did not save any variables from the Acquia Network.', array());
+      \Drupal::logger('acquia spi')->notice('Did not save any variables from the Acquia Network.');
     }
   }
 

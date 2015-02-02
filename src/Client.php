@@ -167,8 +167,6 @@ class Client {
    */
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
-    dpm('sendNspi $body: ');  // @todo: remove debug
-    dpm($body);               // @todo: remove debug
 
     try{
       $response = $this->nspiCall('/spi-api/site', $body);
@@ -325,7 +323,6 @@ class Client {
    * D7: acquia_agent_call().
    */
   public function nspiCall($method, $params, $key = NULL) {
-    dpm('Method called: ' . $method); // @todo: remove debug
     if (empty($key)) {
       $config = \Drupal::config('acquia_connector.settings');
       $key = $config->get('key');

@@ -222,7 +222,7 @@ class SettingsForm extends ConfigFormBase {
 
       $form['connection']['use_cron_url'] = array(
         '#type' => 'container',
-        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>!url</em>', array('!url' => $url)),
+        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>@url</em>', array('@url' => $url)),
         '#states' => array(
           'visible' => array(
             ':input[name="use_cron"]' => array('checked' => FALSE),
