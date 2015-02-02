@@ -20,12 +20,6 @@ class AcquiaConnectorUnitTest extends UnitTestCase {
   protected $key;
   protected $salt;
   protected $derivedKey;
-  /**
-   * The app root.
-   *
-   * @var string
-   */
-  protected $root;
 
   /**
    * {@inheritdoc}
@@ -41,7 +35,7 @@ class AcquiaConnectorUnitTest extends UnitTestCase {
 
     $client = new clientTest();
     $result = $client->buildAuthenticator($key, $params);
-    //Test _acquia_agent_authenticator().
+    //Test Client::buildAuthenticator
     $valid = is_array($result);
     $this->assertTrue($valid, 'Client::buildAuthenticator returns an array');
     if ($valid) {
@@ -53,9 +47,8 @@ class AcquiaConnectorUnitTest extends UnitTestCase {
       }
       $this->assertTrue($valid, 'Array has expected keys');
     }
-    // Test _acquia_agent_create_authenticator().
-    //$result = _acquia_agent_create_authenticator(array(), $identifier);
-    $result = $client->buildAuthenticator($key, $params);
+    //Test Client::buildAuthenticator
+    $result = $client->buildAuthenticator($identifier, array());
     $valid = is_array($result);
     $this->assertTrue($valid, 'Client::buildAuthenticator returns an array');
     if ($valid) {
