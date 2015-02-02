@@ -67,7 +67,9 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Validate the hmac for the response body.
-   *
+   * @param $response
+   * @param $nonce
+   * @param $url
    * @return Solarium\Core\Client\Response
    * @throws \Exception
    */
@@ -80,21 +82,9 @@ class SearchSubscriber extends Plugin {
   }
 
   /**
-   * Validate the authenticity of returned data using a nonce and HMAC-SHA1.
-   *
-   * @return bool
-   * D7: acquia_search_valid_response()
-   */
-  public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
-    if (empty($derived_key)) {
-      $derived_key = $this->getDerivedKey($env_id);
-    }
-    return $hmac == hash_hmac('sha1', $nonce . $string, $derived_key);
-  }
-
-  /**
    * Look in the headers and get the hmac_digest out
    *
+   * @param $headers
    * @return string hmac_digest
    * D7: acquia_search_extract_hmac()
    */
@@ -111,7 +101,28 @@ class SearchSubscriber extends Plugin {
   }
 
   /**
+   * Validate the authenticity of returned data using a nonce and HMAC-SHA1.
+   *
+   * @return bool
+   * @param $hmac
+   * @param $nonce
+   * @param $string
+   * @param null $derived_key
+   * @param null $env_id
+   * @return bool
+   * D7: acquia_search_valid_response()
+   */
+  public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
+    if (empty($derived_key)) {
+      $derived_key = $this->getDerivedKey($env_id);
+    }
+    return $hmac == hash_hmac('sha1', $nonce . $string, $derived_key);
+  }
+
+  /**
    * Get the derived key for the solr hmac using the information shared with acquia.com.
+   * @param null $env_id
+   * @return mixed
    * D7: _acquia_search_derived_key().
    */
   public function getDerivedKey($env_id = NULL) {
@@ -181,14 +192,24 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Derive a key for the solr hmac using a salt, id and key.
+   * @param $salt
+   * @param $id
+   * @param $key
+   * @return string
    * D7: _acquia_search_create_derived_key().
    */
   public function createDerivedKey($salt, $id, $key) {
     $derivation_string = $id . 'solr' . $salt;
     return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
   }
+
   /**
    * Creates an authenticator based on a data string and HMAC-SHA1.
+   * @param $string
+   * @param $nonce
+   * @param null $derived_key
+   * @param null $env_id
+   * @return string
    * D7: acquia_search_authenticator().
    */
   public function calculateAuthCookie($string, $nonce, $derived_key = NULL, $env_id = NULL) {

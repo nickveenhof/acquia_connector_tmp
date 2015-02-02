@@ -407,7 +407,6 @@ class spiControllerTest extends SpiController {
    * @param array Array of keys to extract data for.
    *
    * @return array Stored data or false if no data is retrievable from storage.
-   * D7: acquia_spi_data_store_get
    */
   public function dataStoreGet($keys) {
     return parent::dataStoreGet($keys);

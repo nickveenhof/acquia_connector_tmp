@@ -285,21 +285,6 @@ class Client {
    * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
-    // @todo: should we remove this method for D8?
-    if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
-      $string = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
-
-      return base64_encode(
-        pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) .
-        pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
-        $string)))));
-    }
-    // @todo: should we remove this method for D8?
-    elseif ($params['rpc_version'] == 2) {
-      $string = $time . ':' . $nonce . ':' . json_encode($params);
-      return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    }
-
     $string = $time . ':' . $nonce;
     return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
