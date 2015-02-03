@@ -48,8 +48,7 @@ class NspiController extends ControllerBase {
   const ACQTEST_503_KEY = 'TEST_AcquiaConnectorTestKey503';
 
   public function nspiUpdate(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE);//todo
-    $data = json_decode($data_decode, TRUE);//todo
+    $data = json_decode($request->getContent(), TRUE);
 
     $fields = array(
       'time' => 'is_numeric',
@@ -108,8 +107,7 @@ class NspiController extends ControllerBase {
    * @return array|bool|\stdClass
    */
   public function getCommunicationSettings(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE);//todo
-    $data = json_decode($data_decode, TRUE);//todo
+    $data = json_decode($request->getContent(), TRUE);
     //\Drupal::logger('getCommunicationSettings')->info(print_r($data, TRUE));//todo
     $fields = array(
       'time' => 'is_numeric',
@@ -172,8 +170,7 @@ class NspiController extends ControllerBase {
    * @return JsonResponse
    */
   public function getCredentials(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE); //todo
-    $data = json_decode($data_decode, TRUE);//todo
+    $data = json_decode($request->getContent(), TRUE);
 
     $fields = array(
       'time' => 'is_numeric',
@@ -217,9 +214,7 @@ class NspiController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function getSubscription(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE); //todo
-    $data = json_decode($data_decode, TRUE);
-
+    $data = json_decode($request->getContent(), TRUE);
     $result = $this->validateAuthenticator($data);
     if (empty($result['error'])) {
       $result['authenticator']['hash'] = CryptConnector::acquiaHash($result['secret']['key'], $result['authenticator']['time'] . ':' . $result['authenticator']['nonce']);
@@ -317,8 +312,7 @@ class NspiController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function cloudMigrationEnvironments(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE); //todo
-    $data = json_decode($data_decode, TRUE);
+    $data = json_decode($request->getContent(), TRUE);
 
     global $base_url;
     $fields = array(

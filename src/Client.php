@@ -220,7 +220,7 @@ class Client {
     $uri = $this->server . $path;
     $options = array(
       'headers' => $this->headers,
-      'json' => json_encode($data),
+      'body' => json_encode($data),
     );
 
     try {

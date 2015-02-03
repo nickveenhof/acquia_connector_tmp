@@ -286,3 +286,10 @@ function acquia_connector_connection_error_message($errno) {
   }
   return FALSE;
 }
+
+/**
+ * Implements hook_update_projects_alter().
+ */
+function acquia_connector_update_projects_alter(&$projects) {
+//  dpm($projects);
+}
