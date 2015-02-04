@@ -197,14 +197,16 @@ class MigrateForm extends ConfigFormBase {
    *   The name of the route to which to redirect.
    * @param array $route_parameters
    *   Parameters for the route.
+   * @param array $options
+   *   Options for the route.
    * @param int $status
    *   The HTTP redirect status code for the redirect. The default is 302 Found.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   A redirect response object that may be returned by the controller.
    */
-  protected function redirect($route_name, array $route_parameters = array(), array $options = array(), $status = 302) {
-    $url = Url::fromRoute($route_name, $route_parameters, array('absolute' => TRUE))->toString();
+  protected function redirect($route_name, array $route_parameters = [], array $options = ['absolute' => TRUE], $status = 302) {
+    $url = Url::fromRoute($route_name, $route_parameters, $options)->toString();
     return new RedirectResponse($url, $status);
   }
 
