@@ -8,8 +8,8 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\views\Views;
-use GuzzleHttp\Exception\RequestException;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\DrupalKernel;
 use Drupal\field\Entity\FieldConfig;
 
 /**
@@ -81,20 +81,8 @@ class SecurityReviewController extends ControllerBase {
    * D7: acquia_spi_security_review_run
    */
   private function securityReviewRun($checklist = NULL, $log = FALSE, $help = FALSE) {
-    // Use Security Review module if available.
-    if (\Drupal::moduleHandler()
-        ->moduleExists('security_review') && function_exists('security_review_run')
-    ) {
-      if (!$checklist) {
-        $checklist = \Drupal::moduleHandler()->moduleExists('security_checks');
-      }
-      //@todo
-      module_load_include('inc', 'security_review');
-      return security_review_run($checklist, $log, $help);
-    }
-    else {
-      return $this->_securityReviewRun($checklist, $log);
-    }
+    // @todo Use Security Review module if available.
+    return $this->_securityReviewRun($checklist, $log);
   }
 
   /**
@@ -399,9 +387,13 @@ class SecurityReviewController extends ControllerBase {
 
     $message = 'Security review test ' . date('Ymdhis');
     $content = "<?php\necho '" . $message . "';";
-    //$directory = variable_get('file_public_path', 'sites/default/files'); //@todo
-    $directory = 'sites/default/files';
-    //$directory = '/';
+    $directory = Settings::get('file_public_path');
+    if (empty($directory)) {
+      $directory = DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files';
+    }
+    if (empty($directory)) {
+      $directory = 'sites/default/files';
+    }
     $file = '/security_review_test.php';
     if ($file_create = @fopen('./' . $directory . $file, 'w')) {
       $create_status = fwrite($file_create, $content);
@@ -664,7 +656,6 @@ class SecurityReviewController extends ControllerBase {
     );
   }
 
-
   /**
    * Helper function for user-defined or default unstrusted Drupal roles.
    *
@@ -679,15 +670,13 @@ class SecurityReviewController extends ControllerBase {
     return array_filter($roles);
   }
 
-
   /**
    * Helper function defines the default untrusted Drupal roles.
    * D7: _acquia_spi_security_review_default_untrusted_roles().
    */
   public function defaultUntrustedRoles() {
     $roles = array(DRUPAL_ANONYMOUS_RID => t('anonymous user'));
-    $user_register = \Drupal::config('user.settings')
-      ->get('register'); //need set default value
+    $user_register = \Drupal::config('user.settings')->get('register'); //need set default value
     // If visitors are allowed to create accounts they are considered untrusted.
     if ($user_register != USER_REGISTER_ADMINISTRATORS_ONLY) {
       $roles[DRUPAL_AUTHENTICATED_RID] = t('authenticated user');

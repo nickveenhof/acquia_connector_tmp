@@ -21,7 +21,6 @@ class TestStatusController extends ControllerBase {
    *
    * @return array $custom_data
    *  An associative array containing any tests which failed validation.
-   *
    */
   public function testStatus($log = FALSE) {
     $custom_data = array();
@@ -74,7 +73,6 @@ class TestStatusController extends ControllerBase {
    * @return array
    *  An associative array containing the validation result of the given tests,
    *  along with any failed parameters.
-   *
    */
   public function testValidate($collection) {
     $result = TRUE;
@@ -141,6 +139,5 @@ class TestStatusController extends ControllerBase {
 
     return array('result' => $result, 'failure' => (isset($check_result_value['failed'])) ? $check_result_value['failed'] : array());
   }
-
 
 }
