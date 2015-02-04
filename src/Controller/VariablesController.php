@@ -17,50 +17,50 @@ use Drupal\Component\Utility;
  * Class MappingController.
  */
 class VariablesController extends ControllerBase {
-
+  // @todo: Move into the module configuration.
   protected $mapping = array(
-    'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'), //@todo: Values returned only over SSL
-    'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'), //@todo: Values returned only over SSL
-    'acquia_spi_module_diff_data' => array('acquia_connector.settings', 'spi', 'module_diff_data'), //@todo: Values returned only over SSL
-    'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'), //@todo: Values returned only over SSL
-    'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'), //@todo: Values returned only over SSL
-    'cache_backends' => array(),//@todo:  memcache and oter external  Values returned only over SSL
-    'cache_default_class' => array('cache_classes', 'cache'),//@todo:  memcache and oter external  Values returned only over SSL
-    'cache_inc' => array(),//@todo:  memcache and oter external  Values returned only over SSL
-    'cron_safe_threshold' => array('system.cron', 'threshold', 'autorun'), //working
-    'googleanalytics_cache' => array(),// @todo
-    'error_level' => array('system.logging', 'error_level'), // @todo: Needs mapping sends the value
-    'preprocess_js' => array('system.performance', 'js', 'preprocess'),//working
-    'page_cache_maximum_age' => array('system.performance', 'cache', 'page', 'max_age'),//working
-    'block_cache' => array(),// @todo NOT USED
-    'preprocess_css' => array('system.performance', 'css', 'preprocess'),//working
-    'page_compression' => array('system.performance', 'response', 'gzip'),//working
-    'cache' => array('system.performance', 'cache', 'page', 'use_internal'), //working
-    'cache_lifetime' => array(), // @todo: NOT USED
-    'cron_last' => array('state', 'system.cron_last'), //@todo: Not variable. \Drupal::state()->get('system.cron_last'). Values returned only over SSL
-    'clean_url' => array(),// @todo: Removed. @see https://www.drupal.org/node/1659580
-    'redirect_global_clean' => array(),// @todo used in Global redirect module  Values returned only over SSL
-    'theme_zen_settings' => array(),// @todo no release for Drupal 8
+    'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'),
+    'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'),
+    'acquia_spi_module_diff_data' => array('acquia_connector.settings', 'spi', 'module_diff_data'),
+    'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'),
+    'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'),
+    'cache_backends' => array(),                                  //@todo: add memcache and other external
+    'cache_default_class' => array('cache_classes', 'cache'),     //@todo: add memcache and other external
+    'cache_inc' => array(),                                       //@todo: add memcache and other external
+    'cron_safe_threshold' => array('system.cron', 'threshold', 'autorun'),
+    'googleanalytics_cache' => array(),                           // @todo
+    'error_level' => array('system.logging', 'error_level'),      // @todo: Needs mapping sends the value
+    'preprocess_js' => array('system.performance', 'js', 'preprocess'),
+    'page_cache_maximum_age' => array('system.performance', 'cache', 'page', 'max_age'),
+    'block_cache' => array(),                                     // @todo NOT USED
+    'preprocess_css' => array('system.performance', 'css', 'preprocess'),
+    'page_compression' => array('system.performance', 'response', 'gzip'),
+    'cache' => array('system.performance', 'cache', 'page', 'use_internal'),
+    'cache_lifetime' => array(),                                  // @todo: NOT USED
+    'cron_last' => array('state', 'system.cron_last'),
+    'clean_url' => array(),                                       // @todo: Removed. @see https://www.drupal.org/node/1659580
+    'redirect_global_clean' => array(),                           // @todo used in Global redirect module
+    'theme_zen_settings' => array(),                              // @todo no release for Drupal 8
     'site_offline' => array('state', 'system.maintenance_mode'),  // @todo duplicate of the maintenance_mode variable.
-    'site_name' => array('system.site', 'name'), //working
-    'user_register' => array('user.settings', 'register'),//@todo:   Values returned only over SSL
-    'user_signatures' => array('user.settings', 'signatures'),//@todo:   Values returned only over SSL
-    'user_admin_role' => array('user.settings', 'admin_role'),//@todo:   Values returned only over SSL
-    'user_email_verification' => array('user.settings', 'verify_mail'),//@todo:   Values returned only over SSL
-    'user_cancel_method' => array('user.settings', 'cancel_method'),//@todo:   Values returned only over SSL
-    'filter_fallback_format' => array('filter.settings', 'fallback_format'),//@todo:   Values returned only over SSL
-    'dblog_row_limit' => array('dblog.settings', 'row_limit'),//@todo:   Values returned only over SSLx`xxx
-    'date_default_timezone' => array('system.date', 'timezone', 'default'),//@todo:   Values returned only over SSL
-    'file_default_scheme' => array('system.file', 'default_scheme'),//@todo:   Values returned only over SSL
+    'site_name' => array('system.site', 'name'),
+    'user_register' => array('user.settings', 'register'),
+    'user_signatures' => array('user.settings', 'signatures'),
+    'user_admin_role' => array('user.settings', 'admin_role'),
+    'user_email_verification' => array('user.settings', 'verify_mail'),
+    'user_cancel_method' => array('user.settings', 'cancel_method'),
+    'filter_fallback_format' => array('filter.settings', 'fallback_format'),
+    'dblog_row_limit' => array('dblog.settings', 'row_limit'),
+    'date_default_timezone' => array('system.date', 'timezone', 'default'),
+    'file_default_scheme' => array('system.file', 'default_scheme'),
     'install_profile' => array('callback'),// @todo: @see https://www.drupal.org/node/2235431
-    'maintenance_mode' => array('state', 'system.maintenance_mode'),//@todo:   Values returned only over SSL Not variable. \Drupal::state()->get('system.maintenance_mode').
-    'update_last_check' => array('state', 'update.last_check'),//@todo:   Values returned only over SSL Not variable. \Drupal::state()->get('update.last_check').
-    'site_default_country' => array('system.date', 'country', 'default'),//@todo:   Values returned only over SSL
-    'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),//working
-    'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),//working
-    'acquia_spi_ignored_set_variables' => array('acquia_connector.settings', 'spi', 'ignored_set_variables'),//working
-    'acquia_spi_set_variables_override' => array('acquia_connector.settings', 'spi', 'set_variables_override'),//working
-    // @todo: Good variables to add
+    'maintenance_mode' => array('state', 'system.maintenance_mode'),
+    'update_last_check' => array('state', 'update.last_check'),
+    'site_default_country' => array('system.date', 'country', 'default'),
+    'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
+    'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),
+    'acquia_spi_ignored_set_variables' => array('acquia_connector.settings', 'spi', 'ignored_set_variables'),
+    'acquia_spi_set_variables_override' => array('acquia_connector.settings', 'spi', 'set_variables_override'),
+    // @todo: Add to NSPI.
     'fast_404' => array('system.performance', 'fast_404', 'enabled'),
     'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
   );
@@ -200,7 +200,7 @@ class VariablesController extends ControllerBase {
     $whitelist = \Drupal::config('acquia_connector.settings')->get('spi.set_variables_automatic');
     foreach($set_variables as $key => $value) {
       // Approved variables get set immediately unless ignored.
-      if (in_array($key, $whitelist) && !in_array($key, $ignored)) { // @todo: remove 1
+      if (in_array($key, $whitelist) && !in_array($key, $ignored)) {
         if (!empty($this->mapping[$key])) {
           // state
           if ($this->mapping[$key][0] == 'state' and !empty($this->mapping[$key][1])) {
@@ -229,7 +229,6 @@ class VariablesController extends ControllerBase {
           $saved[] = $key;
         }
         else {
-          // @todo: log errors
           \Drupal::logger('acquia spi')->notice('Variable is not implemented: ' . $key);
         }
       }

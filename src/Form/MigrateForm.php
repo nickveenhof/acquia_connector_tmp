@@ -57,10 +57,10 @@ class MigrateForm extends ConfigFormBase {
     if (!empty($data['result'])) {
       // Response is in $data['result'].
       $result = $data['result'];
-      if (!empty($result['is_error'])) {  // @todo - review at nspi side
+      if (!empty($result['is_error'])) {
         $error = $this->t('Server error, unable to retrieve environments for migration');
       }
-      elseif (!empty($result['body']['error'])) {  // @todo - review at nspi side
+      elseif (!empty($result['body']['error'])) {
         $error = $result['body']['error'];
       }
       elseif (empty($result['body']['environments'])) {

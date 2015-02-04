@@ -14,12 +14,7 @@ use GuzzleHttp\ClientInterface;
 class Client {
 
   /**
-   * @todo create specific exceptions?
-   *
-   */
-
-  /**
-   * @var \Guzzle\Http\ClientInterface
+   * @var ClientInterface
    */
   protected $client;
 
@@ -144,7 +139,7 @@ class Client {
     catch (ConnectorException $e) {
       drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
       if ($e->isCustomized()) {
-        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => $e->getAllCustomMessages()));
+        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => json_encode($e->getAllCustomMessages())));
       }
       else {
         \Drupal::logger('acquia connector')->error($e->getMessage());
@@ -313,9 +308,8 @@ class Client {
       $key = $config->get('key');
     }
     $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
-    // @todo: Remove $_SERVER
-    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
-    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
+    $ip = \Drupal::request()->server->get('SERVER_ADDR', '');
+    $host = \Drupal::request()->server->get('HTTP_HOST', '');
     $ssl = \Drupal::request()->isSecure();
     $data = array(
       'authenticator' => $this->buildAuthenticator($key, $params),

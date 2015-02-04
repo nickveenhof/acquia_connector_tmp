@@ -58,7 +58,6 @@ class SearchSubscriber extends Plugin {
     if($response->getStatusCode() != 200) {
       throw new HttpException($response->getStatusMessage());
     }
-    // @todo: Get all endpoint responses without authorisation cooke.
     if ($event->getRequest()->getHandler() == 'admin/ping') {
       return;
     }

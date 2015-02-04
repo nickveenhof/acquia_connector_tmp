@@ -665,8 +665,6 @@ class SecurityReviewController extends ControllerBase {
   public function untrustedRoles() {
     $defaults = $this->defaultUntrustedRoles();
     $roles = $defaults;
-    // $roles = variable_get('security_review_untrusted_roles', $defaults); @todo get out security review module
-    // array_filter() to remove roles with 0 (meaning they are trusted) @todo
     return array_filter($roles);
   }
 

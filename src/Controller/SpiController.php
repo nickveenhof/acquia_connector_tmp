@@ -116,9 +116,9 @@ class SpiController extends ControllerBase {
 
     $additional_data = array();
 
-    // @todo: security_review module for D8 not released yet.
     $security_review = new SecurityReviewController();
     $security_review_results = $security_review->runSecurityReview();
+
     // It's worth sending along node access control information even if there are
     // no modules implementing it - some alerts are simpler if we know we don't
     // have to worry about node access.
@@ -226,19 +226,8 @@ class SpiController extends ControllerBase {
    */
   private function checkLogin() {
     $login_safe = 0;
-    // @todo: securepages not ported yet.
-    if (\Drupal::moduleHandler()->moduleExists('securepages')) {
-//      if (drupal_match_path('user/login', variable_get('securepages_pages', ''))) {
-//        $login_safe = 1;
-//      }
-//      if (drupal_match_path('user/login', variable_get('securepages_ignore', ''))) {
-//        $login_safe = 0;
-//      }
-//      if (!variable_get('securepages_secure', FALSE) || !variable_get('securepages_enable', FALSE)) {
-//        $login_safe = 0;
-//      }
-    }
-    elseif (\Drupal::moduleHandler()->moduleExists('securelogin')) {
+
+    if (\Drupal::moduleHandler()->moduleExists('securelogin')) {
       $secureLoginConfig = $this->config('securelogin.settings')->get();
       if ($secureLoginConfig['all_forms']) {
         $forms_safe = TRUE;
@@ -626,10 +615,11 @@ class SpiController extends ControllerBase {
    * D7: acquia_spi_file_hashes
    */
   private function getFileHashes($exclude_dirs = array()) {
+    $exclude_dirs[] = 'core/vendor';
+    $exclude_dirs[] = 'core/assets';
     // The list of directories for the third parameter are the only ones that
     // will be recursed into.  Thus, we avoid sending hashes for any others.
-    //list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, array('modules', 'profiles', 'themes', 'core/includes', 'core/misc', 'core/scripts'));
-    list($hashes, $fileinfo) = $this->generateHashes('.', array('core/vendor', 'core/assets'), array('modules', 'profiles', 'themes', 'core')); //@todo need review
+    list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, ['modules', 'profiles', 'themes', 'core']);
     ksort($hashes);
     // Add .htaccess file.
     $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
@@ -987,21 +977,7 @@ class SpiController extends ControllerBase {
    * D7: acquia_spi_get_modules
    */
   private function getModules() {
-    // @todo add cache if possible.
-    // Only do a full rebuild of the module cache every 1 at the most
-//  $last_build = variable_get('acquia_spi_module_rebuild', 0);
-//  if ($last_build < REQUEST_TIME - 86400) {
-//    $modules = system_rebuild_module_data();
-//    variable_set('acquia_spi_module_rebuild', REQUEST_TIME);
-//  }
-//  else {
-//    $result = db_query("SELECT filename, name, type, status, schema_version, info FROM {system} WHERE type = 'module'");
-//    foreach ($result as $file) {
-//      $file->info = unserialize($file->info);
-//      $modules[$file->filename] = $file;
-//    }
-//  }
-
+    // @todo Only do a full rebuild of the module cache every 1 at the most
     $modules = system_rebuild_module_data();
     uasort($modules, 'system_sort_modules_by_info_name');
 
