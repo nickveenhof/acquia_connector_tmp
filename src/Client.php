@@ -98,7 +98,6 @@ class Client {
    *
    * @return array|false or throw Exception
    * @throws \Exception
-   * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
     $body['identifier'] = $id;
@@ -175,6 +174,10 @@ class Client {
     return FALSE;
   }
 
+  /**
+   * @param $apiEndpoint
+   * @return array|bool|false
+   */
   public function getDefinition($apiEndpoint) {
     try {
       return $this->request('GET', $apiEndpoint, array());
@@ -253,7 +256,7 @@ class Client {
    * @params array $params Optional parameters to include.
    *   'identifier' - Network Identifier
    *
-   * @return string
+   * @return array
    */
   protected function buildAuthenticator($key, $params = array()) {
     $authenticator = array();
@@ -278,7 +281,6 @@ class Client {
    * @param string $nonce
    * @param array $params
    * @return string
-   * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
     $string = $time . ':' . $nonce;
@@ -300,8 +302,8 @@ class Client {
    * @param string $method
    * @param array $params
    * @param string $key or NULL
-   * @return array or throw Exception
-   * D7: acquia_agent_call().
+   * @return array
+   * @throws ConnectorException
    */
   public function nspiCall($method, $params, $key = NULL) {
     if (empty($key)) {
