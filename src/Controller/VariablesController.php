@@ -95,7 +95,6 @@ class VariablesController extends ControllerBase {
    * Get all system variables
    *
    * @return array()
-   * D7: acquia_spi_get_variables_data
    */
   public function getVariablesData() {
     $data = array();
@@ -147,24 +146,6 @@ class VariablesController extends ControllerBase {
       }
     }
 
-    // Exception handling.
-//    $data['cron_last'] = \Drupal::state()->get('system.cron_last');
-//    $data['maintenance_mode'] = \Drupal::state()->get('system.maintenance_mode');
-//    $data['update_last_check'] = \Drupal::state()->get('update.last_check');
-    // @todo - the module highly unstable!
-//    if (\Drupal::moduleHandler()->moduleExists('globalredirect') && function_exists('_globalredirect_get_settings')) {
-//      // Explicitly get Global Redirect settings since it deletes its variable
-//      // if the settings match the defaults.
-//      $data['globalredirect_settings'] = _globalredirect_get_settings();
-//    }
-
-    // Drush overrides cron_safe_threshold so extract DB value if sending via drush.
-    // @todo research it for D8
-//    if (PHP_SAPI === 'cli') {
-//      $cron_safe_threshold = acquia_spi_get_db_variable('cron_safe_threshold');
-//      $data['cron_safe_threshold'] = !is_null($cron_safe_threshold) ? $cron_safe_threshold : DRUPAL_CRON_DEFAULT_THRESHOLD;
-//    }
-
     // Unset waived vars so they won't be sent to NSPI.
     foreach($data as $var_name => $var) {
       if (in_array($var_name, $waived_spi_def_vars)) {
@@ -181,7 +162,6 @@ class VariablesController extends ControllerBase {
    *
    * @param  array $set_variables Variables to be set.
    * @return NULL
-   * D7: acquia_spi_set_variables
    */
   public function setVariables($set_variables) {
     \Drupal::logger('acquia spi')->notice('SPI set variables: @messages', array('@messages' => implode(', ', $set_variables)));
