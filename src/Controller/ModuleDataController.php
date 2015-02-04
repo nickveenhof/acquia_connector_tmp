@@ -89,8 +89,7 @@ class ModuleDataController extends ControllerBase {
     }
 
     if ($this->config('acquia_connector.settings')->get('spi.module_diff_data') && $via_ssl) {
-      $subscription = new Subscription();
-      if ($subscription->hasCredentials() && isset($data['body']['file']) && $this->isValidRequest($data, $data['body']['file'])) {
+      if (Subscription::hasCredentials() && isset($data['body']['file']) && $this->isValidRequest($data, $data['body']['file'])) {
         return AccessResultAllowed::allowed();
       }
 

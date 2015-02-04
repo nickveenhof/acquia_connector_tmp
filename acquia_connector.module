@@ -69,8 +69,7 @@ function acquia_connector_form_system_modules_alter(&$form, &$form_state) {
  */
 function acquia_connector_cron() {
   // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
-  $subscription = new Subscription();
-  $subscription->update();
+  Subscription::update();
 
   $config = \Drupal::config('acquia_connector.settings');
 
@@ -97,9 +96,7 @@ function acquia_connector_toolbar() {
     '#options' => ['html' => TRUE,],
   ];
 
-  $subscription_class = new Subscription();
-
-  if ($subscription_class->isActive()) {
+  if (Subscription::isActive()) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
     if (is_array($subscription['expiration_date']) && isset($subscription['active']) && $subscription['active'] !== FALSE) {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
@@ -285,11 +282,4 @@ function acquia_connector_connection_error_message($errno) {
       break;
   }
   return FALSE;
-}
-
-/**
- * Implements hook_update_projects_alter().
- */
-function acquia_connector_update_projects_alter(&$projects) {
-//  dpm($projects);
 }

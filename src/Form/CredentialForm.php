@@ -147,8 +147,7 @@ class CredentialForm extends ConfigFormBase {
 
     // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
     // Our status gets updated locally via the return data.
-    $subscription_class = new Subscription();
-    $subscription = $subscription_class->update();
+    $subscription = Subscription::update();
 
     // Redirect to the path without the suffix.
     $form_state->setRedirect('acquia_connector.settings');

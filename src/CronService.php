@@ -20,8 +20,7 @@ class CronService implements LoggerInterface {
     // Make sure that even when cron failures prevent hook_cron() from being
     // called, we still send out a heartbeat.
     if (!empty($context['channel']) && ($context['channel'] == 'cron') && ($message == 'Attempting to re-run cron while it is already running.')) {
-      $subscription = new Subscription();
-      $subscription->update();
+      Subscription::update();
     }
   }
 

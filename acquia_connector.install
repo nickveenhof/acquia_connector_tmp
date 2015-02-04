@@ -38,9 +38,7 @@ function acquia_connector_requirements($phase) {
       $config = \Drupal::config('acquia_connector.settings');
       $use_cron = $config->get('use_cron'); //variable_get('acquia_spi_use_cron', 1);
       $last_sent = $config->get('cron_last', 0); //variable_get('acquia_spi_cron_last', 0);
-      $credentials = new Subscription();
-      $has_credentials = $credentials->hasCredentials();
-      $is_active = $credentials->isActive();
+      $has_credentials = Subscription::hasCredentials();
 
       if ($has_credentials) {
         $key = sha1(Drupal::service('private_key')->get());
@@ -83,7 +81,7 @@ function acquia_connector_requirements($phase) {
       // or we know they have credentials but not active (not set up yet) or
       // we have credentials but an inactive subscription (either bad
       // credentials or expired subscription).
-      if ($is_active) {
+      if (Subscription::isActive()) {
         $requirements['acquia_subscription_status'] = array(
           'title' => t('Acquia Network subscription status'),
           'severity' => REQUIREMENT_OK,
