@@ -173,7 +173,7 @@ class SearchSubscriber extends Plugin {
    * @see http://drupal.org/node/1784114
    */
   public function getDerivedKeySalt() {
-    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt'); // D7: acquia_search_derived_key_salt
+    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt');
     if (!$salt) {
       // If the variable doesn't exist, set it using the subscription data.
       $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
