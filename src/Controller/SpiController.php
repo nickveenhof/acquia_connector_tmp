@@ -64,7 +64,6 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An associative array keyed by types of information.
-   * D7: acquia_spi_get
    */
   public function get($method = '') {
     // Get file hashes and compute serialized version.
@@ -196,7 +195,6 @@ class SpiController extends ControllerBase {
    *
    * @return array $custom_data
    *  An associative array containing properly formatted user-contributed tests.
-   * D7: acquia_spi_test_collect
    */
   private function testCollect() {
     $custom_data = array();
@@ -222,7 +220,6 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return int 1|0
-   * D7: acquia_spi_check_login
    */
   private function checkLogin() {
     $login_safe = 0;
@@ -265,7 +262,6 @@ class SpiController extends ControllerBase {
    *
    * @return int 1|0
    *   True if they are removed, false if they aren't
-   * D7: acquia_spi_check_files_present
    */
   private function checkFilesPresent() {
     $store = $this->dataStoreGet(array('platform'));
@@ -288,7 +284,6 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   The details of last 15 users created.
-   * D7: acquai_spi_get_last_users
    */
   private function getLastUsers() {
     $last_five_users = array();
@@ -307,7 +302,7 @@ class SpiController extends ControllerBase {
       $last_five_users[$count]['created'] = $record->created;
       $count++;
     }
-//TODO is this what we really want?
+
     return $last_five_users;
   }
 
@@ -318,7 +313,6 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return array of the details of last 15 nodes created
-   * D7: acquai_spi_get_last_nodes
    */
   private function getLastNodes() {
     $last_five_nodes = array();
@@ -348,7 +342,6 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return array
-   * D7: acquia_spi_get_watchdog_data
    */
   private function getWatchdogData() {
     $wd = array();
@@ -371,7 +364,6 @@ class SpiController extends ControllerBase {
    * Get the number of rows in watchdog
    *
    * @return int
-   * D7: acquai_spi_get_watchdog_size
    */
   private function getWatchdogSize() {
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
@@ -379,13 +371,11 @@ class SpiController extends ControllerBase {
     }
   }
 
-
   /**
    * Grabs the last 404 errors in logs, excluding the checks we run for drupal files like README
    *
    * @return array
    *   An array of the pages not found and some associated data
-   * D7: acquai_spi_get_404s
    */
   private function get404s() {
     $data = array();
@@ -419,7 +409,6 @@ class SpiController extends ControllerBase {
    * @param n/a
    *
    * @return array
-   * D7: acquia_spi_get_failed_logins
    */
   private function getFailedLogins() {
     $last_logins = array();
@@ -449,7 +438,6 @@ class SpiController extends ControllerBase {
    * This function is a trimmed version of Drupal's system_status function
    *
    * @return array
-   * D7: acquia_spi_get_system_status
    */
   private function getSystemStatus() {
     $data = array();
@@ -531,7 +519,6 @@ class SpiController extends ControllerBase {
    * Check the presence of UID 0 in the users table.
    *
    * @return bool Whether UID 0 is present.
-   * D7: acquia_spi_uid_0_present
    */
   private function getUidZerroIsPresent() {
     $count = db_query("SELECT uid FROM {users} WHERE uid = 0")->fetchAll();
@@ -542,7 +529,6 @@ class SpiController extends ControllerBase {
    * The number of users who have admin-level user roles.
    *
    * @return int
-   * D7: acquia_spi_get_admin_count
    */
   private function getAdminCount() {
     $roles_name = array();
@@ -575,7 +561,6 @@ class SpiController extends ControllerBase {
    * Determine if the super user has a weak name
    *
    * @return int 0|1
-   * D7: acquia_spi_get_super_name
    */
   private function getSuperName() {
     $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
@@ -586,7 +571,6 @@ class SpiController extends ControllerBase {
    * Determines if settings.php is read-only
    *
    * @return boolean
-   * D7: acquia_spi_get_settings_permissions
    */
   private function getSettingsPermissions() {
     $settings_permissions_read_only = TRUE;
@@ -612,7 +596,6 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An associative array keyed by filename of hashes.
-   * D7: acquia_spi_file_hashes
    */
   private function getFileHashes($exclude_dirs = array()) {
     $exclude_dirs[] = 'core/vendor';
@@ -636,7 +619,6 @@ class SpiController extends ControllerBase {
 
   /**
    * Recursive helper function for getFileHashes().
-   * D7: _acquia_spi_generate_hashes
    */
   private function generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir=NULL) {
     $hashes = array();
@@ -684,10 +666,8 @@ class SpiController extends ControllerBase {
     return array($hashes, $fileinfo);
   }
 
-
   /**
    * Determine if a path is a file type we care about for modificaitons.
-   * D7: acquia_spi_is_manifest_type
    */
   private function isManifestType($path) {
     $extensions = array(
@@ -722,7 +702,6 @@ class SpiController extends ControllerBase {
    *   The name of the file or a directory.
    * @return string
    *   bas64 encoded sha1 hash. 'hash' is an empty string for directories.
-   * D7: acquia_spi_hash_path
    */
   private function hashPath($path = '') {
     $hash = '';
@@ -746,7 +725,6 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *    An array containing some detail about the version
-   * D7: acquia_spi_get_version_info
    */
   private function getVersionInfo() {
     $store = $this->dataStoreGet(array('platform'));
@@ -818,7 +796,6 @@ class SpiController extends ControllerBase {
    * @param array Array of keys to extract data for.
    *
    * @return array Stored data or false if no data is retrievable from storage.
-   * D7: acquia_spi_data_store_get
    */
   public function dataStoreGet($keys) {
     $store = array();
@@ -967,14 +944,12 @@ class SpiController extends ControllerBase {
     return $ret;
   }
 
-
   /**
    * Gather information about modules on the site.
    *
    * @return array
    *   An associative array keyed by filename of associative arrays with
    *   information on the modules.
-   * D7: acquia_spi_get_modules
    */
   private function getModules() {
     // @todo Only do a full rebuild of the module cache every 1 at the most
@@ -1008,7 +983,6 @@ class SpiController extends ControllerBase {
         //
         // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
         // too hard to tell an individual module appart from a project
-        //$info['module_data'] = _acquia_nspi_generate_hashes($contrib_path,array(),array(),TRUE,$contrib_path);
         list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = self::_generateHashes($contrib_path);
       }
       else {
@@ -1022,7 +996,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Recursive helper function for acquia_spi_file_hashes().
+   * Recursive helper function for getFileHashes().
    */
   private function _generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir = NULL) {
     $hashes = array();
@@ -1075,7 +1049,6 @@ class SpiController extends ControllerBase {
    *
    * @return array
    *   An associative array.
-   * D7: acquia_spi_get_quantum
    */
   private function getQuantum() {
     $quantum = array();
@@ -1166,12 +1139,10 @@ class SpiController extends ControllerBase {
     return new Response('', Response::HTTP_OK, $headers);
   }
 
-
   /**
    * Act on specific elements of SPI update server response.
    *
    * @param array $spi_response Array response from SpiController->send().
-   * D7: acquia_spi_handle_server_response
    */
   private function handleServerResponse($spi_response) {
     // Check result for command to update SPI definition.
@@ -1198,7 +1169,6 @@ class SpiController extends ControllerBase {
    *
    * @return boolean
    *   True if SPI definition data has been updated
-   * D7: acquia_spi_update_definition
    */
   private function updateDefinition() {
     $core_version = substr(\Drupal::VERSION, 0, 1);
