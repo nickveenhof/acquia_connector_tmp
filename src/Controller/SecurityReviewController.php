@@ -18,15 +18,8 @@ use Drupal\field\Entity\FieldConfig;
 class SecurityReviewController extends ControllerBase {
   /**
    * Run some checks from the Security Review module.
-   * D7: acquia_spi_run_security_review
    */
   public function runSecurityReview() {
-    if (!$this->securityReviewCompatible()) {
-      // Older versions of Security Review are not compatible and the results
-      // cannot easily be retrieved.
-      return array();
-    }
-
     // Collect the checklist.
     $checklist = $this->securityReviewGetChecks();
     // Run only specific checks.
@@ -78,7 +71,6 @@ class SecurityReviewController extends ControllerBase {
    * @param boolean $log Whether to log check processing using security_review_log.
    * @param boolean $help Whether to load the help file and include in results.
    * @return array Results from running checklist, indexed by module namespace.
-   * D7: acquia_spi_security_review_run
    */
   private function securityReviewRun($checklist = NULL, $log = FALSE, $help = FALSE) {
     // @todo Use Security Review module if available.
@@ -87,7 +79,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Private function the review and returns the full results.
-   * D7: _acquia_spi_security_review_run
    */
   private function _securityReviewRun($checklist, $log = FALSE) {
     $results = array();
@@ -104,7 +95,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Run a single Security Review check.
-   * D7: _acquia_spi_security_review_run_check
    */
   private function _securityReviewRunCheck($module, $check_name, $check, $log, $store = FALSE) {
     $last_check = array();
@@ -146,7 +136,6 @@ class SecurityReviewController extends ControllerBase {
    * @param $message
    * @param $variables
    * @param $type
-   * D7: _acquia_spi_security_review_log().
    */
   private function _securityReviewLog($module, $check_name, $message, $variables, $type) {
     \Drupal::moduleHandler()->invokeAll('acquia_spi_security_review_log', [$module, $check_name, $message, $variables, $type]);
@@ -154,7 +143,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Helper function allows for collection of this file's security checks.
-   * D7: acquia_spi_security_review_get_checks
    */
   private function securityReviewGetChecks() {
     // Use Security Review's checks if available.
@@ -170,7 +158,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Checks for acquia_spi_security_review_get_checks().
-   * D7: _acquia_spi_security_review_security_checks
    * @return array
    */
   private function securityReviewSecurityChecks() {
@@ -274,21 +261,9 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
-   * Helper function checks for conflict with full Security Review module.
-   * D7: _acquia_spi_security_review_compatible
-   */
-  private function securityReviewCompatible() {
-    if (\Drupal::moduleHandler()->moduleExists('security_review')) {
-      return TRUE;
-    }
-    return TRUE;
-  }
-
-  /**
    * Check if $base_url is set in settings.php.
    * @param null $last_check
    * @return array
-   * d7: acquia_spi_security_review_check_base_url().
    */
   private function checkBaseUrl($last_check = NULL) {
     // Support different methods to check for $base_url.
@@ -325,7 +300,6 @@ class SecurityReviewController extends ControllerBase {
    * Check for sensitive temporary files like settings.php~.
    * @param null $last_check
    * @return array
-   * acquia_spi_security_review_check_temporary_files().
    */
   private function checkTemporaryFiles($last_check = NULL) {
     $result = TRUE;
@@ -350,10 +324,8 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
-   *
    * @param null $last_check
    * @return array
-   * d7: acquia_spi_security_review_check_views_access().
    */
   private function checkViewsAccess($last_check = NULL) {
     $result = TRUE;
@@ -378,7 +350,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Check if PHP files written to the files directory can be executed.
-   * d7: acquia_spi_security_review_check_executable_php().
    */
   private function checkExecutablePHP($last_check = NULL) {
     global $base_url;
@@ -448,7 +419,6 @@ class SecurityReviewController extends ControllerBase {
    * Check upload extensions
    * @param null $last_check
    * @return array
-   *
    */
   private function checkUploadExtensions($last_check = NULL) {
     $check_result = TRUE;
@@ -479,7 +449,6 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Check for formats that either do not have HTML filter that can be used by
    * untrusted users, or if they do check if unsafe tags are allowed.
-   * d7: acquia_spi_security_review_check_input_formats().
    */
   private function checkInputFormats() {
     $result = TRUE;
@@ -555,7 +524,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * @return array
-   * d7: acquia_spi_security_review_check_php_filter().
    */
   protected function checkPhpFilter() {
     $result = TRUE;
@@ -583,10 +551,8 @@ class SecurityReviewController extends ControllerBase {
     return array('result' => $result, 'value' => $check_result_value);
   }
 
-
   /**
    * Helper function defines file extensions considered unsafe.
-   * D7: acquia_spi_security_review_unsafe_extensions().
    */
   public function unsafeExtensions() {
     return array(
@@ -608,7 +574,6 @@ class SecurityReviewController extends ControllerBase {
    * Helper function defines HTML tags that are considered unsafe.
    *
    * Based on wysiwyg_filter_get_elements_blacklist().
-   * D7: acquia_spi_security_review_unsafe_tags().
    */
   public function unsafeTags() {
     return array(
@@ -660,7 +625,6 @@ class SecurityReviewController extends ControllerBase {
    * Helper function for user-defined or default unstrusted Drupal roles.
    *
    * @return array An associative array with the role id as the key and the role name as value.
-   * D7: acquia_spi_security_review_untrusted_roles().
    */
   public function untrustedRoles() {
     $defaults = $this->defaultUntrustedRoles();
@@ -670,7 +634,6 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Helper function defines the default untrusted Drupal roles.
-   * D7: _acquia_spi_security_review_default_untrusted_roles().
    */
   public function defaultUntrustedRoles() {
     $roles = array(DRUPAL_ANONYMOUS_RID => t('anonymous user'));
