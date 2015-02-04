@@ -130,7 +130,6 @@ class InitSubscriber implements EventSubscriberInterface {
   /**
    * Refresh subscription information.
    * @param \Symfony\Component\HttpKernel\Event\FilterControllerEvent $event
-   * d7: acquia_agent_manual_status
    */
   public function onKernelController(FilterControllerEvent $event) {
     if ($event->getRequest()->attributes->get('_route') != 'update.manual_status') {
@@ -165,4 +164,3 @@ class InitSubscriber implements EventSubscriberInterface {
   }
 
 }
-
