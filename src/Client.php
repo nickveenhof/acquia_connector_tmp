@@ -232,13 +232,14 @@ class Client {
     catch (\Exception $e) {
       $custom_error_message = [];
       // Provide custom error from the server.
-      try {
-        $error_response = $e->getResponse();
-        if ($error_response) {
-          $custom_error_message = $error_response->json();
-        }
+      if (method_exists($e, 'getResponse')) {
+        try {
+          $error_response = $e->getResponse();
+          if ($error_response) {
+            $custom_error_message = $error_response->json();
+          }
+        } catch (\Exception $parseException) {}
       }
-      catch (\Exception $parseException) {}
       throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
     }
 
