@@ -16,14 +16,13 @@ use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\acquia_connector\Client;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Logger\RfcLogLevel;
-use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 use Drupal\user\Entity\Role;
+use Drupal\Core\Site\Settings;
 
 /**
  * Class SpiController.
@@ -488,7 +487,7 @@ class SpiController extends ControllerBase {
       'value' => t('Last run !time ago', array('!time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last))),
       'cron_last' => $cron_last,
     );
-    if (!empty($GLOBALS['update_free_access'])) {
+    if (!empty(Settings::get('update_free_access'))) {
       $data['update access'] = array(
         'value' => 'Not protected',
         'protected' => FALSE,

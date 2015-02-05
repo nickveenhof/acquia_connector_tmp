@@ -9,7 +9,6 @@ namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
-use Drupal\node\Entity\NodeType;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility;
 
@@ -17,64 +16,10 @@ use Drupal\Component\Utility;
  * Class MappingController.
  */
 class VariablesController extends ControllerBase {
-  // @todo: Move into the module configuration.
-  protected $mapping = array(
-    'acquia_spi_send_node_user' => array('acquia_connector.settings', 'spi', 'send_node_user'),
-    'acquia_spi_admin_priv' => array('acquia_connector.settings', 'spi', 'admin_priv'),
-    'acquia_spi_module_diff_data' => array('acquia_connector.settings', 'spi', 'module_diff_data'),
-    'acquia_spi_send_watchdog' => array('acquia_connector.settings', 'spi', 'send_watchdog'),
-    'acquia_spi_use_cron' => array('acquia_connector.settings', 'use_cron'),
-    'cache_backends' => array(),                                  //@todo: add memcache and other external
-    'cache_default_class' => array('cache_classes', 'cache'),     //@todo: add memcache and other external
-    'cache_inc' => array(),                                       //@todo: add memcache and other external
-    'cron_safe_threshold' => array('system.cron', 'threshold', 'autorun'),
-    'googleanalytics_cache' => array(),                           // @todo
-    'error_level' => array('system.logging', 'error_level'),      // @todo: Needs mapping sends the value
-    'preprocess_js' => array('system.performance', 'js', 'preprocess'),
-    'page_cache_maximum_age' => array('system.performance', 'cache', 'page', 'max_age'),
-    'block_cache' => array(),                                     // @todo NOT USED
-    'preprocess_css' => array('system.performance', 'css', 'preprocess'),
-    'page_compression' => array('system.performance', 'response', 'gzip'),
-    'cache' => array('system.performance', 'cache', 'page', 'use_internal'),
-    'cache_lifetime' => array(),                                  // @todo: NOT USED
-    'cron_last' => array('state', 'system.cron_last'),
-    'clean_url' => array(),                                       // @todo: Removed. @see https://www.drupal.org/node/1659580
-    'redirect_global_clean' => array(),                           // @todo used in Global redirect module
-    'theme_zen_settings' => array(),                              // @todo no release for Drupal 8
-    'site_offline' => array('state', 'system.maintenance_mode'),  // @todo duplicate of the maintenance_mode variable.
-    'site_name' => array('system.site', 'name'),
-    'user_register' => array('user.settings', 'register'),
-    'user_signatures' => array('user.settings', 'signatures'),
-    'user_admin_role' => array('user.settings', 'admin_role'),
-    'user_email_verification' => array('user.settings', 'verify_mail'),
-    'user_cancel_method' => array('user.settings', 'cancel_method'),
-    'filter_fallback_format' => array('filter.settings', 'fallback_format'),
-    'dblog_row_limit' => array('dblog.settings', 'row_limit'),
-    'date_default_timezone' => array('system.date', 'timezone', 'default'),
-    'file_default_scheme' => array('system.file', 'default_scheme'),
-    'install_profile' => array('callback'),// @todo: @see https://www.drupal.org/node/2235431
-    'maintenance_mode' => array('state', 'system.maintenance_mode'),
-    'update_last_check' => array('state', 'update.last_check'),
-    'site_default_country' => array('system.date', 'country', 'default'),
-    'acquia_spi_saved_variables' => array('acquia_connector.settings', 'spi', 'saved_variables'),
-    'acquia_spi_set_variables_automatic' => array('acquia_connector.settings', 'spi', 'set_variables_automatic'),
-    'acquia_spi_ignored_set_variables' => array('acquia_connector.settings', 'spi', 'ignored_set_variables'),
-    'acquia_spi_set_variables_override' => array('acquia_connector.settings', 'spi', 'set_variables_override'),
-    // @todo: Add to NSPI.
-    'fast_404' => array('system.performance', 'fast_404', 'enabled'),
-    'allow_insecure_uploads' => array('system.file', 'allow_insecure_uploads'),
-  );
+  protected $mapping = [];
 
-  /**
-   * @param string $variable
-   * @return NULL|value
-   */
-  public function mappingCallback($variable) {
-    switch ($variable) {
-      case 'install_profile':
-        return Settings::get('install_profile');
-    }
-    return NULL;
+  public function __construct() {
+    $this->mapping = \Drupal::config('acquia_connector.settings')->get('mapping');
   }
 
   /**
@@ -110,23 +55,16 @@ class VariablesController extends ControllerBase {
       }
     }
 
-    // @todo - implement comments settings for D8
-    // Add comment settings for node types.
-    $types = NodeType::loadMultiple();
-    if (!empty($types)) {
-      foreach ($types as $name => $NodeType) {
-//        dpm('Node type: ' . $NodeType->type);   // @todo: $nodeType->type removed in latest dev.
-//        $variables[] = 'comment_' . $name;
-      }
-    }
+    // @todo Add comment settings for node types.
+
     foreach ($variables as $name) {
       if (!empty($this->mapping[$name])) {
         // state
         if ($this->mapping[$name][0] == 'state' and !empty($this->mapping[$name][1])) {
           $data[$name] = \Drupal::state()->get($this->mapping[$name][1]);
         }
-        elseif($this->mapping[$name][0] == 'callback') {
-          $data[$name] = self::mappingCallback($name);
+        elseif($this->mapping[$name][0] == 'settings' and !empty($this->mapping[$name][1])) {
+          $data[$name] = Settings::get($this->mapping[$name][1]);
         }
         // variable
         else {
@@ -187,8 +125,8 @@ class VariablesController extends ControllerBase {
             \Drupal::state()->set($this->mapping[$key][1], $value);
             $saved[] = $key;
           }
-          elseif($this->mapping[$key][0] == 'callback') {
-            // @todo implement setter
+          elseif($this->mapping[$key][0] == 'settings') {
+            // @todo no setter for Settings
           }
           // variable
           else {
