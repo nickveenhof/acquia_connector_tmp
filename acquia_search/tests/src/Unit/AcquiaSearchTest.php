@@ -44,6 +44,7 @@ class AcquiaSearchTest extends UnitTestCase {
     require_once $extensions['search_api_solr'] . '/vendor/autoload.php';
     unset($extensions);
 
+    $this->searchSubscriber = new SearchSubscriber();
     $this->derivedKey = CryptConnector::createDerivedKey($this->salt, $this->id, $this->key);
   }
 
