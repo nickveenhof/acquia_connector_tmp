@@ -139,7 +139,7 @@ class SpiController extends ControllerBase {
       $additional_data['custom_tests'] = $custom_tests_results;
     }
 
-    $spi_data = \Drupal::moduleHandler()->invokeAll('acquia_spi_get');
+    $spi_data = \Drupal::moduleHandler()->invokeAll('acquia_connector_spi_get');
     if (!empty($spi_data)) {
       foreach ($spi_data as $name => $data) {
         if (is_string($name) && is_array($data)) {

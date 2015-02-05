@@ -8,6 +8,7 @@ use Drupal\Component\Utility\Crypt;
 use Symfony\Component\EventDispatcher\Event;
 use Solarium\Core\Client\Response;
 use Solarium\Exception\HttpException;
+use Drupal\acquia_connector\CryptConnector;
 
 class SearchSubscriber extends Plugin {
 
@@ -151,7 +152,7 @@ class SearchSubscriber extends Plugin {
         $this->derived_key[$env_id] = '';
       }
       elseif (!isset($derived_key[$env_id])) {
-        $this->derived_key[$env_id] = $this->createDerivedKey($derived_key_salt, $identifier, $key);
+        $this->derived_key[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $identifier, $key);
       }
     }
 
@@ -190,18 +191,7 @@ class SearchSubscriber extends Plugin {
     return $salt;
   }
 
-  /**
-   * Derive a key for the solr hmac using a salt, id and key.
-   * @param $salt
-   * @param $id
-   * @param $key
-   * @return string
-   * D7: _acquia_search_create_derived_key().
-   */
-  public function createDerivedKey($salt, $id, $key) {
-    $derivation_string = $id . 'solr' . $salt;
-    return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
-  }
+
 
   /**
    * Creates an authenticator based on a data string and HMAC-SHA1.

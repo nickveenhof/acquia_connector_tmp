@@ -38,4 +38,16 @@ class CryptConnector extends PhpassHashedPassword {
   static function acquiaHash($key, $string) {
     return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
   }
+
+  /**
+   * Derive a key for the solr hmac using a salt, id and key.
+   * @param $salt
+   * @param $id
+   * @param $key
+   * @return string
+   */
+  static function createDerivedKey($salt, $id, $key) {
+    $derivation_string = $id . 'solr' . $salt;
+    return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
+  }
 }
