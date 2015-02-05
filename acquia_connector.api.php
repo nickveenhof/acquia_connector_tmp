@@ -26,7 +26,7 @@
  *
  *    Required format 'string' => array().
  */
-function hook_acquia_spi_get() {
+function hook_acquia_connector_spi_get() {
   $data['example'] = array(
     'result' => TRUE,
     'value' => '9000',
@@ -59,7 +59,7 @@ function hook_acquia_spi_get() {
  *                the Insight score proportionally.
  *
  */
-function hook_acquia_spi_test() {
+function hook_acquia_connector_spi_test() {
   return array(
     'unique_example' => array(
       'description'    => 'This example test is useful.',

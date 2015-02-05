@@ -114,7 +114,7 @@ function acquia_connector_requirements($phase) {
         '@validate' => Url::fromRoute('acquia_connector.test_validate', [], ['absolute' => TRUE])->toString(),
       );
 
-      $modules = \Drupal::moduleHandler()->getImplementations('acquia_spi_test');
+      $modules = \Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test');
       if (empty($modules)) {
         $description = 'No custom tests were detected in any module.<br/>';
         $value       = 'Not implemented (<a href="@help">more information</a>)';
