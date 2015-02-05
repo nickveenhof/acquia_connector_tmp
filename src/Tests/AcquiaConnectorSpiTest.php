@@ -178,7 +178,6 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $spi = new spiControllerTest();
     $spi_data = $spi->get();
     $valid = is_array($spi_data);
-    $this->verbose(print_R($spi_data, TRUE));
     $this->assertTrue($valid, 'spiController::get returns an array');
     if ($valid) {
       foreach ($this->spiDataKeys as $key) {
@@ -307,7 +306,6 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $spi = new spiControllerTest();
     $spi_data = $spi->get();
     $vars = Json::decode($spi_data['system_vars']);
-    $this->verbose(print_r($vars, TRUE));
     $this->assertTrue(empty($vars['acquia_spi_saved_variables']['variables']), 'Have not saved any variables');
     // Set error reporting so variable is saved.
     $edit = array(
@@ -340,13 +338,11 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $set_variables = array('acquia_spi_set_variables_automatic' => 'test_variable');
     $variables->setVariables($set_variables);
     $vars = Json::decode($variables->getVariablesData());
-    $this->verbose(print_r($vars, TRUE));
     $this->assertFalse(isset($vars['test_variable']), 'Using default list of approved list of variables');
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.set_variables_override', TRUE)->save();
     $set_variables = array('acquia_spi_set_variables_automatic' => 'test_variable');
     $variables->setVariables($set_variables);
     $vars = Json::decode($variables->getVariablesData());
-    $this->verbose(print_r($vars, TRUE));
     $this->assertIdentical($vars['acquia_spi_set_variables_automatic'], 'test_variable', 'Altered approved list of variables that can be set');
 
   }
