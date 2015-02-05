@@ -14,12 +14,7 @@ use GuzzleHttp\ClientInterface;
 class Client {
 
   /**
-   * @todo create specific exceptions?
-   *
-   */
-
-  /**
-   * @var \Guzzle\Http\ClientInterface
+   * @var ClientInterface
    */
   protected $client;
 
@@ -103,7 +98,6 @@ class Client {
    *
    * @return array|false or throw Exception
    * @throws \Exception
-   * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
     $body['identifier'] = $id;
@@ -144,7 +138,7 @@ class Client {
     catch (ConnectorException $e) {
       drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
       if ($e->isCustomized()) {
-        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => $e->getAllCustomMessages()));
+        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => json_encode($e->getAllCustomMessages())));
       }
       else {
         \Drupal::logger('acquia connector')->error($e->getMessage());
@@ -180,6 +174,10 @@ class Client {
     return FALSE;
   }
 
+  /**
+   * @param $apiEndpoint
+   * @return array|bool|false
+   */
   public function getDefinition($apiEndpoint) {
     try {
       return $this->request('GET', $apiEndpoint, array());
@@ -237,13 +235,14 @@ class Client {
     catch (\Exception $e) {
       $custom_error_message = [];
       // Provide custom error from the server.
-      try {
-        $error_response = $e->getResponse();
-        if ($error_response) {
-          $custom_error_message = $error_response->json();
-        }
+      if (method_exists($e, 'getResponse')) {
+        try {
+          $error_response = $e->getResponse();
+          if ($error_response) {
+            $custom_error_message = $error_response->json();
+          }
+        } catch (\Exception $parseException) {}
       }
-      catch (\Exception $parseException) {}
       throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
     }
 
@@ -257,7 +256,7 @@ class Client {
    * @params array $params Optional parameters to include.
    *   'identifier' - Network Identifier
    *
-   * @return string
+   * @return array
    */
   protected function buildAuthenticator($key, $params = array()) {
     $authenticator = array();
@@ -282,7 +281,6 @@ class Client {
    * @param string $nonce
    * @param array $params
    * @return string
-   * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
     $string = $time . ':' . $nonce;
@@ -304,8 +302,8 @@ class Client {
    * @param string $method
    * @param array $params
    * @param string $key or NULL
-   * @return array or throw Exception
-   * D7: acquia_agent_call().
+   * @return array
+   * @throws ConnectorException
    */
   public function nspiCall($method, $params, $key = NULL) {
     if (empty($key)) {
@@ -313,9 +311,8 @@ class Client {
       $key = $config->get('key');
     }
     $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
-    // @todo: Remove $_SERVER
-    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
-    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
+    $ip = \Drupal::request()->server->get('SERVER_ADDR', '');
+    $host = \Drupal::request()->server->get('HTTP_HOST', '');
     $ssl = \Drupal::request()->isSecure();
     $data = array(
       'authenticator' => $this->buildAuthenticator($key, $params),

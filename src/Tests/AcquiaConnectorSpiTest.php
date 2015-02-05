@@ -64,7 +64,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'toolbar', 'devel', 'acquia_connector_test', 'node'); //@todo rmove devel
+  public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test', 'node');
 
   /**
    * {@inheritdoc}
@@ -296,7 +296,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
 
     $this->drupalGet($this->status_report_url);
     $this->clickLink($this->acquiaSPIStrings('spi-send-text'));
-    $this->assertText(ACQUIA_SPI_METHOD_CALLBACK, 'NSPI messages printed on status page'); //@todo need replace on constant
+    $this->assertText(ACQUIA_SPI_METHOD_CALLBACK, 'NSPI messages printed on status page');
   }
 
   /**

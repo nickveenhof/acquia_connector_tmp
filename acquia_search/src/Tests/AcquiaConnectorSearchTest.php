@@ -32,7 +32,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'search_api', 'search_api_solr', 'toolbar', 'acquia_connector_test', 'node', 'devel'); //@todo devel
+  public static $modules = array('acquia_connector', 'search_api', 'search_api_solr', 'toolbar', 'acquia_connector_test', 'node');
 
 
   /**

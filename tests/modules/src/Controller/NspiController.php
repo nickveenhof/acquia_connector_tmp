@@ -64,11 +64,12 @@ class NspiController extends ControllerBase {
         return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
       }
       if ($data['authenticator']['identifier'] == self::ACQTEST_ERROR_ID) {
-        return new JsonResponse(FALSE); //@todo need review
+        return new JsonResponse(FALSE);
       }
       else {
         $result = $this->validateAuthenticator($data);
-        $data['body']['spi_def_update'] = TRUE; //@todo need for update definition
+        // Needs for update definition
+        $data['body']['spi_def_update'] = TRUE;
         $spi_data = $data['body'];
         $result['body'] = array('spi_data_received' => TRUE);
         if (isset($spi_data['spi_def_update'])) {
@@ -108,7 +109,6 @@ class NspiController extends ControllerBase {
    */
   public function getCommunicationSettings(Request $request) {
     $data = json_decode($request->getContent(), TRUE);
-    //\Drupal::logger('getCommunicationSettings')->info(print_r($data, TRUE));//todo
     $fields = array(
       'time' => 'is_numeric',
       'nonce' => 'is_string',
@@ -128,15 +128,12 @@ class NspiController extends ControllerBase {
     if (empty($account) || $account->isAnonymous()) {
       return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
-    else {
-      $result = array(
-        'algorithm' => 'sha512',
-        'hash_setting' => substr($account->getPassword(), 0, 12),
-        'extra_md5' => FALSE,
-      );
-      return new JsonResponse($result);
-    }
-    //return new JsonResponse(array('TRUE')); //@todo
+    $result = array(
+      'algorithm' => 'sha512',
+      'hash_setting' => substr($account->getPassword(), 0, 12),
+      'extra_md5' => FALSE,
+    );
+    return new JsonResponse($result);
   }
 
   /**
