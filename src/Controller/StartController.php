@@ -16,7 +16,7 @@ use Drupal\Core\Url;
 class StartController extends ControllerBase {
 
   /**
-   * @todo.
+   * Callback for acquia_connector.start route.
    */
   public function info() {
     $build = array();
@@ -30,7 +30,7 @@ class StartController extends ControllerBase {
     $banner = array(
       '#theme' => 'image',
       '#attributes' => array(
-        'src' => Url::fromUri('base://' . $path . '/images/action.png', array('absolute' => TRUE))->toString(),
+        'src' => Url::fromUri('base:' . $path . '/images/action.png', array('absolute' => TRUE))->toString(),
       ),
     );
     $uri = Url::fromRoute('acquia_connector.setup', array(), array('absolute' => TRUE))->toString();
@@ -47,7 +47,7 @@ class StartController extends ControllerBase {
     $image = array(
       '#theme' => 'image',
       '#attributes' => array(
-        'src' => Url::fromUri('base://' . $path . '/images/icon-library.png', array('absolute' => TRUE))->toString(),
+        'src' => Url::fromUri('base:' . $path . '/images/icon-library.png', array('absolute' => TRUE))->toString(),
       ),
     );
     $output .=     '<a href="http://library.acquia.com/" target="_blank">' . render($image) . '</a>';
@@ -58,7 +58,7 @@ class StartController extends ControllerBase {
     $image = array(
       '#theme' => 'image',
       '#attributes' => array(
-        'src' => Url::fromUri('base://' . $path . '/images/icon-tools.png', array('absolute' => TRUE))->toString(),
+        'src' => Url::fromUri('base:' . $path . '/images/icon-tools.png', array('absolute' => TRUE))->toString(),
       ),
     );
     $output .=     '<a href="http://www.acquia.com/products-services/acquia-network/cloud-services" target="_blank">' . render($image) . '</a>';
@@ -69,7 +69,7 @@ class StartController extends ControllerBase {
     $image = array(
       '#theme' => 'image',
       '#attributes' => array(
-        'src' => Url::fromUri('base://' . $path . '/images/icon-support.png', array('absolute' => TRUE))->toString(),
+        'src' => Url::fromUri('base:' . $path . '/images/icon-support.png', array('absolute' => TRUE))->toString(),
       ),
     );
     $output .=     '<a href="http://www.acquia.com/drupal-support" target="_blank">' . render($image) . '</a>';
@@ -88,6 +88,5 @@ class StartController extends ControllerBase {
 
     return $build;
   }
-
 
 }

@@ -48,7 +48,7 @@ class MigrateForm extends ConfigFormBase {
     }
     catch (ConnectorException $e) {
       if ($e->isCustomized()) {
-        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        acquia_connector_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         return $this->redirect('acquia_connector.settings');;
       }
       $error = $this->t('Server error, please submit again.');
@@ -57,10 +57,10 @@ class MigrateForm extends ConfigFormBase {
     if (!empty($data['result'])) {
       // Response is in $data['result'].
       $result = $data['result'];
-      if (!empty($result['is_error'])) {  // @todo - review at nspi side
+      if (!empty($result['is_error'])) {
         $error = $this->t('Server error, unable to retrieve environments for migration');
       }
-      elseif (!empty($result['body']['error'])) {  // @todo - review at nspi side
+      elseif (!empty($result['body']['error'])) {
         $error = $result['body']['error'];
       }
       elseif (empty($result['body']['environments'])) {
@@ -104,7 +104,7 @@ class MigrateForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => $this->t('Migrate files directory'),
       '#description' => $this->t('Include files directory and all files in migration. If you are experiencing migration errors it is recommended you do not send the files directory.'),
-      '#default_value' => $config->get('migrate_files'),
+      '#default_value' => $config->get('migrate.files'),
     );
     $form['reduce_db_size'] = array(
       '#type' => 'checkbox',
@@ -197,14 +197,16 @@ class MigrateForm extends ConfigFormBase {
    *   The name of the route to which to redirect.
    * @param array $route_parameters
    *   Parameters for the route.
+   * @param array $options
+   *   Options for the route.
    * @param int $status
    *   The HTTP redirect status code for the redirect. The default is 302 Found.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   A redirect response object that may be returned by the controller.
    */
-  protected function redirect($route_name, array $route_parameters = array(), array $options = array(), $status = 302) {
-    $url = Url::fromRoute($route_name, $route_parameters, array('absolute' => TRUE))->toString();
+  protected function redirect($route_name, array $route_parameters = [], array $options = ['absolute' => TRUE], $status = 302) {
+    $url = Url::fromRoute($route_name, $route_parameters, $options)->toString();
     return new RedirectResponse($url, $status);
   }
 

@@ -14,12 +14,7 @@ use GuzzleHttp\ClientInterface;
 class Client {
 
   /**
-   * @todo create specific exceptions?
-   *
-   */
-
-  /**
-   * @var \Guzzle\Http\ClientInterface
+   * @var ClientInterface
    */
   protected $client;
 
@@ -103,7 +98,6 @@ class Client {
    *
    * @return array|false or throw Exception
    * @throws \Exception
-   * D7: acquia_agent_get_subscription
    */
   public function getSubscription($id, $key, array $body = array()) {
     $body['identifier'] = $id;
@@ -132,13 +126,19 @@ class Client {
     try {
       $response = $this->nspiCall('/agent-api/subscription', $body);
       if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
-        return $subscription + $response['result']['body'];
+        $subscription += $response['result']['body'];
+        // Subscription activated.
+        if (is_numeric($this->config->get('subscription_data')) && is_array($response['result']['body'])) {
+          \Drupal::moduleHandler()->invokeAll('acquia_subscription_status', [$subscription]);
+          \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('subscription_data', $subscription)->save();
+        }
+        return $subscription;
       }
     }
     catch (ConnectorException $e) {
       drupal_set_message(t('Error occurred while retrieving Acquia subscription information. See logs for details.'), 'error');
       if ($e->isCustomized()) {
-        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => $e->getAllCustomMessages()));
+        \Drupal::logger('acquia connector')->error($e->getCustomMessage() . '. Response data: @data', array('@data' => json_encode($e->getAllCustomMessages())));
       }
       else {
         \Drupal::logger('acquia connector')->error($e->getMessage());
@@ -161,8 +161,6 @@ class Client {
    */
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
-    dpm('sendNspi $body: ');  // @todo: remove debug
-    dpm($body);               // @todo: remove debug
 
     try{
       $response = $this->nspiCall('/spi-api/site', $body);
@@ -176,6 +174,10 @@ class Client {
     return FALSE;
   }
 
+  /**
+   * @param $apiEndpoint
+   * @return array|bool|false
+   */
   public function getDefinition($apiEndpoint) {
     try {
       return $this->request('GET', $apiEndpoint, array());
@@ -216,7 +218,7 @@ class Client {
     $uri = $this->server . $path;
     $options = array(
       'headers' => $this->headers,
-      'json' => json_encode($data),
+      'body' => json_encode($data),
     );
 
     try {
@@ -233,13 +235,14 @@ class Client {
     catch (\Exception $e) {
       $custom_error_message = [];
       // Provide custom error from the server.
-      try {
-        $error_response = $e->getResponse();
-        if ($error_response) {
-          $custom_error_message = $error_response->json();
-        }
+      if (method_exists($e, 'getResponse')) {
+        try {
+          $error_response = $e->getResponse();
+          if ($error_response) {
+            $custom_error_message = $error_response->json();
+          }
+        } catch (\Exception $parseException) {}
       }
-      catch (\Exception $parseException) {}
       throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
     }
 
@@ -253,7 +256,7 @@ class Client {
    * @params array $params Optional parameters to include.
    *   'identifier' - Network Identifier
    *
-   * @return string
+   * @return array
    */
   protected function buildAuthenticator($key, $params = array()) {
     $authenticator = array();
@@ -278,26 +281,10 @@ class Client {
    * @param string $nonce
    * @param array $params
    * @return string
-   * D7: _acquia_agent_hmac
    */
   protected function hash($key, $time, $nonce, $params = array()) {
-    // @todo: should we remove this method for D8?
-    if (empty($params['rpc_version']) || $params['rpc_version'] < 2) {
-      $string = $time . ':' . $nonce . ':' . $key . ':' . serialize($params);
-
-      return base64_encode(
-        pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) .
-        pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) .
-        $string)))));
-    }
-    // @todo: should we remove this method for D8?
-    elseif ($params['rpc_version'] == 2) {
-      $string = $time . ':' . $nonce . ':' . json_encode($params);
-      return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
-    }
-
     $string = $time . ':' . $nonce;
-    return sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
+    return CryptConnector::acquiaHash($key, $string);
   }
 
   /**
@@ -315,19 +302,17 @@ class Client {
    * @param string $method
    * @param array $params
    * @param string $key or NULL
-   * @return array or throw Exception
-   * D7: acquia_agent_call().
+   * @return array
+   * @throws ConnectorException
    */
   public function nspiCall($method, $params, $key = NULL) {
-    dpm('Method called: ' . $method); // @todo: remove debug
     if (empty($key)) {
       $config = \Drupal::config('acquia_connector.settings');
       $key = $config->get('key');
     }
     $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
-    // @todo: Remove $_SERVER
-    $ip = isset($_SERVER["SERVER_ADDR"]) ? $_SERVER["SERVER_ADDR"] : '';
-    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : '';
+    $ip = \Drupal::request()->server->get('SERVER_ADDR', '');
+    $host = \Drupal::request()->server->get('HTTP_HOST', '');
     $ssl = \Drupal::request()->isSecure();
     $data = array(
       'authenticator' => $this->buildAuthenticator($key, $params),

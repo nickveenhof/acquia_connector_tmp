@@ -99,7 +99,6 @@ class CredentialForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-//    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));  // @todo: remove the line.
     try {
       $response = $this->client->nspiCall(
         '/agent-api/subscription',
@@ -109,7 +108,12 @@ class CredentialForm extends ConfigFormBase {
     catch (ConnectorException $e) {
       // Set form error to prevent switching to the next page.
       if ($e->isCustomized()) {
-        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        // Allow to connect with expired subscription
+        if ($e->getCustomMessage('code') == Subscription::EXPIRED) {
+          $form_state->setValue('subscription', 'Expired subscription.');
+          return;
+        }
+        acquia_connector_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $form_state->setErrorByName('');
       }
       else {
@@ -141,8 +145,7 @@ class CredentialForm extends ConfigFormBase {
 
     // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
     // Our status gets updated locally via the return data.
-    $subscription_class = new Subscription();
-    $subscription = $subscription_class->update();
+    $subscription = Subscription::update();
 
     // Redirect to the path without the suffix.
     $form_state->setRedirect('acquia_connector.settings');

@@ -17,8 +17,7 @@ function acquia_search_requirements($phase) {
   // API means install.php calls hook_requirements for every module in a profile.
   if ($phase == 'install' && (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'install')) {
     if (class_exists('Drupal\acquia_connector\Subscription')) {
-      $subscription = new Subscription();
-      if ($subscription->hasCredentials()) {
+      if (Subscription::hasCredentials()) {
         $severity = REQUIREMENT_OK;
       }
       else {
@@ -71,14 +70,11 @@ function acquia_search_requirements($phase) {
  * Implements hook_install().
  */
 function acquia_search_install() {
-  $subscription = new Subscription();
   // Send a heartbeat so the Acquia Network knows the module is enabled.
   // This causes an invocation of hook_acquia_subscription_status() which is
   // implemented in this module to set up the environment.
   _acquia_search_set_version();
-//  module_load_include('module', 'acquia_search');
-  $subscription->update();
-//  acquia_search_acquia_subscription_status($subscription->update());
+  Subscription::update();
 }
 
 /**

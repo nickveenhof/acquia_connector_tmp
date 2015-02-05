@@ -11,14 +11,13 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Path;
-use Drupal\Core\StreamWrapper\PrivateStream;
 use Drupal\Core\Url;
 use Drupal\acquia_connector\Subscription;
 use Drupal\acquia_connector\Controller;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Drupal\Core\StreamWrapper\PublicStream;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
  * Init (i.e., hook_init()) subscriber that displays a message asking you to join
@@ -108,14 +107,13 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $credentials = new Subscription();
     // Check that there are no Acquia credentials currently set up.
-    if ($credentials->hasCredentials()) {
+    if (Subscription::hasCredentials()) {
       return;
     }
 
     // Display a message asking to connect to the Acquia Network.
-    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="@acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="@settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Network modules.';
+    $text = 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices. Check out the <a href="@acquia-free">epic set of dev features and tools</a> that come with your free subscription.<br/>If you have an Acquia Network subscription, <a href="@settings">connect now</a>. Otherwise, you can turn this message off by disabling the Acquia Connector modules.';
     if (\Drupal::request()->server->has('AH_SITE_GROUP')) {
       $text = '<a href="@settings">Connect your site to the Acquia Network now</a>. <a href="@more">Learn more</a>.';
     }
@@ -130,12 +128,39 @@ class InitSubscriber implements EventSubscriberInterface {
   }
 
   /**
+   * Refresh subscription information.
+   * @param \Symfony\Component\HttpKernel\Event\FilterControllerEvent $event
+   */
+  public function onKernelController(FilterControllerEvent $event) {
+    if ($event->getRequest()->attributes->get('_route') != 'update.manual_status') {
+      return;
+    }
+
+    $controller = $event->getController();
+    /*
+     * $controller passed can be either a class or a Closure.
+     * This is not usual in Symfony but it may happen.
+     * If it is a class, it comes in array format
+     */
+    if (!is_array($controller)) {
+      return;
+    }
+
+    if ($controller[0] instanceof \Drupal\update\Controller\UpdateController) {
+      // Refresh subscription information, so we are sure about our update status.
+      // We send a heartbeat here so that all of our status information gets
+      // updated locally via the return data.
+      Subscription::update();
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    $events[KernelEvents::REQUEST][] = array('onKernelRequest');
+    $events[KernelEvents::REQUEST][] = ['onKernelRequest'];
+    $events[KernelEvents::CONTROLLER][] = ['onKernelController'];
     return $events;
   }
 
 }
-

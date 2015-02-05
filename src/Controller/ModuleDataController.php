@@ -8,6 +8,7 @@
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\acquia_connector\Subscription;
+use Drupal\acquia_connector\CryptConnector;
 use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
@@ -23,7 +24,6 @@ class ModuleDataController extends ControllerBase {
 
   /**
    * Send a file's contents to the requestor
-   * D7: acquia_spi_send_module_data
    */
   public function sendModuleData($data = array()) {
     $request = \Drupal::request();
@@ -57,7 +57,6 @@ class ModuleDataController extends ControllerBase {
    * @param $data
    * @param $message
    * @return bool
-   * D7: acquia_spi_valid_request
    */
   public function isValidRequest($data, $message) {
     $key = $this->config('acquia_connector.settings')->get('key');
@@ -65,7 +64,7 @@ class ModuleDataController extends ControllerBase {
       return FALSE;
     }
     $string = $data['authenticator']['time'] . ':' . $data['authenticator']['nonce'] . ':' . $message;
-    $hash = sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x5c), 64))) . pack("H*", sha1((str_pad($key, 64, chr(0x00)) ^ (str_repeat(chr(0x36), 64))) . $string)));
+    $hash = CryptConnector::acquiaHash($key, $string);
     if ($hash == $data['authenticator']['hash']) {
       return TRUE;
     }
@@ -88,8 +87,7 @@ class ModuleDataController extends ControllerBase {
     }
 
     if ($this->config('acquia_connector.settings')->get('spi.module_diff_data') && $via_ssl) {
-      $subscription = new Subscription();
-      if ($subscription->hasCredentials() && isset($data['body']['file']) && $this->isValidRequest($data, $data['body']['file'])) {
+      if (Subscription::hasCredentials() && isset($data['body']['file']) && $this->isValidRequest($data, $data['body']['file'])) {
         return AccessResultAllowed::allowed();
       }
 

@@ -21,6 +21,7 @@ acquia_connector_test.subscription:
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
     _format: json
+
 acquia_connector_test.migration_environments:
   path: '/agent-migrate-api/subscription/migration/environments'
   defaults:
@@ -28,12 +29,14 @@ acquia_connector_test.migration_environments:
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
     _format: json
+
 acquia_connector_test.migration_test_upload:
   path: '/system/acquia-connector-test-upload/{id}'
   defaults:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::testMigrationUpload'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
+
 acquia_connector_test.migration_complete:
   path: '/agent-migrate-api/subscription/migration/complete'
   defaults:
@@ -41,6 +44,7 @@ acquia_connector_test.migration_complete:
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
     _format: json
+
 acquia_connector_test.nspi_update:
   path: '/spi-api/site'
   defaults:
@@ -48,6 +52,7 @@ acquia_connector_test.nspi_update:
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
     _format: json
+
 acquia_connector_test.spi_defenition:
   path: '/spi_def/get/{version}'
   defaults:
@@ -55,8 +60,3 @@ acquia_connector_test.spi_defenition:
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
     _format: json
-    _format: json
-
-
-
-

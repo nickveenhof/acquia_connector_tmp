@@ -109,10 +109,10 @@ class SettingsForm extends ConfigFormBase {
       $this->client->getSubscription($identifier, $key);
     }
     catch (ConnectorException $e) {
-      $error_message = acquia_connector_connection_error_message($e->getCustomMessage('code'));
-      $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.verify_peer');
+      $error_message = acquia_connector_connection_error_message($e->getCustomMessage('code', FALSE));
+      $ssl_available = in_array('ssl', stream_get_transports(), TRUE) && !defined('ACQUIA_DEVELOPMENT_NOSSL') && $config->get('spi.ssl_verify');
       if (empty($error_message) && $ssl_available) {
-        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_connector.settings:spi.verify_peer to false.');
+        $error_message = $this->t('There was an error in validating your subscription credentials. You may want to try disabling SSL peer verification by setting the variable acquia_connector.settings:spi.ssl_verify to false.');
       }
       drupal_set_message($error_message, 'error', FALSE);
     }
@@ -199,7 +199,7 @@ class SettingsForm extends ConfigFormBase {
       $form['connection']['acquia_dynamic_banner'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Receive updates from Acquia Network'),
-        '#default_value' => $config->get('acquia_dynamic_banner'),
+        '#default_value' => $config->get('dynamic_banner'),
       );
       $form['connection']['alter_variables'] = array(
         '#type' => 'checkbox',
@@ -222,7 +222,7 @@ class SettingsForm extends ConfigFormBase {
 
       $form['connection']['use_cron_url'] = array(
         '#type' => 'container',
-        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>!url</em>', array('!url' => $url)),
+        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>@url</em>', array('@url' => $url)),
         '#states' => array(
           'visible' => array(
             ':input[name="use_cron"]' => array('checked' => FALSE),
@@ -241,7 +241,7 @@ class SettingsForm extends ConfigFormBase {
     $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $values = $form_state->getValues();
     $config->set('module_diff_data', $values['module_diff_data'])
-      ->set('acquia_dynamic_banner', $values['acquia_dynamic_banner'])
+      ->set('dynamic_banner', $values['acquia_dynamic_banner'])
       ->set('admin_priv', $values['admin_priv'])
       ->set('send_node_user', $values['send_node_user'])
       ->set('send_watchdog', $values['send_watchdog'])

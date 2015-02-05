@@ -1,13 +1,17 @@
 <?php
+
 /**
  * @file
- * Drush integration for the acquia_spi module.
+ * Drush integration for the acquia connector module.
  */
+
+use Drupal\acquia_connector\Controller\SpiController;
+use Drupal\acquia_connector\Controller\TestStatusController;
 
 /**
  * Implements hook_drush_command().
  */
-function acquia_spi_drush_command() {
+function acquia_connector_drush_command() {
   $items = array();
   $items['spi-get'] = array(
     'description' => dt('Output raw Acquia SPI data.'),
@@ -18,9 +22,10 @@ function acquia_spi_drush_command() {
     'examples' => array(
       'spi-get --format=json --outfile=spi.json' => 'Write JSON encoded SPI data to spi.json in current directory.',
     ),
+    'drupal dependencies' => array('acquia_connector')
   );
   $items['spi-test-validate'] = array(
-    'callback'    => 'drush_acquia_spi_custom_test_validate',
+    'callback'    => 'drush_acquia_connector_custom_test_validate',
     'description' => dt('Perform a validation check on any modules with Acquia SPI custom tests.'),
     'aliases'     => array('spi-tv'),
   );
@@ -30,21 +35,15 @@ function acquia_spi_drush_command() {
 /**
  * Implementation of hook_drush_help().
  */
-function acquia_spi_drush_help($section) {
+function acquia_connector_drush_help($section) {
   switch ($section) {
     case 'drush:spi-get':
-      return dt("Output raw Acquia SPI data.
- NOTE: If the Acquia SPI module is not enabled or installed, execute with:
-   drush -i !spidir
- ", array('!spidir' => dirname(__FILE__)));
+      return dt("Output raw Acquia SPI data. NOTE: If the Acquia Connector module is not enabled or installed, execute with: drush -i !spidir", array('!spidir' => dirname(__FILE__)));
   }
 }
 
-/**
- * SPI get callback.
- */
-function drush_acquia_spi_spi_get() {
-  $raw_spi = _acquia_spi_drush_get();
+function drush_acquia_connector_spi_get(){
+  $raw_spi = _acquia_connector_drush_get();
   switch (drush_get_option('format','print_r')) {
     case 'json':
       $spi = drush_json_encode($raw_spi);
@@ -73,39 +72,44 @@ function drush_acquia_spi_spi_get() {
 }
 
 /**
- * If the Acquia SPI module is not enabled, include acquia_spi.module.
+ * If the Acquia Connector module is not enabled, include acquia_connector.module.
  *
  * HINT: invoke drush with the --include option pointing module folder,
  * otherwise drush will not execute spi-get.
  */
-function _acquia_spi_drush_get() {
+function _acquia_connector_drush_get() {
   global $conf;
-  $conf['acquia_spi_ssl_override'] = TRUE;
-  if (!function_exists('acquia_spi_get')) {
-    drush_include(dirname(__FILE__), 'acquia_spi', drush_drupal_major_version(), 'module');
+  $conf['acquia_connector.settings']['spi']['ssl_verify'] = FALSE;
+  $conf['acquia_connector.settings']['spi']['ssl_override'] = TRUE;
+
+  $client = \Drupal::service('acquia_connector.client');
+  $spi = new SpiController($client);
+
+  if(!method_exists($spi, 'get')){
+    drush_print(t('Method get not implement'));
   }
-  if (!function_exists('acquia_agent_load_versions')) {
-    drush_include(dirname(dirname(__FILE__)) . '/acquia_agent', 'acquia_agent', drush_drupal_major_version(), 'module');
+  if (!function_exists('acquia_connector_load_versions')) {
+    drush_include(dirname(dirname(__FILE__)) . '/acquia_connector', 'acquia_connector', drush_drupal_major_version(), 'module');
   }
-  return acquia_spi_get();
+  return $spi->get();
 }
 
 /**
  * A command callback and drush wrapper for custom test validation.
  *
  */
-function drush_acquia_spi_custom_test_validate() {
-
+function drush_acquia_connector_custom_test_validate() {
   $pass = array();
   $failure = array();
 
-  $modules = module_implements('acquia_spi_test');
+  $modules = \Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test');
   drush_print_r(dt("Acquia SPI custom tests were detected in: @modules \n", array('@modules' => implode(', ', $modules))));
 
-  foreach (module_implements('acquia_spi_test') as $module) {
-    $function = $module . '_acquia_spi_test';
+  foreach (\Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test') as $module) {
+    $function = $module . '_acquia_connector_spi_test';
     if (function_exists($function)) {
-      $result = acquia_spi_test_validate($function());
+      $testStatus = new TestStatusController();
+      $result = $testStatus->testValidate($function());
 
       if (!$result['result']) {
         $failure[] = $module;
@@ -122,7 +126,7 @@ function drush_acquia_spi_custom_test_validate() {
               '!value'       => $test_value['value'],
             );
             drush_print_r(dt("[DETAILS] @message for parameter '!param_name'; current value '!value'. (Test !test_name in module !module_name)", $variables));
-            watchdog('acquia spi test', "<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables);
+            watchdog('acquia connector spi test', "<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables);
           }
         }
       }

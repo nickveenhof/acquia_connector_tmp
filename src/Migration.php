@@ -7,7 +7,6 @@
 
 namespace Drupal\acquia_connector;
 
-use Guzzle\Http\ClientInterface;
 use GuzzleHttp\Post\PostFile;
 use Drupal\Core\Url;
 use Drupal\Core\DrupalKernel;
@@ -48,6 +47,7 @@ class Migration {
    *
    * @param array $environment
    *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
+   * @return array $migration
    */
   public function prepare($environment) {
     // Internal migration store is an array because objects cannot be stored
@@ -113,7 +113,7 @@ class Migration {
    * Create temporary directory and setup file for migration.
    */
   public function destination(&$migration) {
-    $tmp_dir = drupal_realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files') . DIRECTORY_SEPARATOR . 'acquia_migrate' . $migration['id'];
+    $tmp_dir = \Drupal::service('file_system')->realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files') . DIRECTORY_SEPARATOR . 'acquia_migrate' . $migration['id'];
     if (!mkdir($tmp_dir) || !is_writable($tmp_dir)) {
       $migration['error'] = t('Cannot create temporary directory !dir to store site archive.', array('!dir' => $tmp_dir));
       return;
@@ -125,9 +125,11 @@ class Migration {
   /**
    * Test migration setup and destination.
    *
-   * @param Array of migration information.
+   * @param array
+   *  Array of migration information.
    *
-   * @return boolean Whether migration can continue.
+   * @return boolean
+   *  Whether migration can continue.
    */
   public function testSetup(&$migration) {
     $url = $migration['env']['url'];
@@ -172,7 +174,7 @@ class Migration {
     }
     catch (ConnectorException $e) {
       if ($e->getCustomMessage('code')) {
-        acquia_connect_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
+        acquia_connector_report_restapi_error($e->getCustomMessage('code'), $e->getCustomMessage());
         $migration['error'] = TRUE;
         return;
       }
@@ -191,6 +193,10 @@ class Migration {
     return $migration;
   }
 
+  /**
+   * @param $migration
+   * @param $context
+   */
   public function batchTest($migration, &$context) {
     $this->processSetup();
     // Latest migration might be in $context.
@@ -211,6 +217,10 @@ class Migration {
     $context['message'] = t('Testing migration capabilities');
   }
 
+  /**
+   * @param $migration
+   * @param $context
+   */
   public function batchDb($migration, &$context) {
     $this->processSetup();
     // Latest migration might be in $context.
@@ -231,6 +241,10 @@ class Migration {
     $context['message'] = t('Exported database. Archiving files.');
   }
 
+  /**
+   * @param $migration
+   * @param $context
+   */
   public function batchTar($migration, &$context) {
     $this->processSetup();
 
@@ -253,6 +267,10 @@ class Migration {
     $context['message'] = t('Created archive. Beginning transfer.');
   }
 
+  /**
+   * @param $migration
+   * @param $context
+   */
   public function batchTransmit($migration, &$context) {
     $this->processSetup();
 
@@ -350,7 +368,7 @@ class Migration {
     $exclude[] = basename($migration['dir']);
 
     if (!\Drupal::config('acquia_connector.settings')->get('migrate.files')) {
-      $exclude[] = drupal_realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files');
+      $exclude[] = \Drupal::service('file_system')->realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files');
     }
 
     return $exclude;
@@ -593,6 +611,9 @@ class Migration {
 
   /**
    * Recursive function to find files to archive.
+   * @param $directory
+   * @param $exclude
+   * @return array
    */
   public function filesToBackup($directory, $exclude) {
     $array_items = array();
@@ -619,16 +640,18 @@ class Migration {
 
   /**
    * Remove database file created for migration.
+   * @param $migration
    */
   protected function cleanupDb(&$migration) {
     if (isset($migration['db_file'])) {
-      drupal_unlink($migration['db_file']);
+      \Drupal::service('file_system')->unlink($migration['db_file']);
       unset($migration['db_file']);
     }
   }
 
   /**
    * Remove files and directory created for migration.
+   * @param $migration
    */
   public function cleanup(&$migration) {
     if (isset($migration['db_file'])) {
@@ -636,7 +659,7 @@ class Migration {
     }
 
     if (isset($migration['tar_file'])) {
-      drupal_unlink($migration['tar_file']);
+      \Drupal::service('file_system')->unlink($migration['tar_file']);
       unset($migration['tar_file']);
     }
 
@@ -645,12 +668,12 @@ class Migration {
         // Files leftover in directory, reconstruct names and remove.
         $db_file = $migration['file'] . '.sql';
         if (file_exists($db_file)) {
-          drupal_unlink($db_file);
+          \Drupal::service('file_system')->unlink($db_file);
         }
         $tar_file = $migration['file'] . '.tar';
         $tar_file .= !empty($migration['compression_ext']) ? '.' . $migration['compression_ext'] : '';
         if (file_exists($tar_file)) {
-          drupal_unlink($tar_file);
+          \Drupal::service('file_system')->unlink($tar_file);
         }
         rmdir($migration['dir']);
       }

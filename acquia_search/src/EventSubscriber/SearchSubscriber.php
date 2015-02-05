@@ -8,6 +8,7 @@ use Drupal\Component\Utility\Crypt;
 use Symfony\Component\EventDispatcher\Event;
 use Solarium\Core\Client\Response;
 use Solarium\Exception\HttpException;
+use Drupal\acquia_connector\CryptConnector;
 
 class SearchSubscriber extends Plugin {
 
@@ -58,7 +59,6 @@ class SearchSubscriber extends Plugin {
     if($response->getStatusCode() != 200) {
       throw new HttpException($response->getStatusMessage());
     }
-    // @todo: Get all endpoint responses without authorisation cooke.
     if ($event->getRequest()->getHandler() == 'admin/ping') {
       return;
     }
@@ -67,7 +67,9 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Validate the hmac for the response body.
-   *
+   * @param $response
+   * @param $nonce
+   * @param $url
    * @return Solarium\Core\Client\Response
    * @throws \Exception
    */
@@ -80,23 +82,10 @@ class SearchSubscriber extends Plugin {
   }
 
   /**
-   * Validate the authenticity of returned data using a nonce and HMAC-SHA1.
-   *
-   * @return bool
-   * D7: acquia_search_valid_response()
-   */
-  public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
-    if (empty($derived_key)) {
-      $derived_key = $this->getDerivedKey($env_id);
-    }
-    return $hmac == hash_hmac('sha1', $nonce . $string, $derived_key);
-  }
-
-  /**
    * Look in the headers and get the hmac_digest out
    *
+   * @param $headers
    * @return string hmac_digest
-   * D7: acquia_search_extract_hmac()
    */
   public function extractHmac($headers) {
     $reg = array();
@@ -111,8 +100,27 @@ class SearchSubscriber extends Plugin {
   }
 
   /**
+   * Validate the authenticity of returned data using a nonce and HMAC-SHA1.
+   *
+   * @return bool
+   * @param $hmac
+   * @param $nonce
+   * @param $string
+   * @param null $derived_key
+   * @param null $env_id
+   * @return bool
+   */
+  public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
+    if (empty($derived_key)) {
+      $derived_key = $this->getDerivedKey($env_id);
+    }
+    return $hmac == hash_hmac('sha1', $nonce . $string, $derived_key);
+  }
+
+  /**
    * Get the derived key for the solr hmac using the information shared with acquia.com.
-   * D7: _acquia_search_derived_key().
+   * @param null $env_id
+   * @return mixed
    */
   public function getDerivedKey($env_id = NULL) {
     if (empty($env_id)) {
@@ -140,7 +148,7 @@ class SearchSubscriber extends Plugin {
         $this->derived_key[$env_id] = '';
       }
       elseif (!isset($derived_key[$env_id])) {
-        $this->derived_key[$env_id] = $this->createDerivedKey($derived_key_salt, $identifier, $key);
+        $this->derived_key[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $identifier, $key);
       }
     }
 
@@ -164,10 +172,9 @@ class SearchSubscriber extends Plugin {
    *   The derived key salt.
    *
    * @see http://drupal.org/node/1784114
-   * D7: acquia_search_derived_key_salt().
    */
   public function getDerivedKeySalt() {
-    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt'); // D7: acquia_search_derived_key_salt
+    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt');
     if (!$salt) {
       // If the variable doesn't exist, set it using the subscription data.
       $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
@@ -180,16 +187,12 @@ class SearchSubscriber extends Plugin {
   }
 
   /**
-   * Derive a key for the solr hmac using a salt, id and key.
-   * D7: _acquia_search_create_derived_key().
-   */
-  public function createDerivedKey($salt, $id, $key) {
-    $derivation_string = $id . 'solr' . $salt;
-    return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
-  }
-  /**
    * Creates an authenticator based on a data string and HMAC-SHA1.
-   * D7: acquia_search_authenticator().
+   * @param $string
+   * @param $nonce
+   * @param null $derived_key
+   * @param null $env_id
+   * @return string
    */
   public function calculateAuthCookie($string, $nonce, $derived_key = NULL, $env_id = NULL) {
     if (empty($derived_key)) {

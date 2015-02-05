@@ -6,25 +6,26 @@
 
 namespace Drupal\acquia_connector_test\Controller;
 
-//use SebastianBergmann\Exporter\Exception;
 use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
-use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\acquia_connector\Client;
-use Drupal\Core\Url;
+use Drupal\acquia_connector\CryptConnector;
 
-
+/**
+ * Class NspiController
+ * @package Drupal\acquia_connector_test\Controller
+ */
 class NspiController extends ControllerBase {
 
   protected $data = array();
 
   const ACQTEST_SUBSCRIPTION_NOT_FOUND = 1000;
   const ACQTEST_SUBSCRIPTION_KEY_MISMATCH = 1100;
-  const ACQTEST_SUBSCRIPTION_EXPIRED = 200;
+  const ACQTEST_SUBSCRIPTION_EXPIRED = 1200;
   const ACQTEST_SUBSCRIPTION_REPLAY_ATTACK = 1300;
   const ACQTEST_SUBSCRIPTION_KEY_NOT_FOUND = 1400;
   const ACQTEST_SUBSCRIPTION_MESSAGE_FUTURE = 1500;
@@ -46,10 +47,8 @@ class NspiController extends ControllerBase {
   const ACQTEST_503_ID = 'TEST_AcquiaConnectorTestID503';
   const ACQTEST_503_KEY = 'TEST_AcquiaConnectorTestKey503';
 
-
-  public function nspiUpdate(Request $request){
-    $data_decode = json_decode($request->getContent(), TRUE);//todo
-    $data = json_decode($data_decode, TRUE);//todo
+  public function nspiUpdate(Request $request) {
+    $data = json_decode($request->getContent(), TRUE);
 
     $fields = array(
       'time' => 'is_numeric',
@@ -65,11 +64,12 @@ class NspiController extends ControllerBase {
         return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Subscription not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
       }
       if ($data['authenticator']['identifier'] == self::ACQTEST_ERROR_ID) {
-        return new JsonResponse(FALSE); //@todo need review
+        return new JsonResponse(FALSE);
       }
       else {
         $result = $this->validateAuthenticator($data);
-        $data['body']['spi_def_update'] = TRUE; //@todo need for update definition
+        // Needs for update definition
+        $data['body']['spi_def_update'] = TRUE;
         $spi_data = $data['body'];
         $result['body'] = array('spi_data_received' => TRUE);
         if (isset($spi_data['spi_def_update'])) {
@@ -80,8 +80,7 @@ class NspiController extends ControllerBase {
         if (isset($spi_data['send_method'])) {
           $result['body']['nspi_messages'][] = $spi_data['send_method'];
         }
-        $client = new testClient();
-        $result['authenticator']['hash'] = $client->testHash($result['secret']['key'], $result['authenticator']['time'], $result['authenticator']['nonce'], $result['body']);
+        $result['authenticator']['hash'] = CryptConnector::acquiaHash($result['secret']['key'], $result['authenticator']['time'] . ':' . $result['authenticator']['nonce']);
         if (isset($spi_data['test_validation_error'])) {
           $result['authenticator']['nonce'] = 'TEST'; // Force a validation fail.
         }
@@ -104,15 +103,12 @@ class NspiController extends ControllerBase {
     return new JsonResponse($data);
   }
 
-
   /**
    * @param Request $request
    * @return array|bool|\stdClass
    */
   public function getCommunicationSettings(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE);//todo
-    $data = json_decode($data_decode, TRUE);//todo
-    //\Drupal::logger('getCommunicationSettings')->info(print_r($data, TRUE));//todo
+    $data = json_decode($request->getContent(), TRUE);
     $fields = array(
       'time' => 'is_numeric',
       'nonce' => 'is_string',
@@ -132,16 +128,12 @@ class NspiController extends ControllerBase {
     if (empty($account) || $account->isAnonymous()) {
       return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Account not found')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
-    else {
-      $result = array();
-      $result = array(
-        'algorithm' => 'sha512',
-        'hash_setting' => substr($account->getPassword(), 0, 12),
-        'extra_md5' => FALSE,
-      );
-      return new JsonResponse($result);
-    }
-    //return new JsonResponse(array('TRUE')); //@todo
+    $result = array(
+      'algorithm' => 'sha512',
+      'hash_setting' => substr($account->getPassword(), 0, 12),
+      'extra_md5' => FALSE,
+    );
+    return new JsonResponse($result);
   }
 
   /**
@@ -175,8 +167,7 @@ class NspiController extends ControllerBase {
    * @return JsonResponse
    */
   public function getCredentials(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE); //todo
-    $data = json_decode($data_decode, TRUE);//todo
+    $data = json_decode($request->getContent(), TRUE);
 
     $fields = array(
       'time' => 'is_numeric',
@@ -199,8 +190,7 @@ class NspiController extends ControllerBase {
       return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
 
-    $client = new testClient();
-    $hash = $client->testHash($account->getPassword(), $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
+    $hash = CryptConnector::acquiaHash($account->getPassword(), $data['authenticator']['time'] . ':' . $data['authenticator']['nonce']);
     if ($hash === $data['authenticator']['hash']) {
       $result = array();
       $result['is_error'] = FALSE;
@@ -217,18 +207,14 @@ class NspiController extends ControllerBase {
   }
 
   /**
-   * @param Request $request
-   * @param $id
-   * @return JsonResponse
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function getSubscription(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE); //todo
-    $data = json_decode($data_decode, TRUE);
-
+    $data = json_decode($request->getContent(), TRUE);
     $result = $this->validateAuthenticator($data);
     if (empty($result['error'])) {
-      $client = new testClient();
-      $result['authenticator']['hash'] = $client->testHash($result['secret']['key'], $result['authenticator']['time'], $result['authenticator']['nonce'], $result['body']);
+      $result['authenticator']['hash'] = CryptConnector::acquiaHash($result['secret']['key'], $result['authenticator']['time'] . ':' . $result['authenticator']['nonce']);
       unset($result['secret']);
       return new JsonResponse($result);
     }
@@ -237,7 +223,7 @@ class NspiController extends ControllerBase {
   }
 
   /**
-   * @param $data
+   * @param array $data
    * @return array
    */
   protected function validateAuthenticator($data) {
@@ -272,9 +258,8 @@ class NspiController extends ControllerBase {
         break;
     }
 
-    $client = new testClient();
-    $hash = $client->testHash($key, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
-    $hash_simple = $client->testHash($key, $data['authenticator']['time'], $data['authenticator']['nonce'], $data['body']);
+    $hash = CryptConnector::acquiaHash($key, $data['authenticator']['time'] . ':' . $data['authenticator']['nonce']);
+    $hash_simple = CryptConnector::acquiaHash($key, $data['authenticator']['time'] . ':' . $data['authenticator']['nonce']);
 
     if (($hash !== $data['authenticator']['hash']) && ($hash_simple != $data['authenticator']['hash'])) {
       return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('HMAC validation error: ') . "{$hash} != {$data['authenticator']['hash']}");
@@ -282,7 +267,6 @@ class NspiController extends ControllerBase {
 
     if ($key === self::ACQTEST_EXPIRED_KEY) {
       return $this->errorResponse(self::ACQTEST_SUBSCRIPTION_EXPIRED, t('Subscription expired.'));
-
     }
 
     // Record connections.
@@ -321,12 +305,11 @@ class NspiController extends ControllerBase {
   }
 
   /**
-   * @param Request $request
-   * @return JsonResponse
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function cloudMigrationEnvironments(Request $request) {
-    $data_decode = json_decode($request->getContent(), TRUE); //todo
-    $data = json_decode($data_decode, TRUE);
+    $data = json_decode($request->getContent(), TRUE);
 
     global $base_url;
     $fields = array(
@@ -363,26 +346,22 @@ class NspiController extends ControllerBase {
     return new JsonResponse($result);
   }
 
-
   /**
-   * @param Request $request
+   * @param \Symfony\Component\HttpFoundation\Request $request
    * @param $id
-   * @return Response
-   *
+   * @return \Symfony\Component\HttpFoundation\Response
    */
   public function testMigrationUpload(Request $request, $id) {
     return new Response('', Response::HTTP_OK);
   }
 
   /**
-   * @param Request $request
-   * @return JsonResponse
-   * @return JsonResponse
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
-  public function testMigrationComplete(Request $request){
+  public function testMigrationComplete(Request $request) {
     return new JsonResponse(array('TRUE'));
   }
-
 
   /**
    * @return bool
@@ -390,7 +369,6 @@ class NspiController extends ControllerBase {
   public function access() {
     return AccessResultAllowed::allowed();
   }
-
 
   /**
    * Format the error response.
@@ -400,7 +378,6 @@ class NspiController extends ControllerBase {
    * @return array
    */
   protected function errorResponse($code, $message) {
-    //\Drupal::logger('errorResponse')->info($message);
     return array(
       'code' => $code,
       'message' => $message,
@@ -408,25 +385,3 @@ class NspiController extends ControllerBase {
     );
   }
 }
-
-/**
- * Class testClient
- * @package Drupal\acquia_connector_test\Controller
- */
-class testClient extends Client{
-
-  public function __construct() {}
-
-  /**
-   * @param $key
-   * @param $time
-   * @param $nonce
-   * @param array $params
-   * @return string
-   */
-  public function testHash($key, $time, $nonce, $params = array()) {
-    //\Drupal::logger('testHash')->error(print_R($params, TRUE));
-    return parent::hash($key, $time, $nonce, $params);
-  }
-}
-

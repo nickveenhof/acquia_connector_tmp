@@ -156,6 +156,7 @@ class SetupForm extends ConfigFormBase {
           $form_state->setErrorByName('email', $e->getCustomMessage());
         }
         else {
+          \Drupal::logger('acquia connector')->error($e->getMessage());
           $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
         }
       }
@@ -189,11 +190,12 @@ class SetupForm extends ConfigFormBase {
       // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
       // Our status gets updated locally via the return data.
 
-      $subscription_class = new Subscription();
-      $subscription = $subscription_class->update();
+      $subscription = Subscription::update();
 
       // Redirect to the path without the suffix.
-      $form_state->setRedirect('acquia_connector.settings');
+      if ($subscription) {
+        $form_state->setRedirect('acquia_connector.settings');
+      }
 
       if ($subscription['active']) {
         drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Network.'));

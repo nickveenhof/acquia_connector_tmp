@@ -6,6 +6,7 @@
  */
 
 namespace Drupal\acquia_connector\Controller;
+
 use Drupal\Core\Controller\ControllerBase;
 
 /**
@@ -21,14 +22,13 @@ class TestStatusController extends ControllerBase {
    *
    * @return array $custom_data
    *  An associative array containing any tests which failed validation.
-   *
    */
   public function testStatus($log = FALSE) {
     $custom_data = array();
 
     // Iterate through modules which contain hook_acquia_spi_test().
-    foreach (\Drupal::moduleHandler()->getImplementations('acquia_spi_test') as $module) {
-      $function = $module . '_acquia_spi_test';
+    foreach (\Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test') as $module) {
+      $function = $module . '_acquia_connector_spi_test';
       if (function_exists($function)) {
         $result = $this->testValidate($function());
 
@@ -74,7 +74,6 @@ class TestStatusController extends ControllerBase {
    * @return array
    *  An associative array containing the validation result of the given tests,
    *  along with any failed parameters.
-   *
    */
   public function testValidate($collection) {
     $result = TRUE;
@@ -141,6 +140,5 @@ class TestStatusController extends ControllerBase {
 
     return array('result' => $result, 'failure' => (isset($check_result_value['failed'])) ? $check_result_value['failed'] : array());
   }
-
 
 }
