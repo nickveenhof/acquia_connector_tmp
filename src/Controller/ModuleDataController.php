@@ -24,7 +24,6 @@ class ModuleDataController extends ControllerBase {
 
   /**
    * Send a file's contents to the requestor
-   * D7: acquia_spi_send_module_data
    */
   public function sendModuleData($data = array()) {
     $request = \Drupal::request();
@@ -58,7 +57,6 @@ class ModuleDataController extends ControllerBase {
    * @param $data
    * @param $message
    * @return bool
-   * D7: acquia_spi_valid_request
    */
   public function isValidRequest($data, $message) {
     $key = $this->config('acquia_connector.settings')->get('key');

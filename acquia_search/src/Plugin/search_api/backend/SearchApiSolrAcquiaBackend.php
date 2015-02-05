@@ -160,7 +160,6 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
    */
   protected function connect() {
     parent::connect();
-    // @todo: Solarium uses different event dispatcher (shipped with search_api_solr by composer update). Do something with it.
     if (!$this->eventDispatcher) {
       $this->eventDispatcher = $this->solr->getEventDispatcher();
       $plugin = new SearchSubscriber();

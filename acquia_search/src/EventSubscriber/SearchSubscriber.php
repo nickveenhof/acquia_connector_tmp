@@ -58,7 +58,6 @@ class SearchSubscriber extends Plugin {
     if($response->getStatusCode() != 200) {
       throw new HttpException($response->getStatusMessage());
     }
-    // @todo: Get all endpoint responses without authorisation cooke.
     if ($event->getRequest()->getHandler() == 'admin/ping') {
       return;
     }
@@ -86,7 +85,6 @@ class SearchSubscriber extends Plugin {
    *
    * @param $headers
    * @return string hmac_digest
-   * D7: acquia_search_extract_hmac()
    */
   public function extractHmac($headers) {
     $reg = array();
@@ -110,7 +108,6 @@ class SearchSubscriber extends Plugin {
    * @param null $derived_key
    * @param null $env_id
    * @return bool
-   * D7: acquia_search_valid_response()
    */
   public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
     if (empty($derived_key)) {
@@ -123,7 +120,6 @@ class SearchSubscriber extends Plugin {
    * Get the derived key for the solr hmac using the information shared with acquia.com.
    * @param null $env_id
    * @return mixed
-   * D7: _acquia_search_derived_key().
    */
   public function getDerivedKey($env_id = NULL) {
     if (empty($env_id)) {
@@ -175,10 +171,9 @@ class SearchSubscriber extends Plugin {
    *   The derived key salt.
    *
    * @see http://drupal.org/node/1784114
-   * D7: acquia_search_derived_key_salt().
    */
   public function getDerivedKeySalt() {
-    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt'); // D7: acquia_search_derived_key_salt
+    $salt = \Drupal::config('acquia_search.settings')->get('derived_key_salt');
     if (!$salt) {
       // If the variable doesn't exist, set it using the subscription data.
       $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
@@ -196,7 +191,6 @@ class SearchSubscriber extends Plugin {
    * @param $id
    * @param $key
    * @return string
-   * D7: _acquia_search_create_derived_key().
    */
   public function createDerivedKey($salt, $id, $key) {
     $derivation_string = $id . 'solr' . $salt;
@@ -210,7 +204,6 @@ class SearchSubscriber extends Plugin {
    * @param null $derived_key
    * @param null $env_id
    * @return string
-   * D7: acquia_search_authenticator().
    */
   public function calculateAuthCookie($string, $nonce, $derived_key = NULL, $env_id = NULL) {
     if (empty($derived_key)) {

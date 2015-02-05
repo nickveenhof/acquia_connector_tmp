@@ -16,7 +16,7 @@ use Drupal\Core\Url;
 class StartController extends ControllerBase {
 
   /**
-   * @todo.
+   * Callback for acquia_connector.start route.
    */
   public function info() {
     $build = array();
@@ -88,6 +88,5 @@ class StartController extends ControllerBase {
 
     return $build;
   }
-
 
 }

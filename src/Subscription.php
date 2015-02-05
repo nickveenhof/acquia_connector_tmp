@@ -37,7 +37,6 @@ class Subscription {
    * @param array $params
    *
    * @return FALSE, integer (error number), or subscription data.
-   * D7: acquia_agent_check_subscription
    */
   static function update($params = array()) {
     $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
@@ -79,7 +78,6 @@ class Subscription {
 
   /**
    * Helper function to check if an identifer and key exist.
-   * d7: acquia_agent_has_credentials().
    */
   static function hasCredentials() {
     $config = \Drupal::config('acquia_connector.settings');
