@@ -5,19 +5,18 @@ subscription_data: { active: false }
 subscription_name: ''
 use_cron: true
 debug: false
+cron_last: 0
 cron_interval: 30
+cron_interval_override: false
+dynamic_banner: false
+banner_service: 'https://insight.acquia.com/system/acquia-banner'
 migrate:
   files: true
 hide_signup_messages: false
-ah:
-  network:
-    key: false
-    identifier: false
 spi:
   server: 'https://nspi.acquia.com'
   ssl_override: false
   ssl_verify: true
-  verify_peer: false
   def_vars: []
   def_waived_vars: []
   def_timestamp: 0

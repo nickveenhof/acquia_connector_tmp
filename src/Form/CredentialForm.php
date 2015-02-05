@@ -99,7 +99,6 @@ class CredentialForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-//    $response = $this->client->getSubscription(trim($form_state->getValue('acquia_identifier')), trim($form_state->getValue('acquia_key')));  // @todo: remove the line.
     try {
       $response = $this->client->nspiCall(
         '/agent-api/subscription',
@@ -109,7 +108,6 @@ class CredentialForm extends ConfigFormBase {
     catch (ConnectorException $e) {
       // Set form error to prevent switching to the next page.
       if ($e->isCustomized()) {
-        // @todo - review.
         // Allow to connect with expired subscription
         if ($e->getCustomMessage('code') == Subscription::EXPIRED) {
           $form_state->setValue('subscription', 'Expired subscription.');
