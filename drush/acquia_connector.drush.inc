@@ -105,7 +105,7 @@ function drush_acquia_connector_custom_test_validate() {
   $modules = \Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test');
   drush_print_r(dt("Acquia SPI custom tests were detected in: @modules \n", array('@modules' => implode(', ', $modules))));
 
-  foreach (module_implements('acquia_connector_spi_test') as $module) {
+  foreach (\Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test') as $module) {
     $function = $module . '_acquia_connector_spi_test';
     if (function_exists($function)) {
       $testStatus = new TestStatusController();

@@ -10,6 +10,7 @@ namespace Drupal\Tests\acquia_search\Unit;
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\State;
+use Drupal\acquia_connector\CryptConnector;
 
 /**
  * @coversDefaultClass \Drupal\acquia_search\EventSubscriber\SearchSubscriber
@@ -43,8 +44,7 @@ class AcquiaSearchTest extends UnitTestCase {
     require_once $extensions['search_api_solr'] . '/vendor/autoload.php';
     unset($extensions);
 
-    $this->searchSubscriber = new SearchSubscriber();
-    $this->derivedKey = $this->searchSubscriber->createDerivedKey($this->salt, $this->id, $this->key);
+    $this->derivedKey = CryptConnector::createDerivedKey($this->salt, $this->id, $this->key);
   }
 
   /**
