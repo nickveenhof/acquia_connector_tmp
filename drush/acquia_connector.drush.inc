@@ -86,7 +86,7 @@ function _acquia_connector_drush_get() {
   $spi = new SpiController($client);
 
   if(!method_exists($spi, 'get')){
-    drush_print(t('Menhod get not implement'));
+    drush_print(t('Method get not implement'));
   }
   if (!function_exists('acquia_connector_load_versions')) {
     drush_include(dirname(dirname(__FILE__)) . '/acquia_connector', 'acquia_connector', drush_drupal_major_version(), 'module');
