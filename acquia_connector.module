@@ -283,3 +283,17 @@ function acquia_connector_connection_error_message($errno) {
   }
   return FALSE;
 }
+
+/**
+ * Implements hook_modules_enabled().
+ *
+ */
+function acquia_connector_modules_installed($modules){
+  dpm($modules);
+  foreach ($modules as $module) {
+    if (function_exists($module . '_acquia_connector_spi_test')) {
+      drupal_set_message(t("A new invokation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module)));
+      \Drupal::logger('acquia connector spi test')->info("A new invokation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module));
+    }
+  }
+}
