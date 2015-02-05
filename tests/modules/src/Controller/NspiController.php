@@ -109,7 +109,6 @@ class NspiController extends ControllerBase {
    */
   public function getCommunicationSettings(Request $request) {
     $data = json_decode($request->getContent(), TRUE);
-    //\Drupal::logger('getCommunicationSettings')->info(print_r($data, TRUE));//todo
     $fields = array(
       'time' => 'is_numeric',
       'nonce' => 'is_string',
