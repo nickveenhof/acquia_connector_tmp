@@ -26,8 +26,8 @@ class TestStatusController extends ControllerBase {
     $custom_data = array();
 
     // Iterate through modules which contain hook_acquia_spi_test().
-    foreach (\Drupal::moduleHandler()->getImplementations('acquia_spi_test') as $module) {
-      $function = $module . '_acquia_spi_test';
+    foreach (\Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test') as $module) {
+      $function = $module . '_acquia_connector_spi_test';
       if (function_exists($function)) {
         $result = $this->testValidate($function());
 

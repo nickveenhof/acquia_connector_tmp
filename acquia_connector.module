@@ -269,10 +269,10 @@ function acquia_connector_connection_error_message($errno) {
       return t('Your Acquia Network subscription has expired. Please renew your subscription so that you can resume using Acquia Network services.');
       break;
     case Subscription::MESSAGE_FUTURE:
-      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
+      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
       break;
     case Subscription::MESSAGE_EXPIRED:
-      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => format_interval(SUBSCRIPTION_MESSAGE_LIFETIME)));
+      return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
       break;
     case Subscription::VALIDATION_ERROR:
       return t('The identifier and key you have provided for the Acquia Network do not match. Please make sure you have used the correct values and try again.');

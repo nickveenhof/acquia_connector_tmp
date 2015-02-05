@@ -202,7 +202,7 @@ class SpiController extends ControllerBase {
     $custom_data = array();
 
     // Collect all custom data provided by hook_insight_custom_data().
-    $collections = \Drupal::moduleHandler()->invokeAll('acquia_spi_test');
+    $collections = \Drupal::moduleHandler()->invokeAll('acquia_connector_spi_test');
 
     foreach ($collections as $test_name => $test_params) {
       $status = new TestStatusController();
