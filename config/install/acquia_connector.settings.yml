@@ -2,9 +2,9 @@ cloud_migration: {  }
 identifier: ''
 key: ''
 subscription_data:
-  active: 0
+  active: false
 subscription_name: ''
-debug: 0
+debug: false
 cron_last: 0
 cron_interval: 30
 cron_interval_override: 0
@@ -14,8 +14,8 @@ migrate:
 hide_signup_messages: 0
 spi:
   server: 'https://nspi.acquia.com'
-  ssl_override: 0
-  ssl_verify: 1
+  ssl_override: false
+  ssl_verify: true
   def_vars: {  }
   def_waived_vars: {  }
   def_timestamp: 0
