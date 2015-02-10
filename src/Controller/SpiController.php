@@ -562,7 +562,7 @@ class SpiController extends ControllerBase {
    * @return int 0|1
    */
   private function getSuperName() {
-    $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
+    $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetchAll();
     return (int) $result;
   }
 
