@@ -1,0 +1,108 @@
+# Schema for the configuration files of the acquia_connector module.
+
+acquia_connector.settings:
+  type: mapping
+  label: 'Acquia connector settings'
+  mapping:
+    cloud_migration:
+      type: sequence
+      label: 'Acquia connector migration data'
+    identifier:
+      type: string
+      label: 'Acquia Network ID'
+    key:
+      type: string
+      label: 'Acquia Network key'
+    subscription_data:
+      type: sequence
+      label: 'Acquia subscription data'
+      active:
+        type: integer
+        label: 'Is acquia subscription active'
+    subscription_name:
+      type: string
+      lable: 'Acquia Network Subscripiton Name'
+    debug:
+      type: integer
+      label: 'Is debug mode active'
+    cron_last:
+      type: integer
+      label: 'Last time we processed data'
+    cron_interval:
+      type: integer
+      label: 'Interval for sending site profile, minutes'
+    cron_interval_override:
+      type: integer
+      label: 'Override for cron_interval, minutes'
+    banner_service:
+      type: string
+      label: 'Acquia banner service uri'
+    migrate:
+      files:
+        type: integer
+        label: 'Migrate files directory'
+    hide_signup_messages:
+      type: integer
+      label: 'Hide signup messages'
+    spi:
+      server:
+        type: string
+        label: 'Acquia SPI server'
+      ssl_override:
+        type: integer
+        label: 'Do not requre secure connection'
+      ssl_verify:
+        type: integer
+        label: 'Verify SSL'
+      def_vars:
+        type: sequence
+        label: 'SPI definition variables'
+      def_waived_vars:
+        type: sequence
+        label: 'Waived vars'
+      def_timestamp:
+        type: integer
+        label: 'Last update of SPI definition data'
+      new_optional_data:
+        type: integer
+        label: 'New ioptional data'
+      admin_priv:
+        type: integer
+        label: 'Allow collection of Admin privileges'
+      send_node_user:
+        type: integer
+        label: 'Allow collection of Nodes and users'
+      send_watchdog:
+        type: integer
+        label: 'Allow collection of Watchdog logs'
+      module_diff_data:
+        type: integer
+        label: 'Allow collection of Source code'
+      use_cron:
+        type: integer
+        label: 'Send via Drupal cron'
+      dynamic_banner:
+        type: integer
+        label: 'Receive updates from Acquia Network'
+      set_variables_override:
+        type: integer
+        label: 'Allow Insight to update list of approved variables'
+      set_variables_automatic:
+        type: sequence
+        label: 'List of approved variables'
+      ignored_set_variables:
+        type: sequence
+        label: 'List of ignored variables'
+      saved_variables:
+        variables:
+          type: sequence
+          label: 'Saved variables from the Acquia Network'
+        time:
+          type: integer
+          label: 'Last update of variables'
+      cron_interval:
+        type: integer
+        label: 'Cron interval for failed logins data, sec'
+    mapping:
+      type: sequence
+      label: 'D7 to D8 variables mapping'

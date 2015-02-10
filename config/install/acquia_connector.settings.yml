@@ -49,7 +49,6 @@ spi:
     variables: {  }
     time: 0
   cron_interval: 28800
-  module_rebuild: 0
 mapping:
   acquia_spi_send_node_user:
     - acquia_connector.settings
