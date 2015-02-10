@@ -337,7 +337,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     $this->assertText($this->acquiaConnectorStrings('migrate-select-environments'), 'Environment selection label appears.');
     $this->assertText($this->acquiaConnectorStrings('migrate-files-label'), 'The files label controls do appear.');
 
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', 'test')->save();
+    \Drupal::state()->set('migrate.cloud', 'test');
     $this->drupalGet($this->migrate_path);
     $this->assertText($this->acquiaConnectorStrings('migrate-files-label'), 'The files label controls do appear after setting the migration variable.');
     $edit_fields = array(

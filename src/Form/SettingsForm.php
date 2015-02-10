@@ -144,7 +144,7 @@ class SettingsForm extends ConfigFormBase {
       '#submit' => ['::submitMigrateGoForm'],
     );
 
-    $last_migration = $config->get('migrate.cloud');
+    $last_migration = \Drupal::state()->get('migrate.cloud', []);
 
     if (!empty($last_migration['db_file']) || !empty($last_migration['tar_file']) || !empty($last_migration['dir'])) {
       // Replace Upload button with Cleanup.

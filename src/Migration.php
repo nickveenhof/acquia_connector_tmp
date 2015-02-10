@@ -202,7 +202,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::state()->set('migrate.cloud', $migration);
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -226,7 +226,7 @@ class Migration {
     // Latest migration might be in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::state()->set('migrate.cloud', $migration);
     }
     // Check for error and abort if appropriate.
     if (empty($migration) || $migration['error'] !== FALSE) {
@@ -251,7 +251,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::state()->set('migrate.cloud', $migration);
     }
 
     // Check for error and abort if appropriate.
@@ -277,7 +277,7 @@ class Migration {
     // Latest migration is in $context.
     if (!empty($context['results']['migration'])) {
       $migration = $context['results']['migration'];
-      \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+      \Drupal::state()->set('migrate.cloud', $migration);
     }
 
     // Check for error and abort if appropriate.
@@ -680,7 +680,7 @@ class Migration {
 
       unset($migration['dir']);
     }
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', $migration)->save();
+    \Drupal::state()->set('migrate.cloud', $migration);
   }
 
   /**
