@@ -78,6 +78,9 @@ function acquia_connector_cron() {
 
   // 30 minute interval for sending site profile.
   $interval = $config->get('cron_interval');
+  if ($config->get('cron_interval_override')) {
+    $interval = $config->get('cron_interval_override');
+  }
 
   // Determine if the required interval has passed.
   if ($config->get('spi.use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
