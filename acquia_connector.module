@@ -80,7 +80,7 @@ function acquia_connector_cron() {
   $interval = $config->get('cron_interval');
 
   // Determine if the required interval has passed.
-  if ($config->get('use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
+  if ($config->get('spi.use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
     \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CRON);
   }
 }

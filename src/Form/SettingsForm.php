@@ -177,38 +177,38 @@ class SettingsForm extends ConfigFormBase {
       $form['connection']['spi']['admin_priv'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Admin privileges'),
-        '#default_value' => $config->get('admin_priv'),
+        '#default_value' => $config->get('spi.admin_priv'),
       );
       $form['connection']['spi']['send_node_user'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Nodes and users'),
-        '#default_value' => $config->get('send_node_user'),
+        '#default_value' => $config->get('spi.send_node_user'),
       );
       $form['connection']['spi']['send_watchdog'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Watchdog logs'),
-        '#default_value' => $config->get('send_watchdog'),
+        '#default_value' => $config->get('spi.send_watchdog'),
       );
       $form['connection']['spi']['module_diff_data'] = array(
         '#type' => 'checkbox',
         '#title' => t('Source code'),
-        '#default_value' => (int) $config->get('module_diff_data', 1) && $ssl_available,
+        '#default_value' => (int) $config->get('spi.module_diff_data') && $ssl_available,
         '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="@url">Learn more</a>.', array('@url' => $help_url)),
         '#disabled' => !$ssl_available,
       );
       $form['connection']['acquia_dynamic_banner'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Receive updates from Acquia Network'),
-        '#default_value' => $config->get('dynamic_banner'),
+        '#default_value' => $config->get('spi.dynamic_banner'),
       );
       $form['connection']['alter_variables'] = array(
         '#type' => 'checkbox',
         '#title' => $this->t('Allow Insight to update list of approved variables.'),
-        '#default_value' => (int) $config->get('set_variables_override', 0),
+        '#default_value' => (int) $config->get('spi.set_variables_override'),
         '#description' => $this->t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href="@url">Learn more</a>.', array('@url' => $help_url)),
       );
 
-      $use_cron = $config->get('use_cron');
+      $use_cron = $config->get('spi.use_cron');
 
       $form['connection']['use_cron'] = array(
         '#type' => 'checkbox',
@@ -240,13 +240,13 @@ class SettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $values = $form_state->getValues();
-    $config->set('module_diff_data', $values['module_diff_data'])
-      ->set('dynamic_banner', $values['acquia_dynamic_banner'])
-      ->set('admin_priv', $values['admin_priv'])
-      ->set('send_node_user', $values['send_node_user'])
-      ->set('send_watchdog', $values['send_watchdog'])
-      ->set('use_cron', $values['use_cron'])
-      ->set('set_variables_override', $values['alter_variables'])
+    $config->set('spi.module_diff_data', $values['module_diff_data'])
+      ->set('spi.dynamic_banner', $values['acquia_dynamic_banner'])
+      ->set('spi.admin_priv', $values['admin_priv'])
+      ->set('spi.send_node_user', $values['send_node_user'])
+      ->set('spi.send_watchdog', $values['send_watchdog'])
+      ->set('spi.use_cron', $values['use_cron'])
+      ->set('spi.set_variables_override', $values['alter_variables'])
       ->save();
 
     parent::submitForm($form, $form_state);

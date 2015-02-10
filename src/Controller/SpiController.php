@@ -181,8 +181,8 @@ class SpiController extends ControllerBase {
       $spi_ssl = array(
         'system_vars' => $variablesController->getVariablesData(),
         'settings_ra' => $this->getSettingsPermissions(),
-        'admin_count' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getAdminCount() : '',
-        'admin_name' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getSuperName() : '',
+        'admin_count' => $this->config('acquia_connector.settings')->get('spi.admin_priv') ? $this->getAdminCount() : '',
+        'admin_name' => $this->config('acquia_connector.settings')->get('spi.admin_priv') ? $this->getSuperName() : '',
       );
 
       return array_merge($spi, $spi_ssl);
