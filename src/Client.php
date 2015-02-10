@@ -46,7 +46,7 @@ class Client {
     );
     $this->config = $config->get('acquia_connector.settings');
     $this->server = $this->config->get('spi.server');
-    $this->client->setDefaultOption('verify', $this->config->get('spi.ssl_verify'));
+    $this->client->setDefaultOption('verify', (boolean) $this->config->get('spi.ssl_verify'));
   }
 
   /**
