@@ -250,6 +250,8 @@ class SettingsForm extends ConfigFormBase {
       ->save();
 
     parent::submitForm($form, $form_state);
+    // Send information as soon as the key/identifier pair is submitted.
+    \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CREDS);
   }
 
   /**

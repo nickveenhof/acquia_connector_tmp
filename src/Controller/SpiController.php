@@ -1083,8 +1083,8 @@ class SpiController extends ControllerBase {
       return FALSE;
     }
 
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('cron_last', REQUEST_TIME)->save();
     $this->handleServerResponse($response);
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('cron_last', REQUEST_TIME)->save();
 
     return $response;
   }
