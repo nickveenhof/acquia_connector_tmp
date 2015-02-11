@@ -1,5 +1,6 @@
 id: acquia_search_index
 name: 'Acquia Search Solr Index'
+uuid: c39b2493-bdfb-4045-b200-c8517ff04658
 description: ''
 read_only: false
 options:
@@ -10,6 +11,7 @@ options:
       status: '1'
       weight: -50
       settings: {  }
+      processorPluginId: language
   fields:
     search_api_language:
       type: string
@@ -24,8 +26,8 @@ datasource_configs:
   'entity:node':
     default: '1'
     bundles:
-      article: 0
-      page: 0
+      article: '0'
+      page: '0'
 tracker: default
 tracker_config: {  }
 server: acquia_search_server
@@ -33,6 +35,8 @@ status: false
 langcode: en
 dependencies:
   config:
+    - field.field.node.article.body
+    - field.field.node.page.body
     - search_api.server.acquia_search_server
   module:
     - node
