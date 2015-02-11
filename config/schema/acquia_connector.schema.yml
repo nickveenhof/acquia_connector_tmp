@@ -171,9 +171,6 @@ acquia_connector.settings:
         cron_interval:
           type: integer
           label: 'Cron interval for failed logins data, sec'
-#    mapping.*: # @todo: No ideas no to hadle this dynamic configuration
-#      type: sequence
-#      label: 'D7 to D8 variables mapping'
-#      sequence:
-#        - type: string
-#          label: 'Variable mapping'
+    mapping: # @todo
+      type: sequence
+      label: 'D7 to D8 variables mapping'
