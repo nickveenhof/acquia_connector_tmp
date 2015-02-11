@@ -27,12 +27,14 @@ function acquia_search_acquia_subscription_status($subscription = FALSE) {
         ->save();
     }
     // Enable search
-    $server = Server::load('acquia_search_server');
-    $server->set('status', TRUE);
-    $server->save();
-    $index = Index::load('acquia_search_index');
-    $index->set('status', TRUE);
-    $index->save();
+    if ($server = Server::load('acquia_search_server')) {
+      $server->set('status', TRUE);
+      $server->save();
+    }
+    if ($index = Index::load('acquia_search_index')) {
+      $index->set('status', TRUE);
+      $index->save();
+    }
   }
   else {
     if (is_int($subscription)) {
@@ -40,12 +42,14 @@ function acquia_search_acquia_subscription_status($subscription = FALSE) {
         case Subscription::NOT_FOUND:
         case Subscription::EXPIRED:
           // Disable search
-          $server = Server::load('acquia_search_server');
-          $server->set('status', FALSE);
-          $server->save();
-          $index = Index::load('acquia_search_index');
-          $index->set('status', FALSE);
-          $index->save();
+          if ($server = Server::load('acquia_search_server')) {
+            $server->set('status', FALSE);
+            $server->save();
+          }
+          if ($index = Index::load('acquia_search_index')) {
+            $index->set('status', FALSE);
+            $index->save();
+          }
           break;
       }
     }

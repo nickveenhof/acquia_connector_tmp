@@ -315,20 +315,23 @@ class SpiController extends ControllerBase {
    */
   private function getLastNodes() {
     $last_five_nodes = array();
-    $result = db_select('node_field_data', 'n')
-      ->fields('n', array('title', 'type', 'nid', 'created', 'langcode'))
-      ->condition('n.created', REQUEST_TIME - 3600, '>')
-      ->orderBy('n.created', 'DESC')
-      ->range(0, 15)
-      ->execute();
+    if (\Drupal::moduleHandler()->moduleExists('node')) {
+      $result = db_select('node_field_data', 'n')
+        ->fields('n', array('title', 'type', 'nid', 'created', 'langcode'))
+        ->condition('n.created', REQUEST_TIME - 3600, '>')
+        ->orderBy('n.created', 'DESC')
+        ->range(0, 15)
+        ->execute();
 
-    $count = 0;
-    foreach ($result as $record) {
-      $last_five_nodes[$count]['url'] = \Drupal::service('path.alias_manager')->getAliasByPath('node/' . $record->nid, $record->langcode);;
-      $last_five_nodes[$count]['title'] = $record->title;
-      $last_five_nodes[$count]['type'] = $record->type;
-      $last_five_nodes[$count]['created'] = $record->created;
-      $count++;
+      $count = 0;
+      foreach ($result as $record) {
+        $last_five_nodes[$count]['url'] = \Drupal::service('path.alias_manager')
+          ->getAliasByPath('node/' . $record->nid, $record->langcode);;
+        $last_five_nodes[$count]['title'] = $record->title;
+        $last_five_nodes[$count]['type'] = $record->type;
+        $last_five_nodes[$count]['created'] = $record->created;
+        $count++;
+      }
     }
 
     return $last_five_nodes;
@@ -1052,8 +1055,10 @@ class SpiController extends ControllerBase {
   private function getQuantum() {
     $quantum = array();
 
-    // Get only published nodes.
-    $quantum['nodes'] = db_select('node_field_data', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+    if (\Drupal::moduleHandler()->moduleExists('node')) {
+      // Get only published nodes.
+      $quantum['nodes'] = db_select('node_field_data', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+    }
 
     // Get only active users.
     $quantum['users'] = db_select('users_field_data', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();

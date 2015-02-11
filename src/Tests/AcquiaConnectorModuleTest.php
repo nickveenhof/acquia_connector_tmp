@@ -35,7 +35,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test');
+  public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test', 'node');
 
   /**
    *{@inheritdoc}
