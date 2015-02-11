@@ -1,3 +1,4 @@
+uuid: 4a385d4c-dd8a-4d15-944b-75ce6e27b986
 langcode: en
 status: true
 dependencies:
@@ -9,7 +10,7 @@ id: acquia_search
 label: 'Acquia Search'
 module: views
 description: ''
-tag: 'search'
+tag: search
 base_table: search_api_index_acquia_search_index
 base_field: search_api_id
 core: 8.x
@@ -103,7 +104,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -173,7 +174,7 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           mode: filter
-          min_length: ''
+          min_length: null
           fields: {  }
           plugin_id: search_api_fulltext
       sorts:

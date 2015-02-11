@@ -9,7 +9,6 @@ namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Subscription;
-use Drupal\Tests\UnitTestCase;
 use Drupal\acquia_connector\Controller\StatusController;
 
 /**
