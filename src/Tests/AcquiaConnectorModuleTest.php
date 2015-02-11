@@ -14,6 +14,8 @@ use Drupal\acquia_connector\Controller\StatusController;
 
 /**
  * Tests the functionality of the Acquia Connector module.
+ *
+ * @group Acquia connector
  */
 class AcquiaConnectorModuleTest extends WebTestBase {
   protected $strictConfigSchema = FALSE;
@@ -35,17 +37,6 @@ class AcquiaConnectorModuleTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Acquia Connector UI & Connection',
-      'description' => 'Test Acquia Connector UI and connecting to Acquia Insight.',
-      'group' => 'Acquia',
-    );
-  }
 
   /**
    *{@inheritdoc}
