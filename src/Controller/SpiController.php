@@ -181,8 +181,8 @@ class SpiController extends ControllerBase {
       $spi_ssl = array(
         'system_vars' => $variablesController->getVariablesData(),
         'settings_ra' => $this->getSettingsPermissions(),
-        'admin_count' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getAdminCount() : '',
-        'admin_name' => $this->config('acquia_connector.settings')->get('admin_priv') ? $this->getSuperName() : '',
+        'admin_count' => $this->config('acquia_connector.settings')->get('spi.admin_priv') ? $this->getAdminCount() : '',
+        'admin_name' => $this->config('acquia_connector.settings')->get('spi.admin_priv') ? $this->getSuperName() : '',
       );
 
       return array_merge($spi, $spi_ssl);
@@ -315,20 +315,23 @@ class SpiController extends ControllerBase {
    */
   private function getLastNodes() {
     $last_five_nodes = array();
-    $result = db_select('node_field_data', 'n')
-      ->fields('n', array('title', 'type', 'nid', 'created', 'langcode'))
-      ->condition('n.created', REQUEST_TIME - 3600, '>')
-      ->orderBy('n.created', 'DESC')
-      ->range(0, 15)
-      ->execute();
+    if (\Drupal::moduleHandler()->moduleExists('node')) {
+      $result = db_select('node_field_data', 'n')
+        ->fields('n', array('title', 'type', 'nid', 'created', 'langcode'))
+        ->condition('n.created', REQUEST_TIME - 3600, '>')
+        ->orderBy('n.created', 'DESC')
+        ->range(0, 15)
+        ->execute();
 
-    $count = 0;
-    foreach ($result as $record) {
-      $last_five_nodes[$count]['url'] = \Drupal::service('path.alias_manager')->getAliasByPath('node/' . $record->nid, $record->langcode);;
-      $last_five_nodes[$count]['title'] = $record->title;
-      $last_five_nodes[$count]['type'] = $record->type;
-      $last_five_nodes[$count]['created'] = $record->created;
-      $count++;
+      $count = 0;
+      foreach ($result as $record) {
+        $last_five_nodes[$count]['url'] = \Drupal::service('path.alias_manager')
+          ->getAliasByPath('node/' . $record->nid, $record->langcode);;
+        $last_five_nodes[$count]['title'] = $record->title;
+        $last_five_nodes[$count]['type'] = $record->type;
+        $last_five_nodes[$count]['created'] = $record->created;
+        $count++;
+      }
     }
 
     return $last_five_nodes;
@@ -562,7 +565,7 @@ class SpiController extends ControllerBase {
    * @return int 0|1
    */
   private function getSuperName() {
-    $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetch();
+    $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetchAll();
     return (int) $result;
   }
 
@@ -1052,8 +1055,10 @@ class SpiController extends ControllerBase {
   private function getQuantum() {
     $quantum = array();
 
-    // Get only published nodes.
-    $quantum['nodes'] = db_select('node_field_data', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+    if (\Drupal::moduleHandler()->moduleExists('node')) {
+      // Get only published nodes.
+      $quantum['nodes'] = db_select('node_field_data', 'n')->fields('n', array('nid'))->condition('n.status', NODE_PUBLISHED)->countQuery()->execute()->fetchField();
+    }
 
     // Get only active users.
     $quantum['users'] = db_select('users_field_data', 'u')->fields('u', array('uid'))->condition('u.status', 1)->countQuery()->execute()->fetchField();
@@ -1083,8 +1088,8 @@ class SpiController extends ControllerBase {
       return FALSE;
     }
 
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('cron_last', REQUEST_TIME)->save();
     $this->handleServerResponse($response);
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('cron_last', REQUEST_TIME)->save();
 
     return $response;
   }

@@ -57,102 +57,10 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
   /**
    * {@inheritdoc}
    */
-  public function getServer() {
-    return parent::getServer();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setServer(ServerInterface $server) {
-    parent::setServer($server);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function viewSettings() {
     $uri = Url::fromUri('http://www.acquia.com/products-services/acquia-search', array('absolute' => TRUE));
     drupal_set_message(t("Search is being provided by the !as network service.", array('!as' => \Drupal::l(t('Acquia Search'), $uri))));
     return parent::viewSettings();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function supportsFeature($feature) {
-    return parent::supportsFeature($feature);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function supportsDatatype($type) {
-    return parent::supportsDatatype($type);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function postInsert() {
-    return parent::postInsert();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function preUpdate() {
-    return parent::preUpdate();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function postUpdate() {
-    return parent::postUpdate();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function preDelete() {
-    return parent::preDelete();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function addIndex(IndexInterface $index) {
-    return parent::addIndex($index);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function updateIndex(IndexInterface $index) {
-    return parent::updateIndex($index);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function removeIndex($index) {
-    return parent::removeIndex($index);
-  }
-
-  public function deleteAllIndexItems(IndexInterface $index) {
-    return parent::deleteAllIndexItems($index);
-  }
-
-  public function indexItems(IndexInterface $index, array $items) {
-    return parent::indexItems($index, $items);
-  }
-  public function deleteItems(IndexInterface $index, array $item_ids) {
-    return parent::deleteAllIndexItems($index, $item_ids);
-  }
-
-  public function search(QueryInterface $query) {
-    return parent::search($query);
   }
 
   /**

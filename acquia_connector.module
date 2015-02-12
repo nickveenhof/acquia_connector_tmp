@@ -51,15 +51,15 @@ function acquia_connector_help($route_name, RouteMatchInterface $route_match) {
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function acquia_connector_form_system_modules_alter(&$form, &$form_state) {
-  if (isset($form['description']['acquia_search'])) {
+function acquia_connector_form_system_modules_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  if (isset($form['modules']['Acquia']['acquia_search']['description']['#markup'])) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
 
     if (!\Drupal::moduleHandler()->moduleExists('acquia_search') && empty($subscription['active'])) {
-      $form['status']['#disabled_modules'][] = 'acquia_search';
-      $text = 'Acquia Search requires an <a href="@network-url">Acquia Network subscription</a>';
+      $form['modules']['Acquia']['acquia_search']['enable']['#disabled'] = TRUE;
+      $text = '<a href="@network-url">Acquia Network subscription</a> (inactive)';
       $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
-      $form['description']['acquia_search']['#value'] = '<div style="padding-left:5px; margin:8px 0px" class="messages warning" id="acquia-agent-no-search">' . $message . '</div>' . $form['description']['acquia_search']['#value'];
+      $form['modules']['Acquia']['acquia_search']['#requires']['acquia_subscription'] = $message;
     }
   }
 }
@@ -78,9 +78,12 @@ function acquia_connector_cron() {
 
   // 30 minute interval for sending site profile.
   $interval = $config->get('cron_interval');
+  if ($config->get('cron_interval_override')) {
+    $interval = $config->get('cron_interval_override');
+  }
 
   // Determine if the required interval has passed.
-  if ($config->get('use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
+  if ($config->get('spi.use_cron') && ((REQUEST_TIME - $last) > ($interval * 60))) {
     \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CRON);
   }
 }
@@ -158,7 +161,7 @@ function acquia_connector_update_status_alter(&$projects) {
         $projects[$project]['recommended'] = isset($subscription['update']['recommended']) ? $subscription['update']['recommended'] : '';
         $projects[$project]['latest_version'] = isset($subscription['update']['latest_version']) ? $subscription['update']['latest_version'] : '';
         // Security updates are a separate piece of data.  If we leave it, then core
-        // security warnings from druapl.org will also be displayed on the update page.
+        // security warnings from drupal.org will also be displayed on the update page.
         unset($projects[$project]['security updates']);
       }
       else {
@@ -261,8 +264,7 @@ function acquia_connector_connection_error_message($errno) {
 }
 
 /**
- * Implements hook_modules_enabled().
- *
+ * Implements hook_modules_installed().
  */
 function acquia_connector_modules_installed($modules){
   foreach ($modules as $module) {

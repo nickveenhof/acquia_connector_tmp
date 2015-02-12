@@ -14,6 +14,8 @@ use Drupal\Component\Serialization\Json;
 
 /**
  * Tests the functionality of the Acquia SPI module.
+ *
+ * @group Acquia connector
  */
 class AcquiaConnectorSpiTest extends WebTestBase {
   protected $strictConfigSchema = FALSE;
@@ -67,16 +69,8 @@ class AcquiaConnectorSpiTest extends WebTestBase {
   public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test', 'node');
 
   /**
-   * {@inheritdoc}
+   *{@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Acquia SPI ',
-      'description' => 'Test sending Acquia SPI data.',
-      'group' => 'Acquia',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
     //base url

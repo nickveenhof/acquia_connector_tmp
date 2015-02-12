@@ -9,11 +9,12 @@ namespace Drupal\acquia_connector\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\acquia_connector\Subscription;
-use Drupal\Tests\UnitTestCase;
 use Drupal\acquia_connector\Controller\StatusController;
 
 /**
  * Tests the functionality of the Acquia Connector module.
+ *
+ * @group Acquia connector
  */
 class AcquiaConnectorModuleTest extends WebTestBase {
   protected $strictConfigSchema = FALSE;
@@ -34,18 +35,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Acquia Connector UI & Connection',
-      'description' => 'Test Acquia Connector UI and connecting to Acquia Insight.',
-      'group' => 'Acquia',
-    );
-  }
+  public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test', 'node');
 
   /**
    *{@inheritdoc}
@@ -337,7 +327,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     $this->assertText($this->acquiaConnectorStrings('migrate-select-environments'), 'Environment selection label appears.');
     $this->assertText($this->acquiaConnectorStrings('migrate-files-label'), 'The files label controls do appear.');
 
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('migrate.cloud', 'test')->save();
+    \Drupal::state()->set('migrate.cloud', 'test');
     $this->drupalGet($this->migrate_path);
     $this->assertText($this->acquiaConnectorStrings('migrate-files-label'), 'The files label controls do appear after setting the migration variable.');
     $edit_fields = array(

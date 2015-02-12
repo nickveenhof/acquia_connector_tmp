@@ -79,7 +79,10 @@ class InitSubscriber implements EventSubscriberInterface {
     // Get the last time we processed data.
     $last = $this->state->get('acquia_connector.boot_last', 0);
     // 60 minute interval for storing the global variable.
-    $interval = $config->get('cron_interval', 60);
+    $interval = $config->get('cron_interval');
+    if ($config->get('cron_interval_override')) {
+      $interval = $config->get('cron_interval_override');
+    }
     // Determine if the required interval has passed.
     $now = REQUEST_TIME;
     if (($now - $last) > ($interval * 60)) {

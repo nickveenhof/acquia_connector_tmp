@@ -13,6 +13,8 @@ use Drupal\search_api\Entity\Server;
 
 /**
  * Tests the functionality of the Acquia Search module.
+ *
+ * @group Acquia search
  */
 class AcquiaConnectorSearchTest extends WebTestBase {
   protected $strictConfigSchema = FALSE;
@@ -33,18 +35,6 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('acquia_connector', 'search_api', 'search_api_solr', 'toolbar', 'acquia_connector_test', 'node');
-
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Acquia Search UI tests',
-      'description' => 'Tests the Acquia Search user interface and functionality.',
-      'group' => 'Acquia',
-    );
-  }
 
   /**
    * {@inheritdoc}

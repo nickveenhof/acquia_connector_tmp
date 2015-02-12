@@ -1,5 +1,6 @@
 id: acquia_search_server
 name: 'Acquia Search API Solr server'
+uuid: 42747da4-4d1a-475b-a600-e5e12aadcccc
 description: ''
 status: false
 backend: search_api_solr_acquia
