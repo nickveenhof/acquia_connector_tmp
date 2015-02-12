@@ -34,7 +34,7 @@ class MigrateController extends ControllerBase {
       }
     }
     else {
-      $error_message = $this->t('Missing Acquia Network credentials. Please enter your Acquia Network Identifier and Key.');
+      $error_message = $this->t('Missing Acquia Subscription credentials. Please enter your Acquia Subscription Identifier and Key.');
     }
 
     // If there was an error.

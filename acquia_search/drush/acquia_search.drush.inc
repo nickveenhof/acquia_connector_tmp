@@ -28,10 +28,10 @@ function acquia_search_drush_command() {
         'description' => 'Apache Solr environment id.',
       ),
       'acquia-id' => array(
-        'description' => 'Acquia Network Subscription ID.',
+        'description' => 'Acquia Subscription ID.',
       ),
       'acquia-key' => array(
-        'description' => 'Acquia Network Subscription Key.',
+        'description' => 'Acquia Subscription Key.',
       ),
     ),
     'examples' => array(
@@ -86,13 +86,13 @@ function acquia_search_set_derived_key_for_env() {
   $acquia_id = drush_get_option('acquia-id');
   // check on bool, because drush sets the var as true if no value is given.
   if (empty($acquia_id) || is_bool($acquia_id)) {
-    return drush_set_error('DRUSH_VARIABLE_ERROR', dt('No Acquia network subscription id specified'));
+    return drush_set_error('DRUSH_VARIABLE_ERROR', dt('No Acquia subscription id specified'));
   }
   // acquia network subscription key
   $acquia_key = drush_get_option('acquia-key');
   // check on bool, because drush sets the var as true if no value is given.
   if (empty($acquia_key) || !is_string($acquia_key)) {
-    return drush_set_error('DRUSH_VARIABLE_ERROR', dt('No Acquia network subscription key specified'));
+    return drush_set_error('DRUSH_VARIABLE_ERROR', dt('No Acquia subscription key specified'));
   }
 
   // We do not want to send a heartbeat to the server, we only need subscription data

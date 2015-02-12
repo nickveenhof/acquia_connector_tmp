@@ -9,10 +9,10 @@ acquia_connector.settings:
       label: 'Acquia connector migration data'
     identifier:
       type: string
-      label: 'Acquia Network ID'
+      label: 'Acquia Subscription ID'
     key:
       type: string
-      label: 'Acquia Network key'
+      label: 'Acquia Subscription key'
     subscription_data:
       label: 'Acquia subscription data'
       type: mapping
@@ -63,7 +63,7 @@ acquia_connector.settings:
                     type: string
     subscription_name:
       type: string
-      lable: 'Acquia Network Subscripiton Name'
+      lable: 'Acquia Subscripiton Name'
     debug:
       type: boolean
       label: 'Is debug mode active'
@@ -142,7 +142,7 @@ acquia_connector.settings:
           label: 'Send via Drupal cron'
         dynamic_banner:
           type: integer
-          label: 'Receive updates from Acquia Network'
+          label: 'Receive updates from Acquia Subscription'
         set_variables_override:
           type: integer
           label: 'Allow Insight to update list of approved variables'
@@ -161,7 +161,7 @@ acquia_connector.settings:
           mapping:
             variables:
               type: sequence
-              label: 'Saved variables from the Acquia Network'
+              label: 'Saved variables from the Acquia Subscription'
               sequence:
                 - type: string
                   label: 'Variable'
