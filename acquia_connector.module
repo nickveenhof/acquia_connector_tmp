@@ -24,8 +24,8 @@ function acquia_connector_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.acquia_connector':
       $output = '<h2>' . t('Acquia Connector') . '</h2>';
-      $output .= '<p>' . t("The Acquia Network Connector module allows you to connect your site to the Acquia Network and use its variety of services.") . '<p>';
-      $output .= '<p>' . \Drupal::l(t('Read more about the installation and use of the Acquia Network Connector module on the Acquia Library'), Url::fromUri('https://docs.acquia.com/network/install/connector', array())) . '</p>';
+      $output .= '<p>' . t("The Acquia Connector module allows you to connect your site to the Acquia Subscription and use its variety of services.") . '<p>';
+      $output .= '<p>' . \Drupal::l(t('Read more about the installation and use of the Acquia Connector module on the Acquia Library'), Url::fromUri('https://docs.acquia.com/network/install/connector', array())) . '</p>';
       $output .= '<dl>';
       $output .= '<dt>Acquia SPI Custom Tests</dt>';
       $output .= '<dd>' . t('Acquia Insight supports custom tests for your site. See <strong>acquia_spi.api.php</strong> for information on the custom test hook and validate your tests for inclusion in outgoing SPI data with the Drush command, <strong>spi-test-validate</strong>.') . '</dt>';
@@ -38,7 +38,7 @@ function acquia_connector_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('Upon cron (or if configured to run manually) information about your site will be sent and analyzed as part of the Acquia Insight service. You can optionally exclude information about admin privileges, content and user count, and watchdog logs.');
       $output .= '<dt>' . t('Source code analysis') . '</dt>';
       $output .= '<dd>' . t('If your site supports external SSL connections, Acquia Insight will examine the source code of your site to detect alterations and provide code diffs and update recommentations.');
-      $output .= '<dt>' . t('Receive updates from Acquia Network') . '</dt>';
+      $output .= '<dt>' . t('Receive updates from Acquia Subscription') . '</dt>';
       $output .= '<dd>' . t('Receive dynamic updates on the Network Settings page from Acquia.com about your subscription and new features.') . '</dd>';
       $output .= '<dt>' . t('Allow Insight to update list of approved variables.') . '</dt>';
       $output .= '<dd>' . t('As part of the Acquia Insight service, some variables can be corrected to their recommended settings from within the Insight system. The list of variables that can be corrected can also be updated at your discretion.') . '</dd>';
@@ -57,7 +57,7 @@ function acquia_connector_form_system_modules_alter(&$form, \Drupal\Core\Form\Fo
 
     if (!\Drupal::moduleHandler()->moduleExists('acquia_search') && empty($subscription['active'])) {
       $form['modules']['Acquia']['acquia_search']['enable']['#disabled'] = TRUE;
-      $text = '<a href="@network-url">Acquia Network subscription</a> (inactive)';
+      $text = '<a href="@network-url">Acquia Subscription</a> (inactive)';
       $message = t($text, array('@network-url' => 'http://acquia.com/products-services/acquia-search'));
       $form['modules']['Acquia']['acquia_search']['#requires']['acquia_subscription'] = $message;
     }
@@ -166,7 +166,7 @@ function acquia_connector_update_status_alter(&$projects) {
       }
       else {
         $projects[$project]['status'] = UPDATE_NOT_CHECKED;
-        $projects[$project]['reason'] = t('No information available from the Acquia Network');
+        $projects[$project]['reason'] = t('No information available from the Acquia Subscription');
         unset($projects[$project]['releases']);
         unset($projects[$project]['recommended']);
       }
@@ -241,22 +241,22 @@ function acquia_connector_connection_error_message($errno) {
   if ($errno) {
     switch ($errno) {
       case Subscription::NOT_FOUND:
-        return t('The identifier you have provided does not exist in the Acquia Network or is expired. Please make sure you have used the correct value and try again.');
+        return t('The identifier you have provided does not exist in the Acquia Subscription or is expired. Please make sure you have used the correct value and try again.');
         break;
       case Subscription::EXPIRED:
-        return t('Your Acquia Network subscription has expired. Please renew your subscription so that you can resume using Acquia Network services.');
+        return t('Your Acquia Subscription subscription has expired. Please renew your subscription so that you can resume using Acquia services.');
         break;
       case Subscription::MESSAGE_FUTURE:
-        return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
+        return t('Your server is unable to communicate with the Acquia Subscription due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
         break;
       case Subscription::MESSAGE_EXPIRED:
-        return t('Your server is unable to communicate with the Acquia Network due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
+        return t('Your server is unable to communicate with the Acquia Subscription due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
         break;
       case Subscription::VALIDATION_ERROR:
-        return t('The identifier and key you have provided for the Acquia Network do not match. Please make sure you have used the correct values and try again.');
+        return t('The identifier and key you have provided for the Acquia Subscription do not match. Please make sure you have used the correct values and try again.');
         break;
       default:
-        return t('There is an error communicating with the Acquia Network at this time. Please check your identifier and key and try again.');
+        return t('There is an error communicating with the Acquia Subscription at this time. Please check your identifier and key and try again.');
         break;
     }
   }
@@ -269,8 +269,8 @@ function acquia_connector_connection_error_message($errno) {
 function acquia_connector_modules_installed($modules){
   foreach ($modules as $module) {
     if (function_exists($module . '_acquia_connector_spi_test')) {
-      drupal_set_message(t("A new invokation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module)));
-      \Drupal::logger('acquia connector spi test')->info("A new invokation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module));
+      drupal_set_message(t("A new invocation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module)));
+      \Drupal::logger('acquia connector spi test')->info("A new invocation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module));
     }
   }
 }

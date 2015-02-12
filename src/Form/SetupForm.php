@@ -83,15 +83,15 @@ class SetupForm extends ConfigFormBase {
    */
   protected function setupForm(FormStateInterface &$form_state) {
     $form = array(
-      '#prefix' => $this->t('Log in or <a href="@url">configure manually</a> to connect your site to the Acquia Network.', array('@url' => \Drupal::url('acquia_connector.credentials'))),
+      '#prefix' => $this->t('Log in or <a href="@url">configure manually</a> to connect your site to the Acquia Subscription.', array('@url' => \Drupal::url('acquia_connector.credentials'))),
       'email' => array(
         '#type' => 'textfield',
-        '#title' => $this->t('Enter the email address you use to login to the Acquia Network:'),
+        '#title' => $this->t('Enter the email address you use to login to the Acquia Subscription:'),
         '#required' => TRUE,
       ),
       'pass' => array(
         '#type' => 'password',
-        '#title' => $this->t('Enter your Acquia Network password:'),
+        '#title' => $this->t('Enter your Acquia Subscription password:'),
         '#description' => $this->t('Your password will not be stored locally and will be sent securely to Acquia.com. <a href="@url" target="_blank">Forgot password?</a>', array('@url' => Url::fromUri('https://accounts.acquia.com/user/password')->getUri())),
         '#size' => 32,
         '#required' => TRUE,
@@ -157,7 +157,7 @@ class SetupForm extends ConfigFormBase {
         }
         else {
           \Drupal::logger('acquia connector')->error($e->getMessage());
-          $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Network.'));
+          $form_state->setErrorByName('', $this->t('Can\'t connect to the Acquia Subscription.'));
         }
       }
       if (!empty($response)) {
@@ -198,7 +198,7 @@ class SetupForm extends ConfigFormBase {
       }
 
       if ($subscription['active']) {
-        drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Network.'));
+        drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Subscription.'));
       }
     }
   }

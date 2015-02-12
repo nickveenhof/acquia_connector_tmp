@@ -39,7 +39,7 @@ class StartController extends ControllerBase {
     $output = '<div class="an-start-form">';
     $output .= '<div id="an-pg-container">';
     $output .= '<div class="an-wrapper">';
-    $output .= '<h2 id="an-info-header">' . $this->t('Acquia Network', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';
+    $output .= '<h2 id="an-info-header">' . $this->t('Acquia Subscription', array('@acquia-network' => 'http://acquia.com/products-services/acquia-network')) . '</h2>';
     $output .= '<p class="an-slogan">' . $this->t('A suite of products and services to create & maintain killer web experiences built on Drupal') . '</p>';
     $output .= '<div id="an-info-box">';
     $output .=   '<div class="cell with-arrow an-left">';

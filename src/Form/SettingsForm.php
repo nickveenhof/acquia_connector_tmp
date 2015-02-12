@@ -127,7 +127,7 @@ class SettingsForm extends ConfigFormBase {
     }
     $form['connection'] = array(
       '#type' => 'fieldset',
-      '#title' => $this->t('Acquia Network Settings'),
+      '#title' => $this->t('Acquia Subscription Settings'),
       '#collapsible' => FALSE,
     );
 
@@ -198,7 +198,7 @@ class SettingsForm extends ConfigFormBase {
       );
       $form['connection']['acquia_dynamic_banner'] = array(
         '#type' => 'checkbox',
-        '#title' => $this->t('Receive updates from Acquia Network'),
+        '#title' => $this->t('Receive updates from Acquia Subscription'),
         '#default_value' => $config->get('spi.dynamic_banner'),
       );
       $form['connection']['alter_variables'] = array(

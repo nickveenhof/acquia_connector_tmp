@@ -332,7 +332,7 @@ class Migration {
       }
       else {
         $message = t('Migrate success. You can see import progress on the !network.', array(
-          '!network' => \Drupal::l(t('Acquia Network'), Url::fromUri($migration['network_url'], array('external' => TRUE))),
+          '!network' => \Drupal::l(t('Acquia Subscription'), Url::fromUri($migration['network_url'], array('external' => TRUE))),
         ));
         drupal_set_message($message);
       }

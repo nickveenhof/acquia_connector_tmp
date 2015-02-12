@@ -77,15 +77,15 @@ class AcquiaConnectorModuleTest extends WebTestBase {
       case 'free':
         return 'Sign up for Acquia Cloud Free, a free Drupal sandbox to experiment with new features, test your code quality, and apply continuous integration best practices.';
       case 'get-connected':
-        return 'If you have an Acquia Network subscription, connect now. Otherwise, you can turn this message off by disabling the Acquia Connector modules.';
+        return 'If you have an Acquia Subscription, connect now. Otherwise, you can turn this message off by disabling the Acquia Connector modules.';
       case 'enter-email':
-        return 'Enter the email address you use to login to the Acquia Network';
+        return 'Enter the email address you use to login to the Acquia Subscription';
       case 'enter-password':
-        return 'Enter your Acquia Network password';
+        return 'Enter your Acquia Subscription password';
       case 'account-not-found':
         return 'Account not found';
       case 'id-key':
-        return 'Enter your identifier and key from your subscriptions overview or log in to connect your site to the Acquia Network.';
+        return 'Enter your identifier and key from your subscriptions overview or log in to connect your site to the Acquia Subscription.';
       case 'enter-key':
         return 'Network key';
       case 'subscription-not-found':

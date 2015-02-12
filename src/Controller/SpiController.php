@@ -1117,7 +1117,7 @@ class SpiController extends ControllerBase {
           drupal_set_message($this->t('SPI data sent.'));
         }
         if (!empty($response['body']['nspi_messages'])) {
-          drupal_set_message($this->t('Acquia Network returned the following messages. Further information may be in the logs.'));
+          drupal_set_message($this->t('Acquia Subscription returned the following messages. Further information may be in the logs.'));
           foreach ($response['body']['nspi_messages'] as $nspi_message) {
             drupal_set_message(String::checkPlain($nspi_message));
           }
