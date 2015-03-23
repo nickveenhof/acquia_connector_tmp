@@ -70,7 +70,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
   }
 
   /**
-   * Connect
+   * Connect.
    */
   public function connect(){
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
@@ -83,10 +83,11 @@ class AcquiaConnectorSearchTest extends WebTestBase {
       'acquia_identifier' => $this->randomString(8),
       'acquia_key' => $this->randomString(8),
     );
+
     $submit_button = 'Connect';
     $this->drupalPostForm('admin/config/system/acquia-connector/credentials', $edit_fields, $submit_button);
 
-    \Drupal::service('module_installer')->install(array('acquia_search'), array());
+    \Drupal::service('module_installer')->install(array('acquia_search'));
   }
 
   /**
