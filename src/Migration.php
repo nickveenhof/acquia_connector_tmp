@@ -327,12 +327,12 @@ class Migration {
       $this->complete($migration);
 
       if ($migration['error'] != FALSE) {
-        $message = t('There was an error checking for completed migration. !err<br/>See the !network for more information.', array('!err' => $migration['error'], '!network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://insight.acquia.com/'))));
+        $message = t('There was an error checking for completed migration. @err<br/>See the @network for more information.', array('@err' => $migration['error'], '@network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://insight.acquia.com/'))));
         drupal_set_message($message);
       }
       else {
-        $message = t('Migrate success. You can see import progress on the !network.', array(
-          '!network' => \Drupal::l(t('Acquia Subscription'), Url::fromUri($migration['network_url'], array('external' => TRUE))),
+        $message = t('Migrate success. You can see import progress on the @network.', array(
+          '@network' => \Drupal::l(t('Acquia Subscription'), Url::fromUri($migration['network_url'], array('external' => TRUE))),
         ));
         drupal_set_message($message);
       }
