@@ -5,7 +5,6 @@ namespace Drupal\acquia_search\Plugin\search_api\backend;
 use Drupal\search_api_solr\Plugin\search_api\backend\SearchApiSolrBackend;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\search_api\IndexInterface;
@@ -13,6 +12,7 @@ use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\ServerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
+use Drupal\Core\Language\LanguageManagerInterface;
 
 
 /**
@@ -28,7 +28,7 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, FormBuilderInterface $form_builder, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings, LanguageManagerInterface $language_manager) {
     if ($configuration['scheme'] == 'https') {
       $configuration['port'] = 443;
     }
@@ -37,7 +37,7 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
     }
     $configuration['host'] = acquia_search_get_search_host();
     $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('identifier');
-    return parent::__construct($configuration, $plugin_id, $plugin_definition, $form_builder, $module_handler, $search_api_solr_settings);
+    return parent::__construct($configuration, $plugin_id, $plugin_definition, $module_handler, $search_api_solr_settings, $language_manager);
   }
 
   /**
@@ -48,9 +48,9 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('form_builder'),
       $container->get('module_handler'),
-      $container->get('config.factory')->get('search_api_solr.settings')
+      $container->get('config.factory')->get('search_api_solr.settings'),
+      $container->get('language_manager')
     );
   }
 
@@ -59,7 +59,7 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
    */
   public function viewSettings() {
     $uri = Url::fromUri('http://www.acquia.com/products-services/acquia-search', array('absolute' => TRUE));
-    drupal_set_message(t("Search is being provided by the !as network service.", array('!as' => \Drupal::l(t('Acquia Search'), $uri))));
+    drupal_set_message(t("Search is being provided by the @as network service.", array('@as' => \Drupal::l(t('Acquia Search'), $uri))));
     return parent::viewSettings();
   }
 

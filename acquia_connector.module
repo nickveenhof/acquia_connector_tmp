@@ -4,6 +4,7 @@ use Drupal\acquia_connector\Controller;
 use Drupal\acquia_connector\Subscription;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\Component\Utility\SafeMarkup;
 
 // Version of SPI data format.
 define('ACQUIA_SPI_DATA_VERSION', 2.1);
@@ -105,7 +106,7 @@ function acquia_connector_toolbar() {
       // Yes, this uses inline CSS, which sounds bad, but including a CSS file
       // just for this sounds equally bad.
       $icon = '<img src="' . base_path() . 'core/misc/icons/73b355/check.svg" alt="ok" style="vertical-align: middle;" />';
-      $link['#title'] = t("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j')));
+      $link['#title'] = t(SafeMarkup::format("!icon Subscription active (expires @date)", array('!icon' => $icon, '@date' => format_date(strtotime($subscription['expiration_date']['value']), 'custom', 'Y/n/j'))));
       $link['#options']['attributes']['class'][] = 'acquia-active-subscription';
       $link['#url'] = Url::fromUri($subscription['href']);
     }
@@ -115,7 +116,7 @@ function acquia_connector_toolbar() {
     // Yes, this uses inline CSS, which sounds bad, but including a CSS file
     // just for this sounds equally bad.
     $icon = '<img src="' . base_path() . 'core/misc/icons/ea2800/error.svg" alt="error" style="vertical-align: middle;" />';
-    $link['#title'] = t("!icon Subscription not active", array('!icon' => $icon));
+    $link['#title'] = t(SafeMarkup::format("!icon Subscription not active", array('!icon' => $icon)));
     $link['#attributes']['class'][] = "acquia-inactive-subscription";
     $link['#url'] = Url::fromUri('https://insight.acquia.com');
   }

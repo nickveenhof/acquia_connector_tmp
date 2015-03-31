@@ -49,7 +49,7 @@ class AcquiaSearchTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::createDerivedKey
+   * Check createDerivedKey.
    */
   public function testCreateDerivedKey() {
     // Mimic the hashing code in the API function.

@@ -30,25 +30,24 @@ class TestStatusController extends ControllerBase {
     foreach (\Drupal::moduleHandler()->getImplementations('acquia_connector_spi_test') as $module) {
       $function = $module . '_acquia_connector_spi_test';
       if (function_exists($function)) {
-        $result = $this->testValidate($function());
 
+        $result = $this->testValidate($function());
         if (!$result['result']) {
           $custom_data[$module] = $result;
 
           foreach ($result['failure'] as $test_name => $test_failures) {
             foreach ($test_failures as $test_param => $test_value) {
               $variables = array(
-                '!module' => $module,
-                '@message'     => $test_value['message'],
-                '!param_name'  => $test_param,
-                '!test'   => $test_name,
-                '!value'       => $test_value['value'],
+                '@module'     => $module,
+                '@message'    => $test_value['message'],
+                '@param_name' => $test_param,
+                '@test'       => $test_name,
+                '@value'      => $test_value['value'],
               );
-
               // Only log if we're performing a full validation check.
               if ($log) {
-                drupal_set_message($this->t("Custom test validation failed for !test in !module and has been logged: @message for parameter '!param_name'; current value '!value'.", $variables), 'error');
-                \Drupal::logger('acquia spi test')->notice("<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables);
+                drupal_set_message($this->t("Custom test validation failed for @test in @module and has been logged: @message for parameter '@param_name'; current value '@value'.", $variables), 'error');
+                \Drupal::logger('acquia spi test')->notice("<em>Custom test validation failed</em>: @message for parameter '@param_name'; current value '@value'. (<em>Test '@test_name' in module '@module_name'</em>)", $variables);
               }
             }
           }
