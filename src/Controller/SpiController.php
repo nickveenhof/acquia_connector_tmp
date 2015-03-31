@@ -429,7 +429,7 @@ class SpiController extends ControllerBase {
       foreach ($result as $record) {
         $variables = unserialize($record->variables);
         if (!empty($variables['%user'])) {
-          $last_logins['failed'][$record->timestamp] = SafeMarkup::checkPlain($variables['%user']);
+          $last_logins['failed'][$record->timestamp] = SafeMarkup::escape($variables['%user']);
         }
       }
     }
