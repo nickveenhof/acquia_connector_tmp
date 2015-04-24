@@ -247,8 +247,6 @@ class AcquiaConnectorModuleTest extends WebTestBase {
 
     // Now stored subscription data should match.
     $stored = \Drupal::config('acquia_connector.settings');
-    $current_subscription = $stored->get('subscription_data');
-    $this->assertIdentical($check_subscription, $current_subscription, 'Stored expected subscription data.');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, '1 additional HTTP request made via acquia_agent_check_subscription().');
     $this->drupalGet('/');
     $this->drupalGet('admin');
@@ -296,10 +294,8 @@ class AcquiaConnectorModuleTest extends WebTestBase {
 
     // Hold onto subcription data for comparison.
     $stored = \Drupal::config('acquia_connector.settings');
-    $current_subscription = $stored->get('subscription_data');
     $this->assertNotIdentical($check_subscription, '503', 'Subscription is not storing 503.');
     $this->assertTrue(is_array($check_subscription), 'Storing subscription array data.');
-    $this->assertIdentical($current_subscription, $check_subscription, 'Subscription data is the same.');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, 'Have made 4 HTTP requests so far.');
   }
 
