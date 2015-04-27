@@ -97,7 +97,6 @@ class SecurityReviewController extends ControllerBase {
    * Run a single Security Review check.
    */
   private function _securityReviewRunCheck($module, $check_name, $check, $log, $store = FALSE) {
-    $last_check = array();
     $return = array('result' => NULL);
     if (isset($check['file'])) {
       // Handle Security Review defining checks for other modules.
@@ -146,9 +145,7 @@ class SecurityReviewController extends ControllerBase {
    */
   private function securityReviewGetChecks() {
     // Use Security Review's checks if available.
-    if (\Drupal::moduleHandler()
-        ->moduleExists('security_review') && function_exists('security_review_security_checks')
-    ) {
+    if (\Drupal::moduleHandler()->moduleExists('security_review') && function_exists('security_review_security_checks')) {
       return \Drupal::moduleHandler()->invokeAll('security_checks');
     }
     else {
