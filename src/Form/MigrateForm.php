@@ -121,7 +121,7 @@ class MigrateForm extends ConfigFormBase {
     $form['actions']['cancel'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Cancel'),
-      '#submit' => array($this, 'submitMigrateCancel'),
+      '#submit' => ['::submitMigrateCancel'],
     );
 
     return $form;

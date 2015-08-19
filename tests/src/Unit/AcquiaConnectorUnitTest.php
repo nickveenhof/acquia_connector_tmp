@@ -11,6 +11,10 @@ use Drupal\acquia_connector\Controller\StatusController;
 use Drupal\Tests\UnitTestCase;
 use Drupal\acquia_connector\Client;
 
+if (!defined('REQUEST_TIME')) {
+  define('REQUEST_TIME', (int) $_SERVER['REQUEST_TIME']);
+}
+
 /**
  * @coversDefaultClass \Drupal\acquia_connector\Client
  * @group Acquia

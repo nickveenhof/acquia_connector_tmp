@@ -84,12 +84,13 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $this->drupalLogin($this->privileged_user);
 
     // Setup variables.
+    $this->base_url = $base_url;
     $this->credentials_path = 'admin/config/system/acquia-connector/credentials';
     $this->settings_path = 'admin/config/system/acquia-connector';
     $this->status_report_url = 'admin/reports/status';
 
     //local env
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', $base_url)->save();
+    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', $this->base_url)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
   }
@@ -157,7 +158,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $diff = array_diff($stored_data['testdata'], $data);
     $this->assertTrue(empty($diff), 'Storage can store simple array');
 
-    $this->drupalGet('/');
+    $this->drupalGet($this->base_url);
      //Platform data should have been written.
     $stored = $spi->dataStoreGet(array('platform'));
     $diff = array_diff(array_keys($stored['platform']), $this->platformKeys);

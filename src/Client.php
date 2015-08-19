@@ -9,12 +9,15 @@ namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use GuzzleHttp\ClientInterface;
+use Drupal\Component\Serialization\Json;
+use GuzzleHttp\Exception\RequestException;
 
 class Client {
 
   /**
-   * @var ClientInterface
+   * The HTTP client to fetch the feed data with.
+   *
+   * @var \GuzzleHttp\Client $client
    */
   protected $client;
 
@@ -34,19 +37,23 @@ class Client {
   protected $config;
 
   /**
-   * @param ClientInterface $client
    * @param ConfigFactoryInterface $config
    */
+  public function __construct(ConfigFactoryInterface $config) {
+    $this->config = $config->get('acquia_connector.settings');
+    $this->server = $this->config->get('spi.server');
 
-  public function __construct(ClientInterface $client, ConfigFactoryInterface $config) {
-    $this->client = $client;
     $this->headers = array(
       'Content-Type' => 'application/json',
       'Accept' => 'application/json'
     );
-    $this->config = $config->get('acquia_connector.settings');
-    $this->server = $this->config->get('spi.server');
-    $this->client->setDefaultOption('verify', (boolean) $this->config->get('spi.ssl_verify'));
+
+    $this->client = \Drupal::service('http_client_factory')->fromOptions(
+      [
+        'verify' => (boolean) $this->config->get('spi.ssl_verify'),
+        'exceptions' => false,
+      ]
+    );
   }
 
   /**
@@ -56,6 +63,7 @@ class Client {
    * @param string $password
    *   Plain-text password for Acquia Network account. Will be hashed for
    *   communication.
+   *
    * @return array | FALSE
    */
   public function getSubscriptionCredentials($email, $password) {
@@ -97,6 +105,7 @@ class Client {
    *   (optional)
    *
    * @return array|false or throw Exception
+   *
    * @throws \Exception
    */
   public function getSubscription($id, $key, array $body = array()) {
@@ -176,6 +185,7 @@ class Client {
 
   /**
    * @param $apiEndpoint
+   *
    * @return array|bool|false
    */
   public function getDefinition($apiEndpoint) {
@@ -194,6 +204,7 @@ class Client {
    * @param string $key
    * @param array $response
    * @param array $requestAuthenticator
+   *
    * @return bool
    */
   protected function validateResponse($key, array $response, array $requestAuthenticator) {
@@ -211,46 +222,56 @@ class Client {
    * @param string $method
    * @param string $path
    * @param array $data
+   *
    * @return array|false
+   *
    * @throws ConnectorException
    */
   protected function request($method, $path, $data) {
     $uri = $this->server . $path;
     $options = array(
       'headers' => $this->headers,
-      'body' => json_encode($data),
+      'body' => Json::encode($data),
     );
 
     try {
       switch ($method) {
         case 'GET':
-          return $this->client->get($uri, $options)->json();
+          $response = $this->client->get($uri);
+          $status_code = $response->getStatusCode();
+          $stream_size = $response->getBody()->getSize();
+          $data = Json::decode($response->getBody()->read($stream_size), TRUE);
+
+          if ($status_code < 200 || $status_code > 299) {
+            throw new ConnectorException($data['message'], $data['code'], $data);
+          }
+
+          return $data;
           break;
 
         case 'POST':
-          return $this->client->post($uri, $options)->json();
+          $response = $this->client->post($uri, $options);
+          $status_code = $response->getStatusCode();
+          $stream_size = $response->getBody()->getSize();
+          $data = Json::decode($response->getBody()->read($stream_size), TRUE);
+
+          if ($status_code < 200 || $status_code > 299) {
+            throw new ConnectorException($data['message'], $data['code'], $data);
+          }
+
+          return $data;
           break;
       }
     }
-    catch (\Exception $e) {
-      $custom_error_message = [];
-      // Provide custom error from the server.
-      if (method_exists($e, 'getResponse')) {
-        try {
-          $error_response = $e->getResponse();
-          if ($error_response) {
-            $custom_error_message = $error_response->json();
-          }
-        } catch (\Exception $parseException) {}
-      }
-      throw new ConnectorException($e->getMessage(), $e->getCode(), $custom_error_message, $e);
+    catch (\RequestException $e) {
+      throw new ConnectorException($e->getMessage(), $e->getCode());
     }
 
     return FALSE;
   }
 
-  /*
-   * Build authenticator to sign requests to the Acquia Network
+  /**
+   * Build authenticator to sign requests to the Acquia Network.
    *
    * @params string $key Secret key to use for signing the request.
    * @params array $params Optional parameters to include.

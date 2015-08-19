@@ -12,6 +12,10 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\Core\State;
 use Drupal\acquia_connector\CryptConnector;
 
+if (!defined('REQUEST_TIME')) {
+  define('REQUEST_TIME', (int) $_SERVER['REQUEST_TIME']);
+}
+
 /**
  * @coversDefaultClass \Drupal\acquia_search\EventSubscriber\SearchSubscriber
  * @group acquia_search

@@ -9,7 +9,7 @@ id: acquia_search
 label: 'Acquia Search'
 module: views
 description: ''
-tag: search
+tag: ''
 base_table: search_api_index_acquia_search_index
 base_field: search_api_id
 core: 8.x
@@ -24,17 +24,14 @@ display:
         type: none
         options: {  }
       cache:
-        type: none
+        type: tag
         options: {  }
       query:
         type: views_query
         options:
-          search_api_bypass_access: 0
-          entity_access: 0
-          parse_mode: direct
-          parse_mode_direct_description: ''
-          parse_mode_single_description: ''
-          parse_mode_terms_description: ''
+          search_api_bypass_access: false
+          entity_access: false
+          parse_mode: terms
       exposed_form:
         type: basic
         options:
@@ -72,7 +69,9 @@ display:
         type: search_api
         options:
           view_modes:
-            'entity:node': teaser
+            'entity:node':
+              article: teaser
+              page: teaser
       fields:
         search_api_id:
           table: search_api_index_acquia_search_index
@@ -103,7 +102,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: null
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -130,8 +129,7 @@ display:
           decimal: .
           separator: ','
           format_plural: false
-          format_plural_singular: '1'
-          format_plural_plural: '@count'
+          format_plural_string: "1\x03@count"
           prefix: ''
           suffix: ''
       filters:
@@ -174,7 +172,8 @@ display:
             group_items: {  }
           mode: filter
           min_length: null
-          fields: {  }
+          fields:
+            'entity:node/body': 'entity:node/body'
           plugin_id: search_api_fulltext
       sorts:
         search_api_relevance:
@@ -209,8 +208,12 @@ display:
       relationships: {  }
       arguments: {  }
       display_extenders: {  }
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
+    cache_metadata:
+      contexts:
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+      cacheable: false
   page:
     display_plugin: page
     id: page
@@ -218,15 +221,20 @@ display:
     position: 1
     display_options:
       display_extenders: {  }
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
       path: search
       menu:
         type: normal
         title: Search
+        description: ''
+        parent: ''
+        weight: 0
+        context: '0'
         menu_name: main
       exposed_block: true
       display_description: ''
-      title: 'Search results'
-      defaults:
-        title: false
+    cache_metadata:
+      contexts:
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+      cacheable: false

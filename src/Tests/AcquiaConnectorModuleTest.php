@@ -62,6 +62,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     $this->credentials_path = 'admin/config/system/acquia-connector/credentials';
     $this->settings_path = 'admin/config/system/acquia-connector';
     $this->migrate_path = 'admin/config/system/acquia-agent/migrate';
+    $this->base_url = $base_url;
 
     //local
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', $base_url)->save();
@@ -248,7 +249,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     // Now stored subscription data should match.
     $stored = \Drupal::config('acquia_connector.settings');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, '1 additional HTTP request made via acquia_agent_check_subscription().');
-    $this->drupalGet('/');
+    $this->drupalGet($this->base_url);
     $this->drupalGet('admin');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 4, 'No extra requests made during visits to other pages.');
 
@@ -264,7 +265,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     $is_active = Subscription::isActive();
     $this->assertFalse($is_active, 'Subscription is not active after connection with expired subscription.');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 3, 'No additional HTTP requests made via acquia_agent_subscription_is_active().');
-    $this->drupalGet('/');
+    $this->drupalGet($this->base_url);
     $this->drupalGet('admin');
     $this->assertIdentical(\Drupal::state()->get('acquia_connector_test_request_count', 0), 3, 'No HTTP requests made during visits to other pages.');
 

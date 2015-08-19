@@ -88,6 +88,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $this->drupalPostForm('admin/config/system/acquia-connector/credentials', $edit_fields, $submit_button);
 
     \Drupal::service('module_installer')->install(array('acquia_search'));
+    drupal_flush_all_caches();
   }
 
   /**
@@ -116,7 +117,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     // Connect site on key and id.
     $this->drupalGet('admin/config/search/search-api');
     $environment =  Server::load('acquia_search_server');
-    // Check if the environment is a valid variable
+    // Check if the environment is a valid variable.
     $this->assertTrue($environment, t('Acquia Search environment saved.'), 'Acquia Search');
   }
 
@@ -130,12 +131,13 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    */
   public function testEnvironmentUI() {
     $this->drupalGet($this->settings_path);
-    //Check the Acquia Search Server is displayed
+    // Check the Acquia Search Server is displayed.
     $this->assertLinkByHref('/admin/config/search/search-api/server/' . $this->server, 0, t('The Acquia Search Server is displayed in the UI.'));
-    //Check the Acquia Search Index is displayed
+    // Check the Acquia Search Index is displayed.
     $this->assertLinkByHref('/admin/config/search/search-api/index/' . $this->index, 0, t('The Acquia Search Index is displayed in the UI.'));
-    //Delete the environment
-    $this->drupalGet('/admin/config/search/search-api/server/' . $this->server . '/delete');
+    // Delete the environment.
+    $this->drupalGet('/admin/config/search/search-api/server/' . $this->server . '/edit');
+    $this->clickLink('Delete', 0);
     $this->assertResponse(403, t('The Acquia Search environment cannot be deleted via the UI.'));
   }
 
@@ -151,31 +153,30 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $settings_path = 'admin/config/search/search-api';
     $this->drupalGet($settings_path);
     $this->clickLink('Edit', 0);
-    //Check backend server
+    // Check backend server.
     $this->assertText('Backend', t('The Backend checkbox label exists'), 'Acquia Search');
     $this->assertFieldChecked('edit-backend-search-api-solr-acquia', t('Is used as a backend  Acquia Solr'), 'Acquia Search');
-    //Check field Solr server URI
+    // Check field Solr server URI.
     $this->assertText('Solr server URI', t('The Solr server URI label exist'), 'Acquia Search');
-    //Check http-protocol
+    // Check http-protocol.
     $this->assertText('HTTP protocol', t('The HTTP protocol label exists'), 'Acquia Search');
     $this->assertOptionSelected('edit-backend-config-scheme', 'http', t('By default selected HTTP protocol'), 'Acquia Search');
-    //Check Solr host, port, path
+    // Check Solr host, port, path.
     $this->assertText('Solr host', t('The Solr host  label exist'), 'Acquia Search');
     $this->assertText('Solr port',  t('The Solr port label exist'), 'Acquia Search');
     $this->assertText('Solr path', t('The Solr path label exist'), 'Acquia Search');
-    //Check Basic HTTP authentication
+    // Check Basic HTTP authentication.
     $this->assertText('Basic HTTP authentication', t('The basic HTTP authentication label exist'), 'Acquia Search');
-    //Ckeck Solr version override
+    // Ckeck Solr version override.
     $this->assertText('Solr version override', t('The selectbox "Solr version label" exist'), 'Acquia Search');
     $this->assertOptionSelected('edit-backend-config-advanced-solr-version', '4', t('By default selected Solr version 4.x'), 'Acquia Search');
-    //Ckeck HTTP method
+    // Ckeck HTTP method.
     $this->assertText('HTTP method', t('The HTTP method label exist'));
     $this->assertOptionSelected('edit-backend-config-advanced-http-method', 'AUTO', t('By default selected AUTO HTTP method'), 'Acquia Search');
-    //Server save
+    // Server save.
     $this->drupalPostForm('/admin/config/search/search-api/server/' . $this->server . '/edit', array(), 'Save');
-    //Delete server
-    $this->drupalGet('/admin/config/search/search-api/server/' . $this->server . '/edit');
-    $this->clickLink('Delete', 0);
+    // Delete server.
+    $this->drupalGet('/admin/config/search/search-api/server/' . $this->server . '/delete');
     $this->assertResponse(403, t('The Acquia Search Server cannot be deleted via the UI.'));
   }
 
@@ -193,7 +194,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $this->drupalGet($settings_path);
     $this->clickLink('Edit', 1);
     //Check field data types
-    $this->assertText('Data types', t('The Data types label exist'), 'Acquia Search');
+    $this->assertText('Data sources', t('The Data types label exist'), 'Acquia Search');
     //Check default selected server
     $this->assertFieldChecked('edit-server-acquia-search-server', t('By default selected Acquia Search Server'), 'Acquia Search');
     //Check fields used for indexing
@@ -203,8 +204,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     //Save index
     $this->drupalPostForm('/admin/config/search/search-api/index/' . $this->index . '/edit', array(), 'Save');
     //Delete index
-    $this->drupalGet('/admin/config/search/search-api/index/' . $this->index . '/edit');
-    $this->clickLink('Delete', 0);
+    $this->drupalGet('/admin/config/search/search-api/index/' . $this->index . '/delete');
     $this->assertResponse(403, t('The Acquia Search Server cannot be deleted via the UI.'));
   }
 }

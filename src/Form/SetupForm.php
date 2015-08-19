@@ -153,7 +153,7 @@ class SetupForm extends ConfigFormBase {
       catch (ConnectorException $e) {
         // Set form error to prevent switching to the next page.
         if ($e->isCustomized()) {
-          $form_state->setErrorByName('email', $e->getCustomMessage());
+          $form_state->setErrorByName('', $e->getCustomMessage());
         }
         else {
           \Drupal::logger('acquia connector')->error($e->getMessage());

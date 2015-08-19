@@ -4,7 +4,6 @@ acquia_connector_test.communication_setting:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::getCommunicationSettings'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json
 
 acquia_connector_test.credentials:
   path: '/agent-api/subscription/credentials'
@@ -12,7 +11,6 @@ acquia_connector_test.credentials:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::getCredentials'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json
 
 acquia_connector_test.subscription:
   path: '/agent-api/subscription'
@@ -20,7 +18,6 @@ acquia_connector_test.subscription:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::getSubscription'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json
 
 acquia_connector_test.migration_environments:
   path: '/agent-migrate-api/subscription/migration/environments'
@@ -28,7 +25,6 @@ acquia_connector_test.migration_environments:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::cloudMigrationEnvironments'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json
 
 acquia_connector_test.migration_test_upload:
   path: '/system/acquia-connector-test-upload/{id}'
@@ -43,7 +39,6 @@ acquia_connector_test.migration_complete:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::testMigrationComplete'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json
 
 acquia_connector_test.nspi_update:
   path: '/spi-api/site'
@@ -51,7 +46,6 @@ acquia_connector_test.nspi_update:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::nspiUpdate'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json
 
 acquia_connector_test.spi_defenition:
   path: '/spi_def/get/{version}'
@@ -59,4 +53,3 @@ acquia_connector_test.spi_defenition:
     _controller: '\Drupal\acquia_connector_test\Controller\NspiController::spiDefinition'
   requirements:
     _custom_access: '\Drupal\acquia_connector_test\Controller\NspiController::access'
-    _format: json

@@ -7,10 +7,13 @@
 
 namespace Drupal\acquia_connector;
 
-use GuzzleHttp\Post\PostFile;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Url;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Archiver;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\UriInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -497,6 +500,11 @@ class Migration {
 
   /**
    * Perform POST of archive chunk to Acquia hosting environment URL.
+   *
+   * @param $migration
+   * @param $content
+   *
+   * @return bool
    */
   protected function transmit(&$migration, $content) {
     $params = $migration['request_params'];
@@ -504,22 +512,42 @@ class Migration {
     $params['t'] = time();
     $params[$migration['env']['stage']] = $this->getToken($params['t'], $params['r'], $migration['env']['secret']);
 
-    $data = $params;
-    $data['files[u]'] = new PostFile('files[u]', $content, $migration['file_name']);
+    $data = [];
+    foreach ($params as $key => $value) {
+      $data['multipart'][] = [
+        'name' => $key,
+        'contents' => (string) $value,
+      ];
+    }
     $url = $migration['env']['url'];
-    $options = [
+    $actual_uri = NULL;
+
+    $config = [
+      'allow_redirects' => [
+        'max' => 0,
+        'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $request_uri) use (&$actual_uri) {
+          $actual_uri = (string) $request_uri;
+        }
+      ],
+      'verify' => \Drupal::config('acquia_connector.settings')->get('spi.ssl_verify'),
       'headers' => [
         'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
       ],
-      'allow_redirects' => FALSE,
-      'verify' => \Drupal::config('acquia_connector.settings')->get('spi.ssl_verify'),
-      'body' => $data,
     ];
 
-    $response = \Drupal::httpClient()->post($url, $options, $data);
+    $data['multipart'][] = [
+      'name' => 'files[u]',
+      'contents' => $content,
+      'filename' => $migration['file_name'],
+    ];
+
+    /** @var \GuzzleHttp\Client $client */
+    $client = \Drupal::service('http_client_factory')->fromOptions($config);
+    $response = $client->post($url, $data);
 
     try {
-      $data = $response->json();
+      $stream_size = $response->getBody()->getSize();
+      $data = Json::decode($response->getBody()->read($stream_size));
     }
     catch (\Exception $e) {
       $data = $e->getMessage();
@@ -556,8 +584,8 @@ class Migration {
     }
     elseif ($response->getStatusCode() == 302) {
       // Final chunk, signature and any error is in Location URL.
-      if (!($response->hasHeader('Location') && $redirect_url = $response->getHeader('Location'))) {
-        $redirect_url = $response->getEffectiveUrl();
+      if (!($redirect_url = $response->getHeaderLine('location')) && $actual_uri && $actual_uri !== $url) {
+        $redirect_url = $actual_uri;
       }
       $parsed = parse_url($redirect_url);
       parse_str($parsed['query'], $query);
@@ -603,6 +631,7 @@ class Migration {
    * @param $now
    * @param $return
    * @param $secret
+   *
    * @return string a string containing the calculated message digest as lowercase hexits
    */
   public function getToken($now, $return, $secret) {
@@ -611,8 +640,10 @@ class Migration {
 
   /**
    * Recursive function to find files to archive.
+   *
    * @param $directory
    * @param $exclude
+   *
    * @return array
    */
   public function filesToBackup($directory, $exclude) {
@@ -640,6 +671,7 @@ class Migration {
 
   /**
    * Remove database file created for migration.
+   *
    * @param $migration
    */
   protected function cleanupDb(&$migration) {
@@ -651,6 +683,7 @@ class Migration {
 
   /**
    * Remove files and directory created for migration.
+   *
    * @param $migration
    */
   public function cleanup(&$migration) {
@@ -689,6 +722,8 @@ class Migration {
 
   /**
    * Dump the database to the specified file.
+   *
+   * @param $migration
    */
   protected function backupDbToFileMysql(&$migration) {
     // Check migration file at first to avoid dumping db to a hidden file.
@@ -734,6 +769,10 @@ class Migration {
 
   /**
    * Get the sql for the structure of the given table.
+   *
+   * @param $table
+   *
+   * @return string
    */
   protected function getTableStructureSqlMysql($table) {
     $out = "";

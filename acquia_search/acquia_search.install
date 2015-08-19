@@ -85,7 +85,7 @@ function _acquia_search_set_version() {
   $version = \Drupal::config('acquia_search.settings')->get('version');
   $info = system_get_info('module', 'acquia_search');
   // Send the version, or at least the core compatibility as a fallback.
-  $new_version = isset($info['version']) ? (string) $info['version'] : (string) $info['core'];
+  $new_version = isset($info['version']) ? (string) $info['version'] : (string) \Drupal::VERSION;
   if ($version != $new_version) {
     \Drupal::configFactory()->getEditable('acquia_search.settings')->set('version', $new_version)->save();
   }
