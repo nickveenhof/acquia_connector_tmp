@@ -263,7 +263,7 @@ class Client {
           break;
       }
     }
-    catch (\RequestException $e) {
+    catch (RequestException $e) {
       throw new ConnectorException($e->getMessage(), $e->getCode());
     }
 

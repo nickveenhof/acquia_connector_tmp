@@ -24,6 +24,13 @@ use Drupal\acquia_connector\ConnectorException;
 class SettingsForm extends ConfigFormBase {
 
   /**
+   * The config factory interface.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config_factory;
+
+  /**
    * The module handler.
    *
    * @var \Drupal\Core\Extension\ModuleHandlerInterface

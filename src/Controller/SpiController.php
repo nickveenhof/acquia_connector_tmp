@@ -22,7 +22,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\user\Entity\Role;
 use Drupal\Core\Site\Settings;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
 
 /**
  * Class SpiController.
@@ -429,7 +429,7 @@ class SpiController extends ControllerBase {
       foreach ($result as $record) {
         $variables = unserialize($record->variables);
         if (!empty($variables['%user'])) {
-          $last_logins['failed'][$record->timestamp] = SafeMarkup::escape($variables['%user']);
+          $last_logins['failed'][$record->timestamp] = Html::escape($variables['%user']);
         }
       }
     }
@@ -1119,7 +1119,7 @@ class SpiController extends ControllerBase {
         if (!empty($response['body']['nspi_messages'])) {
           drupal_set_message($this->t('Acquia Subscription returned the following messages. Further information may be in the logs.'));
           foreach ($response['body']['nspi_messages'] as $nspi_message) {
-            drupal_set_message(SafeMarkup::escape($nspi_message));
+            drupal_set_message(Html::escape($nspi_message));
           }
         }
       }

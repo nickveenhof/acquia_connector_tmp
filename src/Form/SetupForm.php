@@ -199,6 +199,7 @@ class SetupForm extends ConfigFormBase {
 
       if ($subscription['active']) {
         drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to the Acquia Subscription.'));
+        drupal_flush_all_caches(); //@todo https://www.drupal.org/node/2560867
       }
     }
   }

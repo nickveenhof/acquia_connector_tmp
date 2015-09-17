@@ -115,7 +115,7 @@ function acquia_connector_toolbar() {
   if (empty($link['#url'])) {
     // Yes, this uses inline CSS, which sounds bad, but including a CSS file
     // just for this sounds equally bad.
-    $icon = '<img src="' . base_path() . 'core/misc/icons/ea2800/error.svg" alt="error" style="vertical-align: middle;" />';
+    $icon = '<img src="' . base_path() . 'core/misc/icons/e32700/error.svg" alt="error" style="vertical-align: middle;" />';
     $link['#title'] = t(SafeMarkup::format("!icon Subscription not active", array('!icon' => $icon)));
     $link['#attributes']['class'][] = "acquia-inactive-subscription";
     $link['#url'] = Url::fromUri('https://insight.acquia.com');
@@ -130,7 +130,7 @@ function acquia_connector_toolbar() {
       '#weight' => 200,
       '#cache' => [
         'contexts' => [
-          'user.permissions',
+          'user.roles:authenticated',
         ],
       ],
     ],
