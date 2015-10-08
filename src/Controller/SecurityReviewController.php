@@ -429,13 +429,12 @@ class SecurityReviewController extends ControllerBase {
           if ($module == 'image' || $module == 'file') {
             foreach ($unsafe_extensions as $unsafe_extension) {
               // Check instance file_extensions.
-              if (strpos($field->settings['file_extensions'], $unsafe_extension) !== FALSE) {
+              if (strpos($field->getSetting('file_extensions'), $unsafe_extension) !== FALSE) {
                 // Found an unsafe extension.
-                $check_result_value[$field->field_name][$field->bundle] = $unsafe_extension;
+                $check_result_value[$field->getName()][$field->getTargetBundle()] = $unsafe_extension;
                 $check_result = FALSE;
               }
             }
-
           }
         }
       }
