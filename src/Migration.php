@@ -401,7 +401,7 @@ class Migration {
         $ret = $gz->addModify(array($migration['db_file']), '', $migration['dir'] . DIRECTORY_SEPARATOR);
       }
       // Remove Drupal root from the file paths, OS dependent.
-      if (defined('OS_WINDOWS')) {
+      if (defined('OS_WINDOWS') && OS_WINDOWS) {
         $remove_dir = DRUPAL_ROOT . '\\';
       }
       else {
@@ -553,7 +553,7 @@ class Migration {
       $data = $e->getMessage();
     }
 
-    if ($response->getStatusCode() == '200') {
+    if ($response->getStatusCode() == 200) {
       if (!is_array($data)) {
         $migration['error'] = t('Error occurred, please try again or consult the logs.');
         $migration['error_data'] = $data;

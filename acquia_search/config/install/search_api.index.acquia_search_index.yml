@@ -36,5 +36,6 @@ langcode: en
 dependencies:
   config:
     - search_api.server.acquia_search_server
-  module:
-    - node
+  enforced:
+    module:
+      - acquia_search

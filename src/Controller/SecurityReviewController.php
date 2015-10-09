@@ -266,9 +266,11 @@ class SecurityReviewController extends ControllerBase {
     // Support different methods to check for $base_url.
     $method = 'include';
     $result = NULL;
+    $site_path = \Drupal::service('site.path');
+
     if ($method === 'token') {
-      if (file_exists(DRUPAL_ROOT . '/' . conf_path() . '/settings.php')) {
-        $content = file_get_contents(DRUPAL_ROOT . '/' . conf_path() . '/settings.php');
+      if (file_exists(DRUPAL_ROOT . '/' . $site_path . '/settings.php')) {
+        $content = file_get_contents(DRUPAL_ROOT . '/' . $site_path . '/settings.php');
         $tokens = token_get_all($content);
       }
       $result = FALSE;
@@ -280,8 +282,8 @@ class SecurityReviewController extends ControllerBase {
       }
     }
     elseif ($method === 'include') {
-      if (file_exists(DRUPAL_ROOT . '/' . conf_path() . '/settings.php')) {
-        include DRUPAL_ROOT . '/' . conf_path() . '/settings.php';
+      if (file_exists(DRUPAL_ROOT . '/' . $site_path . '/settings.php')) {
+        include DRUPAL_ROOT . '/' . $site_path . '/settings.php';
       }
       if (isset($base_url)) {
         $result = TRUE;
@@ -302,11 +304,13 @@ class SecurityReviewController extends ControllerBase {
     $result = TRUE;
     $check_result_value = array();
     $files = array();
-    $dir = scandir(DRUPAL_ROOT . '/' . conf_path() . '/');
+    $site_path = \Drupal::service('site.path');
+
+    $dir = scandir(DRUPAL_ROOT . '/' . $site_path . '/');
     foreach ($dir as $file) {
       // Set full path to only files.
       if (!is_dir($file)) {
-        $files[] = DRUPAL_ROOT . '/' . conf_path() . '/' . $file;
+        $files[] = DRUPAL_ROOT . '/' . $site_path . '/' . $file;
       }
     }
     \Drupal::moduleHandler()->alter('security_review_temporary_files', $files);
@@ -506,7 +510,7 @@ class SecurityReviewController extends ControllerBase {
     foreach ($untrusted_permissions as $rid => $permissions) {
       $intersect = array_intersect($all_keys, $permissions);
       foreach ($intersect as $permission) {
-        if (isset($all_permissions[$permission]['restrict access'])) {
+        if (!empty($all_permissions[$permission]['restrict access'])) {
           $check_result_value[$mapping_role[$rid]][] = $permission;
         }
       }
