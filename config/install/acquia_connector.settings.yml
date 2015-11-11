@@ -5,7 +5,6 @@ subscription_data:
   active: false
 subscription_name: ''
 debug: false
-cron_last: 0
 cron_interval: 30
 cron_interval_override: 0
 banner_service: 'https://insight.acquia.com/system/acquia-banner'

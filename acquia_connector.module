@@ -75,7 +75,7 @@ function acquia_connector_cron() {
   $config = \Drupal::config('acquia_connector.settings');
 
   // Get the last time we processed data.
-  $last = $config->get('cron_last');
+  $last = \Drupal::state()->get('acquia_connector.cron_last', 0);
 
   // 30 minute interval for sending site profile.
   $interval = $config->get('cron_interval');

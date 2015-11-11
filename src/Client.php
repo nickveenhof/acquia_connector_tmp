@@ -112,7 +112,7 @@ class Client {
     $body['identifier'] = $id;
     // There is an identifier and key, so attempt communication.
     $subscription = array();
-    $subscription['timestamp'] = REQUEST_TIME;
+    \Drupal::state()->set('acquia_subscription_data.timestamp', REQUEST_TIME);
 
     // Include version number information.
     acquia_connector_load_versions();

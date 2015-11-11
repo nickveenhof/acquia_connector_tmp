@@ -481,7 +481,7 @@ class SpiController extends ControllerBase {
       'conf_dir' => $conf_dir,
       'settings' => $settings,
     );
-    $cron_last = $cron_last = \Drupal::state()->get('system.cron_last');
+    $cron_last = \Drupal::state()->get('system.cron_last');
     if (!is_numeric($cron_last)) {
       $cron_last = \Drupal::state()->get('install_time', 0);
     }
@@ -1089,7 +1089,7 @@ class SpiController extends ControllerBase {
     }
 
     $this->handleServerResponse($response);
-    \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('cron_last', REQUEST_TIME)->save();
+    \Drupal::state()->set('acquia_connector.cron_last', REQUEST_TIME);
 
     return $response;
   }

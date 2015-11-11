@@ -37,13 +37,55 @@ class VariablesController extends ControllerBase {
   }
 
   /**
-   * Get all system variables
+   * Get all system variables.
    *
    * @return array()
    */
   public function getVariablesData() {
-    $data = array();
-    $variables =  array('acquia_spi_send_node_user', 'acquia_spi_admin_priv', 'acquia_spi_module_diff_data', 'acquia_spi_send_watchdog', 'acquia_spi_use_cron', 'cache_backends', 'cache_default_class', 'cache_inc', 'cron_safe_threshold', 'googleanalytics_cache', 'error_level', 'preprocess_js', 'page_cache_maximum_age', 'block_cache', 'preprocess_css', 'page_compression', 'cache', 'cache_lifetime', 'cron_last', 'clean_url', 'redirect_global_clean', 'theme_zen_settings', 'site_offline', 'site_name', 'user_register', 'user_signatures', 'user_admin_role', 'user_email_verification', 'user_cancel_method', 'filter_fallback_format', 'dblog_row_limit', 'date_default_timezone', 'file_default_scheme', 'install_profile', 'maintenance_mode', 'update_last_check', 'site_default_country', 'acquia_spi_saved_variables', 'acquia_spi_set_variables_automatic', 'acquia_spi_ignored_set_variables', 'acquia_spi_set_variables_override');
+    $data = [];
+    $variables = [
+      'acquia_spi_send_node_user',
+      'acquia_spi_admin_priv',
+      'acquia_spi_module_diff_data',
+      'acquia_spi_send_watchdog',
+      'acquia_spi_use_cron',
+      'cache_backends',
+      'cache_default_class',
+      'cache_inc',
+      'cron_safe_threshold',
+      'googleanalytics_cache',
+      'error_level',
+      'preprocess_js',
+      'page_cache_maximum_age',
+      'block_cache',
+      'preprocess_css',
+      'page_compression',
+      'cache',
+      'cache_lifetime',
+      'cron_last',
+      'clean_url',
+      'redirect_global_clean',
+      'theme_zen_settings',
+      'site_offline',
+      'site_name',
+      'user_register',
+      'user_signatures',
+      'user_admin_role',
+      'user_email_verification',
+      'user_cancel_method',
+      'filter_fallback_format',
+      'dblog_row_limit',
+      'date_default_timezone',
+      'file_default_scheme',
+      'install_profile',
+      'maintenance_mode',
+      'update_last_check',
+      'site_default_country',
+      'acquia_spi_saved_variables',
+      'acquia_spi_set_variables_automatic',
+      'acquia_spi_ignored_set_variables',
+      'acquia_spi_set_variables_override',
+    ];
 
     $allConfigData = self::getAllConfigs();
     $spi_def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');

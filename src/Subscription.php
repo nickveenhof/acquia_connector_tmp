@@ -48,7 +48,7 @@ class Subscription {
       $config->clear('subscription_data')->set('subscription_data', ['active' => FALSE])->save();
     }
     else {
-      // Get our subscription data
+      // Get our subscription data.
       try {
         $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), $params);
       }
@@ -94,8 +94,9 @@ class Subscription {
       $config = \Drupal::config('acquia_connector.settings');
       $subscription = $config->get('subscription_data');
 
+      $subscription_timestamp = \Drupal::state()->get('acquia_subscription_data.timestamp');
       // Make sure we have data at least once per day.
-      if (isset($subscription['timestamp']) && (time() - $subscription['timestamp'] > 60*60*24)) {
+      if (isset($subscription_timestamp) && (time() - $subscription_timestamp > 60*60*24)) {
         try {
           $subscription = \Drupal::service('acquia_connector.client')->getSubscription($config->get('identifier'), $config->get('key'), ['no_heartbeat' => 1]);
         }

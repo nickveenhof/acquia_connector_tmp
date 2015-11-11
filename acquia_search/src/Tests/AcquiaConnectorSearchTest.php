@@ -49,7 +49,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $this->index = 'acquia_search_index';
     $this->settings_path = 'admin/config/search/search-api';
 
-    // Create a new content type
+    // Create a new content type.
     $content_type = $this->drupalCreateContentType();
 
     // Add a node of the new content type.
@@ -57,16 +57,8 @@ class AcquiaConnectorSearchTest extends WebTestBase {
       'type' => $content_type->id(),
     );
 
-    //create node
     $this->drupalCreateNode($node_data);
-
-    //connect
     $this->connect();
-
-    $subscription = array(
-      'timestamp' => REQUEST_TIME - 60,
-      'active' => '1',
-    );
   }
 
   /**
@@ -193,17 +185,17 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $settings_path = 'admin/config/search/search-api';
     $this->drupalGet($settings_path);
     $this->clickLink('Edit', 1);
-    //Check field data types
+    // Check field data types.
     $this->assertText('Data sources', t('The Data types label exist'), 'Acquia Search');
-    //Check default selected server
+    // Check default selected server.
     $this->assertFieldChecked('edit-server-acquia-search-server', t('By default selected Acquia Search Server'), 'Acquia Search');
-    //Check fields used for indexing
+    // Check fields used for indexing.
     $this->drupalGet('/admin/config/search/search-api/index/' . $this->index . '/fields');
     $this->assertFieldChecked('edit-fields-entitynodebody-indexed', t('Body used for searching'), 'Acquia Search');
     $this->assertFieldChecked('edit-fields-entitynodetitle-indexed', t('Title used for searching'), 'Acquia Search');
-    //Save index
+    // Save index.
     $this->drupalPostForm('/admin/config/search/search-api/index/' . $this->index . '/edit', array(), 'Save');
-    //Delete index
+    // Delete index.
     $this->drupalGet('/admin/config/search/search-api/index/' . $this->index . '/delete');
     $this->assertResponse(403, t('The Acquia Search Server cannot be deleted via the UI.'));
   }

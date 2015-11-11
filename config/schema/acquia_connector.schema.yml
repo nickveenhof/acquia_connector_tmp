@@ -67,9 +67,6 @@ acquia_connector.settings:
     debug:
       type: boolean
       label: 'Is debug mode active'
-    cron_last:
-      type: integer
-      label: 'Last time we processed data'
     cron_interval:
       type: integer
       label: 'Interval for sending site profile, minutes'
