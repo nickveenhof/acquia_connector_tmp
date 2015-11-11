@@ -10,7 +10,7 @@ namespace Drupal\acquia_connector;
 class Subscription {
 
   /**
-   * XML-RPC errors defined by the Acquia Network.
+   * Errors defined by the Acquia Network.
    */
   const NOT_FOUND = 1000;
   const KEY_MISMATCH = 1100;

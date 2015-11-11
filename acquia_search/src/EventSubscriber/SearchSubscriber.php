@@ -6,7 +6,6 @@ use Solarium\Core\Event\Events;
 use Solarium\Core\Plugin\Plugin;
 use Drupal\Component\Utility\Crypt;
 use Symfony\Component\EventDispatcher\Event;
-use Solarium\Core\Client\Response;
 use Solarium\Exception\HttpException;
 use Drupal\acquia_connector\CryptConnector;
 
@@ -67,10 +66,13 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Validate the hmac for the response body.
+   *
    * @param $response
    * @param $nonce
    * @param $url
+   *
    * @return Solarium\Core\Client\Response
+   *
    * @throws \Exception
    */
   protected function authenticateResponse($response, $nonce, $url) {
@@ -82,9 +84,10 @@ class SearchSubscriber extends Plugin {
   }
 
   /**
-   * Look in the headers and get the hmac_digest out
+   * Look in the headers and get the hmac_digest out.
    *
    * @param $headers
+   *
    * @return string hmac_digest
    */
   public function extractHmac($headers) {
@@ -102,12 +105,12 @@ class SearchSubscriber extends Plugin {
   /**
    * Validate the authenticity of returned data using a nonce and HMAC-SHA1.
    *
-   * @return bool
    * @param $hmac
    * @param $nonce
    * @param $string
    * @param null $derived_key
    * @param null $env_id
+   *
    * @return bool
    */
   public function validateResponse($hmac, $nonce, $string, $derived_key = NULL, $env_id = NULL) {
@@ -119,7 +122,9 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Get the derived key for the solr hmac using the information shared with acquia.com.
+   *
    * @param null $env_id
+   *
    * @return mixed
    */
   public function getDerivedKey($env_id = NULL) {
@@ -128,14 +133,14 @@ class SearchSubscriber extends Plugin {
     }
     if (!isset($this->derived_key[$env_id])) {
       // If we set an explicit environment, check if this needs to overridden
-      // Use the default
+      // Use the default.
       $identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
       $key = \Drupal::config('acquia_connector.settings')->get('key');
 
       // See if we need to overwrite these values
       // In any case, this is equal for all subscriptions. Also
       // even if the search sub is different, the main subscription should be
-      // active
+      // active.
       $derived_key_salt = $this->getDerivedKeySalt();
 
       // We use a salt from acquia.com in key derivation since this is a shared
@@ -188,10 +193,12 @@ class SearchSubscriber extends Plugin {
 
   /**
    * Creates an authenticator based on a data string and HMAC-SHA1.
+   *
    * @param $string
    * @param $nonce
    * @param null $derived_key
    * @param null $env_id
+   *
    * @return string
    */
   public function calculateAuthCookie($string, $nonce, $derived_key = NULL, $env_id = NULL) {
