@@ -67,7 +67,7 @@ function acquia_connector_requirements($phase) {
           $value = t('SPI data has not been sent');
         }
         else {
-          $value = t('Last sent !time ago', array('!time' =>  \Drupal::service('date.formatter')->formatInterval(($ago))));
+          $value = t('Last sent @time ago', array('@time' =>  \Drupal::service('date.formatter')->formatInterval(($ago))));
         }
         $requirements['acquia_spi'] = array(
           'title' => t('Acquia Subscription SPI'),
@@ -104,7 +104,7 @@ function acquia_connector_requirements($phase) {
           'title' => t('Acquia Subscription status'),
           'severity' => REQUIREMENT_WARNING,
           'value' => t('Inactive'),
-          'description' => t('Your subscription is expired or you are using an invalid identifier and key pair. You can check the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page. Check <a href="@acquia-network">your subscription on the Acquia Subscription</a> for further status information.', ['@settings' => Url::fromRoute('acquia_connector.settings')->toString(), '@acquia-network' => $href]),
+          'description' => t('Your subscription is expired or you are using an invalid identifier and key pair. You can check the subscription identifier and the subscription key at the <a href=":settings">Acquia settings</a> page. Check <a href=":acquia-network">your subscription on the Acquia Subscription</a> for further status information.', [':settings' => Url::fromRoute('acquia_connector.settings')->toString(), ':acquia-network' => $href]),
         );
       }
 

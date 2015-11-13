@@ -487,7 +487,7 @@ class SpiController extends ControllerBase {
     }
     $data['cron'] = array(
       'title' => 'Cron maintenance tasks',
-      'value' => t('Last run !time ago', array('!time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last))),
+      'value' => t('Last run @time ago', array('@time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last))),
       'cron_last' => $cron_last,
     );
     if (!empty(Settings::get('update_free_access'))) {

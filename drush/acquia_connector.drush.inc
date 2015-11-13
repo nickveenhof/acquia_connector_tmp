@@ -38,7 +38,7 @@ function acquia_connector_drush_command() {
 function acquia_connector_drush_help($section) {
   switch ($section) {
     case 'drush:spi-get':
-      return dt("Output raw Acquia SPI data. NOTE: If the Acquia Connector module is not enabled or installed, execute with: drush -i !spidir", array('!spidir' => dirname(__FILE__)));
+      return dt("Output raw Acquia SPI data. NOTE: If the Acquia Connector module is not enabled or installed, execute with: drush -i @spidir", array('@spidir' => dirname(__FILE__)));
   }
 }
 
@@ -62,7 +62,7 @@ function drush_acquia_connector_spi_get(){
     $wd = getcwd();
     chdir($_SERVER['PWD']);
     if (file_put_contents($file, $spi)) {
-      drush_log(dt('SPI Data written to !outfile.', array('!outfile' => realpath($file))), 'success');
+      drush_log(dt('SPI Data written to @outfile.', array('@outfile' => realpath($file))), 'success');
     }
     chdir($wd);
   }
@@ -119,14 +119,14 @@ function drush_acquia_connector_custom_test_validate() {
         foreach ($result['failure'] as $test_name => $test_failures) {
           foreach ($test_failures as $test_param => $test_value) {
             $variables = array(
-              '!module_name' => $module,
+              '@module_name' => $module,
               '@message'     => $test_value['message'],
-              '!param_name'  => $test_param,
-              '!test_name'   => $test_name,
-              '!value'       => $test_value['value'],
+              '@param_name'  => $test_param,
+              '@test_name'   => $test_name,
+              '@value'       => $test_value['value'],
             );
-            drush_print_r(dt("[DETAILS] @message for parameter '!param_name'; current value '!value'. (Test !test_name in module !module_name)", $variables));
-            watchdog('acquia connector spi test', "<em>Custom test validation failed</em>: @message for parameter '!param_name'; current value '!value'. (<em>Test '!test_name' in module '!module_name'</em>)", $variables);
+            drush_print_r(dt("[DETAILS] @message for parameter '@param_name'; current value '@value'. (Test @test_name in module @module_name)", $variables));
+            watchdog('acquia connector spi test', "<em>Custom test validation failed</em>: @message for parameter '@param_name'; current value '@value'. (<em>Test '@test_name' in module '@module_name'</em>)", $variables);
           }
         }
       }

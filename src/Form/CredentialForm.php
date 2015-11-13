@@ -70,7 +70,7 @@ class CredentialForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('acquia_connector.settings');
 
-    $form['#prefix'] = $this->t('Enter your <a href="@net">identifier and key</a> from your subscriptions overview or <a href="@url">log in</a> to connect your site to the Acquia Subscription.', array('@net' => Url::fromUri('https://insight.acquia.com/subscriptions')->getUri(), '@url' => \Drupal::url('acquia_connector.setup')));
+    $form['#prefix'] = $this->t('Enter your <a href=":net">identifier and key</a> from your subscriptions overview or <a href=":url">log in</a> to connect your site to the Acquia Subscription.', array(':net' => Url::fromUri('https://insight.acquia.com/subscriptions')->getUri(), ':url' => \Drupal::url('acquia_connector.setup')));
     $form['acquia_identifier'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Identifier'),
@@ -89,7 +89,7 @@ class CredentialForm extends ConfigFormBase {
       '#value' => $this->t('Connect'),
     );
     $form['actions']['signup'] = array(
-      '#markup' => $this->t('Need a subscription? <a href="@url">Get one</a>.', array('@url' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri())),
+      '#markup' => $this->t('Need a subscription? <a href=":url">Get one</a>.', array(':url' => Url::fromUri('https://www.acquia.com/acquia-cloud-free')->getUri())),
     );
 
     return $form;

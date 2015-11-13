@@ -118,7 +118,7 @@ class Migration {
   public function destination(&$migration) {
     $tmp_dir = \Drupal::service('file_system')->realpath(DrupalKernel::findSitePath(\Drupal::request()) . DIRECTORY_SEPARATOR . 'files') . DIRECTORY_SEPARATOR . 'acquia_migrate' . $migration['id'];
     if (!mkdir($tmp_dir) || !is_writable($tmp_dir)) {
-      $migration['error'] = t('Cannot create temporary directory !dir to store site archive.', array('!dir' => $tmp_dir));
+      $migration['error'] = t('Cannot create temporary directory @dir to store site archive.', array('@dir' => $tmp_dir));
       return;
     }
     $migration['dir'] = $tmp_dir;
@@ -308,7 +308,7 @@ class Migration {
     // Store migration in results so it can be used by next operation.
     $context['results']['migration'] = $migration;
     if ($context['sandbox']['position'] !== FALSE) {
-      $context['message'] = t('Uploading archive. Transferred !pos of !size bytes.', array('!pos' => $context['sandbox']['position'], '!size' => $context['sandbox']['size']));
+      $context['message'] = t('Uploading archive. Transferred @pos of @size bytes.', array('@pos' => $context['sandbox']['position'], '@size' => $context['sandbox']['size']));
       $finished = $context['sandbox']['position'] / $context['sandbox']['size'];
       $context['finished'] = $finished;
     }

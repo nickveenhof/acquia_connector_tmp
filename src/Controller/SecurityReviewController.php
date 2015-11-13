@@ -118,12 +118,12 @@ class SecurityReviewController extends ControllerBase {
     $check_result['lastrun'] = REQUEST_TIME;
 
     if ($log && !is_null($return['result'])) { // Do not log if result is NULL.
-      $variables = array('!name' => $check_result['title']);
+      $variables = array('@name' => $check_result['title']);
       if ($check_result['result']) {
-        $this->_securityReviewLog($module, $check_name, '!name check passed', $variables, WATCHDOG_INFO);
+        $this->_securityReviewLog($module, $check_name, '@name check passed', $variables, WATCHDOG_INFO);
       }
       else {
-        $this->_securityReviewLog($module, $check_name, '!name check failed', $variables, WATCHDOG_ERROR);
+        $this->_securityReviewLog($module, $check_name, '@name check failed', $variables, WATCHDOG_ERROR);
       }
     }
     return $check_result;

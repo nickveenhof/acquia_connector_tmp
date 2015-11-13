@@ -62,7 +62,7 @@ class StartController extends ControllerBase {
       ),
     );
     $output .=     '<a href="http://www.acquia.com/products-services/acquia-network/cloud-services" target="_blank">' . render($image) . '</a>';
-    $output .=     '<p class="cell-p">' . $this->t('Enhance and extend your site with an array of <a href="@services" target="_blank">services</a> from Acquia & our partners.', array('@services' => 'http://www.acquia.com/products-services/acquia-network/cloud-services')) . '</p>';
+    $output .=     '<p class="cell-p">' . $this->t('Enhance and extend your site with an array of <a href=":services" target="_blank">services</a> from Acquia & our partners.', array(':services' => 'http://www.acquia.com/products-services/acquia-network/cloud-services')) . '</p>';
     $output .=   '</div>';
     $output .=   '<div class="cell an-right">';
     $output .=     '<h2 class="cell-title"><i>' . $this->t('Support when you want it') . '</i></h2>';

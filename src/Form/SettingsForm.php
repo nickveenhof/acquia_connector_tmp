@@ -129,7 +129,7 @@ class SettingsForm extends ConfigFormBase {
     );
     if (!empty($subscription)) {
       $form['subscription'] = array(
-        '#markup' => $this->t('Subscription: @sub <a href="@url">change</a>', array('@sub' => $subscription, '@url' => $this->url('acquia_connector.setup'))),
+        '#markup' => $this->t('Subscription: @sub <a href=":url">change</a>', array('@sub' => $subscription, ':url' => $this->url('acquia_connector.setup'))),
       );
     }
     $form['connection'] = array(
@@ -141,7 +141,7 @@ class SettingsForm extends ConfigFormBase {
     $form['migrate'] = array(
       '#type' => 'details',
       '#title' => $this->t('Acquia Cloud Migrate'),
-      '#description' => $this->t('Transfer a fully-functional copy of your site to Acquia Cloud. <a href="@url">Learn more</a>.', array('@url' => Url::fromUri('https://docs.acquia.com/cloud/site/import/connector')->getUri())),
+      '#description' => $this->t('Transfer a fully-functional copy of your site to Acquia Cloud. <a href=":url">Learn more</a>.', array(':url' => Url::fromUri('https://docs.acquia.com/cloud/site/import/connector')->getUri())),
       // Collapse migrate if Acquia hosting.
       '#open' => !\Drupal::request()->server->has('AH_SITE_GROUP'),
     );
@@ -178,7 +178,7 @@ class SettingsForm extends ConfigFormBase {
         '#weight' => 0,
       );
 
-      $form['connection']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href="@url">Learn more</a>.', array('@url' => $help_url));
+      $form['connection']['description']['#markup'] = $this->t('Allow collection and examination of the following items. <a href=":url">Learn more</a>.', array(':url' => $help_url));
       $form['connection']['description']['#weight'] = '-1';
 
       $form['connection']['spi']['admin_priv'] = array(
@@ -200,7 +200,7 @@ class SettingsForm extends ConfigFormBase {
         '#type' => 'checkbox',
         '#title' => t('Source code'),
         '#default_value' => (int) $config->get('spi.module_diff_data') && $ssl_available,
-        '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href="@url">Learn more</a>.', array('@url' => $help_url)),
+        '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href=":url">Learn more</a>.', array(':url' => $help_url)),
         '#disabled' => !$ssl_available,
       );
       $form['connection']['acquia_dynamic_banner'] = array(
@@ -212,7 +212,7 @@ class SettingsForm extends ConfigFormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Allow Insight to update list of approved variables.'),
         '#default_value' => (int) $config->get('spi.set_variables_override'),
-        '#description' => $this->t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href="@url">Learn more</a>.', array('@url' => $help_url)),
+        '#description' => $this->t('Insight can set variables on your site to recommended values at your approval, but only from a specific list of variables. Check this box to allow Insight to update the list of approved variables. <a href=":url">Learn more</a>.', array(':url' => $help_url)),
       );
 
       $use_cron = $config->get('spi.use_cron');
@@ -229,7 +229,7 @@ class SettingsForm extends ConfigFormBase {
 
       $form['connection']['use_cron_url'] = array(
         '#type' => 'container',
-        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>@url</em>', array('@url' => $url)),
+        '#children' => $this->t('Enter the following URL in your server\'s crontab to send SPI data:<br /><em>:url</em>', array(':url' => $url)),
         '#states' => array(
           'visible' => array(
             ':input[name="use_cron"]' => array('checked' => FALSE),
