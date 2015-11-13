@@ -67,7 +67,7 @@ function acquia_connector_requirements($phase) {
           $value = t('SPI data has not been sent');
         }
         else {
-          $value = t('Last sent @time ago', array('@time' =>  \Drupal::service('date.formatter')->formatInterval(($ago))));
+          $value = t('Last sent @time ago', array('@time' =>  \Drupal::service('date.formatter')->formatInterval($ago)));
         }
         $requirements['acquia_spi'] = array(
           'title' => t('Acquia Subscription SPI'),
