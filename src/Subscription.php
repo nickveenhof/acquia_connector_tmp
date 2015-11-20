@@ -77,7 +77,7 @@ class Subscription {
   }
 
   /**
-   * Helper function to check if an identifer and key exist.
+   * Helper function to check if an identifier and key exist.
    */
   static function hasCredentials() {
     $config = \Drupal::config('acquia_connector.settings');

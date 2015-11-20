@@ -86,3 +86,11 @@ acquia_connector.test_validate:
     _title: 'Acquia SPI Custom Test Validation'
   requirements:
     _permission: 'access site reports'
+
+acquia_connector.environment_change:
+  path: '/admin/config/system/acquia-connector/environment-change'
+  defaults:
+    _form: '\Drupal\acquia_connector\Form\SpiChangeForm'
+    _title: 'Acquia SPI Environment Change Actions'
+  requirements:
+    _permission: 'administer site configuration'

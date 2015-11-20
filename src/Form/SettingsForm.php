@@ -101,8 +101,8 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $config = $this->config('acquia_connector.settings');
 
+    $config = $this->config('acquia_connector.settings');
     $identifier = $config->get('identifier');
     $key = $config->get('key');
     $subscription = $config->get('subscription_name');
@@ -132,6 +132,55 @@ class SettingsForm extends ConfigFormBase {
         '#markup' => $this->t('Subscription: @sub <a href=":url">change</a>', array('@sub' => $subscription, ':url' => $this->url('acquia_connector.setup'))),
       );
     }
+
+    $form['identification'] = array(
+      '#type' => 'fieldset',
+      '#title' => $this->t('Site Identification'),
+      '#collapsible' => FALSE,
+    );
+
+    $form['identification']['description']['#markup'] = $this->t('Provide a name for this site to uniquely identify it on Acquia Cloud.');
+    $form['identification']['description']['#weight'] = -2;
+
+    $form['identification']['site'] = array(
+      '#prefix' => '<div class="acquia-identification">',
+      '#suffix' => '</div>',
+      '#weight' => -1,
+    );
+
+    $form['identification']['site']['name'] = array(
+      '#type' => 'textfield',
+      '#title' => $this->t('Name'),
+      '#maxlength' => 255,
+      '#required' => TRUE,
+      '#default_value' => $config->get('spi.site_name'),
+    );
+
+    $acquia_hosted = \Drupal::service('acquia_connector.spi')->checkAcquiaHosted();
+
+    if ($acquia_hosted) {
+      $form['identification']['#description'] = $this->t('Acquia hosted sites are automatically provided with a name and machine name.');
+      $form['identification']['site']['name']['#default_value'] = \Drupal::service('acquia_connector.spi')->getAcquiaHostedName();
+      $form['identification']['site']['name']['#disabled'] = TRUE;
+    }
+
+    $form['identification']['site']['machine_name'] = array(
+      '#type' => 'machine_name',
+      '#title' => $this->t('Machine name'),
+      '#maxlength' => 255,
+      '#required' => TRUE,
+      '#machine_name' => array(
+        'exists' => array($this, 'exists'),
+        'source' => array('identification', 'site', 'name'),
+      ),
+      '#default_value' => $config->get('spi.site_machine_name'),
+    );
+
+    if ($acquia_hosted) {
+      $form['identification']['site']['machine_name']['#default_value'] = \Drupal::service('acquia_connector.spi')->getAcquiaHostedMachineName();
+      $form['identification']['site']['machine_name']['#disabled'] = TRUE;
+    }
+
     $form['connection'] = array(
       '#type' => 'fieldset',
       '#title' => $this->t('Acquia Subscription Settings'),
@@ -198,7 +247,7 @@ class SettingsForm extends ConfigFormBase {
       );
       $form['connection']['spi']['module_diff_data'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Source code'),
+        '#title' => $this->t('Source code'),
         '#default_value' => (int) $config->get('spi.module_diff_data') && $ssl_available,
         '#description' => $this->t('Source code analysis requires a SSL connection and for your site to be publicly accessible. <a href=":url">Learn more</a>.', array(':url' => $help_url)),
         '#disabled' => !$ssl_available,
@@ -242,12 +291,22 @@ class SettingsForm extends ConfigFormBase {
   }
 
   /**
+   * Determines if the machine name already exists.
+   *
+   * @return bool
+   */
+  public function exists() {
+    return FALSE;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $values = $form_state->getValues();
     $config->set('spi.module_diff_data', $values['module_diff_data'])
+      ->set('spi.site_name', $values['name'])
       ->set('spi.dynamic_banner', $values['acquia_dynamic_banner'])
       ->set('spi.admin_priv', $values['admin_priv'])
       ->set('spi.send_node_user', $values['send_node_user'])
@@ -256,9 +315,15 @@ class SettingsForm extends ConfigFormBase {
       ->set('spi.set_variables_override', $values['alter_variables'])
       ->save();
 
+    // If the machine name changed, send information so we know if it is a dupe.
+    if ($values['machine_name'] != $this->config('acquia_connector.settings')->get('spi.site_machine_name')) {
+      $config->set('spi.site_machine_name', $values['machine_name'])->save();
+
+      $response = \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CREDS);
+      \Drupal::service('acquia_connector.spi')->spiProcessMessages($response);
+    }
+
     parent::submitForm($form, $form_state);
-    // Send information as soon as the key/identifier pair is submitted.
-    \Drupal::service('acquia_connector.spi')->sendFullSpi(ACQUIA_SPI_METHOD_CREDS);
   }
 
   /**

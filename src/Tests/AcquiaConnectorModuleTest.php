@@ -23,6 +23,8 @@ class AcquiaConnectorModuleTest extends WebTestBase {
   protected $acqtest_pass         = 'TEST_password';
   protected $acqtest_id           = 'TEST_AcquiaConnectorTestID';
   protected $acqtest_key          = 'TEST_AcquiaConnectorTestKey';
+  protected $acqtest_name         = 'test name';
+  protected $acqtest_machine_name = 'test_name';
   protected $acqtest_expired_id   = 'TEST_AcquiaConnectorTestIDExp';
   protected $acqtest_expired_key  = 'TEST_AcquiaConnectorTestKeyExp';
   protected $acqtest_503_id       = 'TEST_AcquiaConnectorTestID503';
@@ -42,6 +44,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
    */
   public function setUp() {
     parent::setUp();
+
     global $base_url;
     // Create and log in our privileged user.
     $this->privileged_user = $this->drupalCreateUser(array(
@@ -50,6 +53,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
       'access toolbar',
     ));
     $this->drupalLogin($this->privileged_user);
+
     // Create a user that has a Network subscription.
     $this->network_user = $this->drupalCreateUser();
     $this->network_user->mail = $this->acqtest_email;
@@ -62,9 +66,10 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     $this->credentials_path = 'admin/config/system/acquia-connector/credentials';
     $this->settings_path = 'admin/config/system/acquia-connector';
     $this->migrate_path = 'admin/config/system/acquia-agent/migrate';
+    $this->environment_change_path = '/admin/config/system/acquia-connector/environment-change';
+    $this->status_report_url = 'admin/reports/status';
     $this->base_url = $base_url;
 
-    //local
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', $base_url)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
@@ -92,7 +97,7 @@ class AcquiaConnectorModuleTest extends WebTestBase {
       case 'subscription-not-found':
         return 'Error: Subscription not found (1000)';
       case 'saved':
-        return 'The Acquia configuration options have been saved.';
+        return 'The configuration options have been saved.';
       case 'subscription':
         return 'Subscription: ' . $this->acqtest_id; // Assumes subscription name is same as id.
       case 'migrate':
@@ -107,9 +112,18 @@ class AcquiaConnectorModuleTest extends WebTestBase {
         return 'Subscription active (expires 2023/10/8)';
       case 'menu-inactive':
         return 'Subscription not active';
+      case 'site-name-required':
+        return 'Name field is required.';
+      case 'site-machine-name-required':
+        return 'Machine name field is required.';
+      case 'first-connection':
+        return 'This is the first connection from this site, it may take awhile for it to appear on the Acquia Network.';
     }
   }
 
+  /**
+   * Test get connected.
+   */
   public function testAcquiaConnectorGetConnected() {
     // Check for call to get connected.
     $this->drupalGet('admin');
@@ -177,13 +191,40 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     // Confirm menu reports active subscription.
     $this->drupalGet('admin');
     $this->assertText($this->acquiaConnectorStrings('menu-active'), 'Subscription active menu message appears');
-    // Test dynamic banner.
+
+    // Check errors if name or machine name empty.
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->settings_path, array(), $submit_button);
+    $this->assertText($this->acquiaConnectorStrings('site-name-required'), 'Name is required message appears');
+    $this->assertText($this->acquiaConnectorStrings('site-machine-name-required'), 'Machine name is required message appears');
+
+    // Acquia hosted sites.
     $edit_fields = array(
       'acquia_dynamic_banner' => TRUE,
+      'name' => 'test_name',
+      'machine_name' => 'test_name',
     );
     $submit_button = 'Save configuration';
     $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
     $this->assertFieldChecked('edit-acquia-dynamic-banner', '"Receive updates from Acquia" option stays saved');
+
+    // Test acquia hosted site.
+    $settings['_SERVER']['AH_SITE_NAME'] = (object) [
+      'value' => 'acqtest_drupal',
+      'required' => TRUE,
+    ];
+    $settings['_SERVER']['AH_SITE_ENVIRONMENT'] = (object) [
+      'value' => 'dev',
+      'required' => TRUE,
+    ];
+    $this->writeSettings($settings);
+    sleep(10);
+    $this->drupalGet($this->settings_path);
+    $elements = $this->xpath('//input[@name=:name]', array(':name' => 'name'));
+    foreach ($elements as $element) {
+      $this->assertIdentical((string) $element['disabled'], 'disabled', 'Name field is disabled.');
+    }
+
   }
 
   /**
@@ -378,6 +419,128 @@ class AcquiaConnectorModuleTest extends WebTestBase {
     $this->drupalGetAJAX('system/acquia-connector-status', array('query' => $query));
     $this->assertResponse(403);
   }
+
+  /**
+   * Tests the SPI change form.
+   */
+  public function testSPIChangeForm() {
+    // Connect site on key and id.
+    $edit_fields = array(
+      'acquia_identifier' => $this->acqtest_id,
+      'acquia_key' => $this->acqtest_key,
+    );
+    $submit_button = 'Connect';
+    $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
+    $this->drupalGet($this->settings_path);
+    $this->assertText($this->acquiaConnectorStrings('subscription'), 'Subscription connected with key and identifier');
+
+    // No changes detected.
+    $edit_fields = array(
+      'acquia_dynamic_banner' => TRUE,
+      'name' => $this->acqtest_name,
+      'machine_name' => $this->acqtest_machine_name,
+    );
+
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
+    $this->assertText($this->acquiaConnectorStrings('saved'), 'The configuration options have been saved.');
+
+    $this->drupalGet($this->status_report_url);
+    $this->clickLink('manually send SPI data');
+
+    $this->drupalGet($this->environment_change_path);
+    $this->assertText('No changes detected', 'No changes are currently detected.');
+
+    // Detect Changes.
+    $edit_fields = array(
+      'acquia_dynamic_banner' => TRUE,
+      'name' => $this->acqtest_name,
+      'machine_name' => $this->acqtest_machine_name . '_change',
+    );
+
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
+    $this->assertText($this->acquiaConnectorStrings('saved'), 'The configuration options have been saved.');
+
+    $this->assertText('A change has been detected in your site environment. Please check the Acquia SPI status on your Status Report page for more information', 'Changes have been detected');
+    $this->drupalGet($this->environment_change_path);
+
+    // Check environment change action.
+    $elements = $this->xpath('//input[@name=:name]', array(':name' => 'env_change_action'));
+    $expected_values = array('block', 'update', 'create');
+    foreach ($elements as $element) {
+      $expected = array_shift($expected_values);
+      $this->assertIdentical((string) $element['value'], $expected);
+    }
+
+    // Test "block" the connector from sending data to NSPI.
+    $edit_fields = array(
+      'env_change_action' => 'block',
+    );
+
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->environment_change_path, $edit_fields, $submit_button);
+
+    $this->assertText('This site has been blocked from sending profile data to Acquia Cloud.');
+    $this->assertText('You have blocked your site from sending data to Acquia Cloud.');
+
+    // Test unblock site.
+    $this->clickLink('Unblock this site');
+    $this->assertText('The Acquia Connector is blocked and is not sending site profile data to Acquia Cloud for evaluation.');
+
+    $edit_fields = array(
+      'env_change_action[unblock]' => TRUE,
+    );
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->environment_change_path, $edit_fields, $submit_button);
+    $this->assertText('Your site has been unblocked and is sending data to Acquia Cloud.');
+    $this->clickLink('manually send SPI data');
+    $this->assertText('A change has been detected in your site environment. Please check the Acquia SPI status on your Status Report page for more information.');
+
+    // Test update existing site.
+    $this->clickLink('confirm the action you wish to take');
+    $edit_fields = array(
+      'env_change_action' => 'update',
+    );
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->environment_change_path, $edit_fields, $submit_button);
+
+    // Test new site in Acquia Cloud.
+    $edit_fields = array(
+      'acquia_dynamic_banner' => TRUE,
+      'name' => $this->acqtest_name,
+      'machine_name' => $this->acqtest_machine_name,
+    );
+
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
+    $this->assertText($this->acquiaConnectorStrings('saved'), 'The configuration options have been saved.');
+    $this->assertText('A change has been detected in your site environment. Please check the Acquia SPI status on your Status Report page for more information.');
+    $this->drupalGet($this->status_report_url);
+    $this->clickLink('confirm the action you wish to take');
+
+    $edit_fields = array(
+      'env_change_action' => 'create',
+      'name' => '',
+      'machine_name' => ''
+    );
+
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->environment_change_path, $edit_fields, $submit_button);
+    $this->assertText($this->acquiaConnectorStrings('site-name-required'), 'Name field is required.');
+    $this->assertText($this->acquiaConnectorStrings('site-machine-name-required'), 'Machine name field is required.');
+
+    $edit_fields = array(
+      'env_change_action' => 'create',
+      'name' => $this->acqtest_name,
+      'machine_name' => $this->acqtest_machine_name,
+    );
+
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->environment_change_path, $edit_fields, $submit_button);
+    $this->assertText($this->acquiaConnectorStrings('first-connection'), 'First connection from this site');
+  }
+
 }
 
 /**

@@ -22,6 +22,8 @@ use Drupal\acquia_connector\CryptConnector;
 class NspiController extends ControllerBase {
 
   protected $data = array();
+  protected $acqtest_site_machine_name;
+  protected $acquia_hosted;
 
   const ACQTEST_SUBSCRIPTION_NOT_FOUND = 1000;
   const ACQTEST_SUBSCRIPTION_KEY_MISMATCH = 1100;
@@ -46,7 +48,22 @@ class NspiController extends ControllerBase {
   const ACQTEST_EXPIRED_KEY = 'TEST_AcquiaConnectorTestKeyExp';
   const ACQTEST_503_ID = 'TEST_AcquiaConnectorTestID503';
   const ACQTEST_503_KEY = 'TEST_AcquiaConnectorTestKey503';
+  const ACQTEST_site_uuid = 'TEST_cdbd59f5-ca7e-4652-989b-f9e46d309613';
+  const ACQTEST_uuid = 'cdbd59f5-ca7e-4652-989b-f9e46d312458';
 
+
+  public function __construct() {
+    $this->acqtest_site_machine_name = \Drupal::state()->get('acqtest_site_machine_name');
+    $this->acquia_hosted = \Drupal::state()->get('acqtest_site_acquia_hosted');
+  }
+
+  /**
+   * SPI API site update.
+   *
+   * @param Request $request
+   *
+   * @return JsonResponse
+   */
   public function nspiUpdate(Request $request) {
     $data = json_decode($request->getContent(), TRUE);
 
@@ -56,6 +73,7 @@ class NspiController extends ControllerBase {
       'hash' => 'is_string',
     );
     $result = $this->basicAuthenticator($fields, $data);
+
     if (!empty($result['error'])) {
       return new JsonResponse($result);
     }
@@ -71,6 +89,7 @@ class NspiController extends ControllerBase {
         // Needs for update definition
         $data['body']['spi_def_update'] = TRUE;
         $spi_data = $data['body'];
+
         $result['body'] = array('spi_data_received' => TRUE);
         if (isset($spi_data['spi_def_update'])) {
           $result['body']['update_spi_definition'] = TRUE;
@@ -84,6 +103,65 @@ class NspiController extends ControllerBase {
         if (isset($spi_data['test_validation_error'])) {
           $result['authenticator']['nonce'] = 'TEST'; // Force a validation fail.
         }
+
+        $site_action = $spi_data['env_changed_action'];
+        // First connection.
+        if (empty($spi_data['site_uuid'])) {
+          $site_action = 'create';
+        }
+
+        switch ($site_action) {
+          case 'create':
+            $result['body']['site_uuid'] = self::ACQTEST_site_uuid;
+            \Drupal::state()->set('acqtest_site_machine_name', $spi_data['machine_name']); // Set machine name.
+            \Drupal::state()->set('acqtest_site_name', $spi_data['name']); // Set name.
+            $acquia_hosted = (int) filter_var($spi_data['acquia_hosted'], FILTER_VALIDATE_BOOLEAN);
+            \Drupal::state()->set('acqtest_site_acquia_hosted', $acquia_hosted);
+
+            $result['body']['nspi_messages'][] = t('This is the first connection from this site, it may take awhile for it to appear on the Acquia Network.');
+            return new JsonResponse($result);
+
+            break;
+          case 'update':
+            $update = $this->updateNSPISite($spi_data);
+            $result['body']['nspi_messages'][] = $update;
+            break;
+          case 'unblock':
+            \Drupal::state()->delete('acqtest_site_blocked');
+            $result['body']['spi_error'] = '';
+            $result['body']['nspi_messages'][] = t('Your site has been unblocked and is sending data to Acquia Cloud.');
+            return new JsonResponse($result);
+            break;
+          case 'block':
+            \Drupal::state()->set('acqtest_site_blocked', TRUE);
+            $result['body']['spi_error'] = '';
+            $result['body']['nspi_messages'][] = t('You have blocked your site from sending data to Acquia Cloud.');
+            return new JsonResponse($result);
+            break;
+        }
+
+        // Update site name if it has changed.
+        $tacqtest_site_name = \Drupal::state()->get('acqtest_site_name');
+        if (isset($spi_data['name']) && $spi_data['name'] != $tacqtest_site_name) {
+          if (!empty($tacqtest_site_name)) {
+            $name_update_message = t('Site name updated (from @old_name to @new_name).', array(
+              '@old_name' => $tacqtest_site_name,
+              '@new_name' => $spi_data['name']
+            ));
+
+            \Drupal::state()->set('acqtest_site_name', $spi_data['name']);
+          }
+          $result['body']['nspi_messages'][] = $name_update_message;
+        }
+
+        // Detect Changes.
+        if($changes = $this->detectChanges($spi_data)) {
+          $result['body']['nspi_messages'][] = $changes['response'];
+          $result['body']['spi_error'] = TRUE;
+          $result['body']['spi_environment_changes'] = json_encode($changes['changes']);
+          return new JsonResponse($result);
+        }
+
         unset($result['secret']);
         return new JsonResponse($result);
       }
@@ -91,6 +169,106 @@ class NspiController extends ControllerBase {
     else {
       return new JsonResponse($this->errorResponse(self::ACQTEST_SUBSCRIPTION_VALIDATION_ERROR, t('Invalid arguments')), self::ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE);
     }
+  }
+
+  /**
+   * Detect potential environment changes.
+   *
+   * @param array $spi_data
+   *
+   * @return array|bool
+   *
+   */
+  public function detectChanges(array $spi_data) {
+    $changes = array();
+    $site_blocked = \Drupal::state()->get('acqtest_site_blocked');
+
+    if ($site_blocked){
+      $changes['changes']['blocked'] = t('Your site has been unblocked.');
+    }
+    else {
+
+      if ($this->checkAcquiaHostedStatusChanged($spi_data) && !is_null($this->acquia_hosted)) {
+        if ($spi_data['acquia_hosted']) {
+          $changes['changes']['acquia_hosted'] = t('Your site is now Acquia hosted.');
+        }
+        else {
+          $changes['changes']['acquia_hosted'] = t('Your site is no longer Acquia hosted.');
+        }
+      }
+
+      if ($this->checkMachineNameStatusChanged($spi_data)) {
+        $changes['changes']['machine_name'] = t('Your site machine name changed from @old_machine_name to @new_machine_name.', array(
+          '@old_machine_name' => $this->acqtest_site_machine_name,
+          '@new_machine_name' => $spi_data['machine_name']
+        ));
+      }
+
+    }
+
+    if (empty($changes)) {
+      return FALSE;
+    }
+
+    $changes['response'] = t('A change has been detected in your site environment. Please check the Acquia SPI status on your Status Report page for more information.');
+
+    return $changes;
+  }
+
+  /**
+   * Save changes to the site entity.
+   *
+   */
+  public function updateNSPISite(array $spi_data) {
+    $message = '';
+
+    if ($this->checkMachineNameStatusChanged($spi_data)) {
+      if (!empty($this->acqtest_site_machine_name)) {
+        $message = t('Updated site machine name from @old_machine_name to @new_machine_name.', array('@old_machine_name' => $this->acqtest_site_machine_name, '@new_machine_name' => $spi_data['machine_name']));
+      }
+      else {
+        $message  = t('Site machine name set to to @new_machine_name.', array('@new_machine_name' => $spi_data['machine_name']));
+      }
+
+      \Drupal::state()->set('acqtest_site_machine_name', $spi_data['machine_name']);
+      $this->acqtest_site_machine_name = $spi_data['machine_name'];
+    }
+
+
+    if ($this->checkAcquiaHostedStatusChanged($spi_data)) {
+      if (!is_null($this->acquia_hosted)) {
+        $hosted_message = $spi_data['acquia_hosted'] ? t('site is now Acquia hosted') : t('site is no longer Acquia hosted');
+        $message = t('Updated Acquia hosted status (@hosted_message).', array('@hosted_message' => $hosted_message));
+      }
+
+      $acquia_hosted = (int) filter_var($spi_data['acquia_hosted'], FILTER_VALIDATE_BOOLEAN);
+      \Drupal::state()->set('acqtest_site_acquia_hosted', $acquia_hosted);
+      $this->acquia_hosted = $acquia_hosted;
+    }
+
+    return $message;
+  }
+
+  /**
+   * Detect if machine name changed.
+   *
+   * @param $spi_data
+   *
+   * @return bool
+   */
+  public function checkMachineNameStatusChanged($spi_data) {
+    return isset($spi_data['machine_name']) && $spi_data['machine_name'] != $this->acqtest_site_machine_name;
+  }
+
+  /**
+   * Detect if Acquia hosted changed.
+   *
+   * @param $spi_data
+   *
+   * @return bool
+   */
+  public function checkAcquiaHostedStatusChanged($spi_data) {
+    return isset($spi_data['acquia_hosted']) && (bool) $spi_data['acquia_hosted'] != (bool) $this->acquia_hosted;
   }
 
   function spiDefinition(Request $request, $version) {
@@ -289,6 +467,7 @@ class NspiController extends ControllerBase {
     $result['body']['derived_key_salt'] = $data['authenticator']['identifier'] . '_KEY_SALT';
     $result['body']['update_service'] = 1;
     $result['body']['search_service_enabled'] = 1;
+    $result['body']['uuid'] = self::ACQTEST_uuid;
     if (isset($data['body']['rpc_version'])) {
       $result['body']['rpc_version'] = $data['body']['rpc_version'];
     }

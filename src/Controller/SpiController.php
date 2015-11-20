@@ -23,6 +23,7 @@ use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\user\Entity\Role;
 use Drupal\Core\Site\Settings;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Url;
 
 /**
  * Class SpiController.
@@ -79,31 +80,55 @@ class SpiController extends ControllerBase {
     else {
       $platform = $this->getPlatform();
     }
+
+    $acquia_hosted = $this->checkAcquiaHosted();
+    if ($acquia_hosted) {
+      $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
+      $name = $this->getAcquiaHostedName();
+      if ($name != $this->config('acquia_connector.settings')->get('spi.site_name')) {
+        $config->set('spi.site_name', $name);
+      }
+
+      $machine_name = $this->getAcquiaHostedMachineName();
+      if ($machine_name != $this->config('acquia_connector.settings')->get('spi.site_machine_name')) {
+        $config->set('spi.site_machine_name', $machine_name);
+      }
+    }
+    else {
+      $name = $this->config('acquia_connector.settings')->get('spi.site_name');
+      $machine_name = $this->config('acquia_connector.settings')->get('spi.site_machine_name');
+    }
+
     $spi = array(
-      'rpc_version'    => ACQUIA_SPI_DATA_VERSION,      // Used in HMAC validation
-      'spi_data_version' => ACQUIA_SPI_DATA_VERSION,    // Used in Fix it now feature
-      'site_key'       => sha1(\Drupal::service('private_key')->get()),
-      'modules'        => $this->getModules(),
-      'platform'       => $platform,
-      'quantum'        => $this->getQuantum(),
-      'system_status'  => $this->getSystemStatus(),
-      'failed_logins'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getFailedLogins() : array(),
-      '404s'           => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->get404s() : array(),
-      'watchdog_size'  => $this->getWatchdogSize(),
-      'watchdog_data'  => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getWatchdogData() : array(),
-      'last_nodes'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
-      'last_users'     => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastUsers() : array(),
-      'extra_files'    => $this->checkFilesPresent(),
-      'ssl_login'      => $this->checkLogin(),
-      'file_hashes'    => $hashes,
-      'hashes_md5'     => md5($hashes_string),
-      'hashes_sha1'    => sha1($hashes_string),
-      'fileinfo'       => $fileinfo,
-      'distribution'   => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
-      'base_version'   => $drupal_version['base_version'],
-      'build_data'     => $drupal_version,
-      'roles'          => Json::encode(user_roles()),
-      'uid_0_present'  => $this->getUidZerroIsPresent(),
+      'rpc_version'        => ACQUIA_SPI_DATA_VERSION,      // Used in HMAC validation
+      'spi_data_version'   => ACQUIA_SPI_DATA_VERSION,    // Used in Fix it now feature
+      'site_key'           => sha1(\Drupal::service('private_key')->get()),
+      'site_uuid'          => $this->config('acquia_connector.settings')->get('spi.site_uuid'),
+      'env_changed_action' => $this->config('acquia_connector.settings')->get('spi.environment_changed_action'),
+      'acquia_hosted'      => $acquia_hosted,
+      'name'               => $name,
+      'machine_name'       => $machine_name,
+      'modules'            => $this->getModules(),
+      'platform'           => $platform,
+      'quantum'            => $this->getQuantum(),
+      'system_status'      => $this->getSystemStatus(),
+      'failed_logins'      => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getFailedLogins() : array(),
+      '404s'               => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->get404s() : array(),
+      'watchdog_size'      => $this->getWatchdogSize(),
+      'watchdog_data'      => $this->config('acquia_connector.settings')->get('spi.send_watchdog') ? $this->getWatchdogData() : array(),
+      'last_nodes'         => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastNodes() : array(),
+      'last_users'         => $this->config('acquia_connector.settings')->get('spi.send_node_user') ? $this->getLastUsers() : array(),
+      'extra_files'        => $this->checkFilesPresent(),
+      'ssl_login'          => $this->checkLogin(),
+      'file_hashes'        => $hashes,
+      'hashes_md5'         => md5($hashes_string),
+      'hashes_sha1'        => sha1($hashes_string),
+      'fileinfo'           => $fileinfo,
+      'distribution'       => isset($drupal_version['distribution']) ? $drupal_version['distribution'] : '',
+      'base_version'       => $drupal_version['base_version'],
+      'build_data'         => $drupal_version,
+      'roles'              => Json::encode(user_roles()),
+      'uid_0_present'      => $this->getUidZerroIsPresent(),
     );
 
     $scheme = parse_url($this->config('acquia_connector.settings')->get('spi.server'), PHP_URL_SCHEME);
@@ -147,7 +172,7 @@ class SpiController extends ControllerBase {
     }
 
     // Database updates required?
-    // Based on code from system.install
+    // Based on code from system.install.
     $additional_data['pending_updates'] = FALSE;
     foreach (\Drupal::moduleHandler()->getModuleList() as $module => $filename) {
       $updates = drupal_get_schema_versions($module);
@@ -177,7 +202,7 @@ class SpiController extends ControllerBase {
     }
     else {
       $variablesController = new VariablesController();
-      // Values returned only over SSL
+      // Values returned only over SSL.
       $spi_ssl = array(
         'system_vars' => $variablesController->getVariablesData(),
         'settings_ra' => $this->getSettingsPermissions(),
@@ -245,7 +270,7 @@ class SpiController extends ControllerBase {
           }
         }
       }
-      // \Drupal::request()->isSecure() ($conf['https'] in D7) should be false for expected behavior
+      // \Drupal::request()->isSecure() ($conf['https'] in D7) should be false for expected behavior.
       if ($forms_safe && !\Drupal::request()->isSecure())  {
         $login_safe = 1;
       }
@@ -279,6 +304,58 @@ class SpiController extends ControllerBase {
   }
 
   /**
+   * Attempt to determine if this site is hosted with Acquia.
+   *
+   * @return boolean
+   *   TRUE if site is hosted with Acquia, otherwise FALSE.
+   */
+  public function checkAcquiaHosted() {
+    return isset($_SERVER['AH_SITE_ENVIRONMENT'], $_SERVER['AH_SITE_NAME']);
+  }
+
+  /**
+   * Generate the name for acquia hosted sites.
+   *
+   * @return string The suggested Acquia Hosted name.
+   */
+  public function getAcquiaHostedName() {
+    $subscription_name = $this->config('acquia_connector.settings')->get('subscription_name');
+
+    if ($this->checkAcquiaHosted() && $subscription_name) {
+      return $this->config('acquia_connector.settings')->get('subscription_name') . ': ' . $_SERVER['AH_SITE_ENVIRONMENT'];
+    }
+  }
+
+  /**
+   * Generate the machine name for acquia hosted sites.
+   *
+   * @return string The suggested Acquia Hosted machine name.
+   */
+  public function getAcquiaHostedMachineName() {
+    $sub_data = $this->config('acquia_connector.settings')->get('subscription_data');
+
+    if ($this->checkAcquiaHosted() && $sub_data) {
+      $uuid = new StatusController();
+      $sub_uuid = str_replace('-', '_', $uuid->getIdFromSub($sub_data));
+
+      return $sub_uuid . '__' . $_SERVER['AH_SITE_NAME'];
+    }
+  }
+
+  /**
+   * Check if a site environment change has been detected.
+   *
+   * @return TRUE if change detected that needs to be addressed, otherwise FALSE.
+   */
+  public function checkEnvironmentChange() {
+    $changes = $this->config('acquia_connector.settings')->get('spi.environment_changes');
+    $change_action = $this->config('acquia_connector.settings')->get('spi.environment_changed_action');
+
+    return !empty($changes) && empty($change_action);
+  }
+
+
+  /**
    * Get last 15 users created. Useful for determining if your site is compromised.
    *
    * @return array
@@ -307,11 +384,9 @@ class SpiController extends ControllerBase {
 
   /**
    * Get last 15 nodes created--this can be useful to determine if you have some
-   * sort of spamme on your site
+   * sort of spam on your site.
    *
-   * @param n/a
-   *
-   * @return array of the details of last 15 nodes created
+   * @return array of the details of last 15 nodes created.
    */
   private function getLastNodes() {
     $last_five_nodes = array();
@@ -341,8 +416,6 @@ class SpiController extends ControllerBase {
    * Get the latest (last hour) critical and emergency warnings from watchdog
    * These errors are 'severity' 0 and 2.
    *
-   * @param n/a
-   *
    * @return array
    */
   private function getWatchdogData() {
@@ -363,7 +436,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Get the number of rows in watchdog
+   * Get the number of rows in watchdog.
    *
    * @return int
    */
@@ -374,10 +447,10 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Grabs the last 404 errors in logs, excluding the checks we run for drupal files like README
+   * Grabs the last 404 errors in logs, excluding the checks we run for drupal files like README.
    *
    * @return array
-   *   An array of the pages not found and some associated data
+   *   An array of the pages not found and some associated data.
    */
   private function get404s() {
     $data = array();
@@ -406,11 +479,9 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Get the information on failed logins in the last cron interval
+   * Get the information on failed logins in the last cron interval.
    *
-   * @param n/a
-   *
-   * @return array
+   * @return array.
    */
   private function getFailedLogins() {
     $last_logins = array();
@@ -437,9 +508,9 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * This function is a trimmed version of Drupal's system_status function
+   * This function is a trimmed version of Drupal's system_status function.
    *
-   * @return array
+   * @return array.
    */
   private function getSystemStatus() {
     $data = array();
@@ -560,7 +631,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Determine if the super user has a weak name
+   * Determine if the super user has a weak name.
    *
    * @return int 0|1
    */
@@ -570,13 +641,13 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Determines if settings.php is read-only
+   * Determines if settings.php is read-only.
    *
    * @return boolean
    */
   private function getSettingsPermissions() {
     $settings_permissions_read_only = TRUE;
-    $writes = array('2', '3', '6', '7'); // http://en.wikipedia.org/wiki/File_system_permissions
+    $writes = array('2', '3', '6', '7'); // http://en.wikipedia.org/wiki/File_system_permissions.
     $settings_file = './' . DrupalKernel::findSitePath(\Drupal::request(), TRUE) . '/settings.php';
     $permissions = Unicode::substr(sprintf('%o', fileperms($settings_file)), -4);
 
@@ -591,7 +662,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Gather hashes of all important files, ignoring line ending and CVS Ids
+   * Gather hashes of all important files, ignoring line ending and CVS Ids.
    *
    * @param array $exclude_dirs
    *   Optional array of directory paths to be excluded.
@@ -640,7 +711,7 @@ class SpiController extends ControllerBase {
       closedir($handle);
     }
 
-    // Standard nesting function
+    // Standard nesting function.
     if (is_dir($dir) && $handle = opendir($dir)) {
       while ($file = readdir($handle)) {
         if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git'))) {
@@ -703,7 +774,7 @@ class SpiController extends ControllerBase {
    * @param string $path
    *   The name of the file or a directory.
    * @return string
-   *   bas64 encoded sha1 hash. 'hash' is an empty string for directories.
+   *   base64 encoded sha1 hash. 'hash' is an empty string for directories.
    */
   private function hashPath($path = '') {
     $hash = '';
@@ -737,7 +808,7 @@ class SpiController extends ControllerBase {
     $install_root = $server['DOCUMENT_ROOT'] . base_path();
     $ver['distribution']  = '';
 
-    // Determine if this puppy is Acquia Drupal
+    // Determine if this puppy is Acquia Drupal.
     acquia_connector_load_versions();
 
     if (IS_ACQUIA_DRUPAL) {
@@ -749,7 +820,7 @@ class SpiController extends ControllerBase {
     }
 
     // @todo: Review all D8 distributions!
-    // Determine if we are looking at Pressflow
+    // Determine if we are looking at Pressflow.
     if (defined('CACHE_EXTERNAL')) {
       $ver['distribution']  = 'Pressflow';
       $press_version_file = $install_root . './PRESSFLOW.txt';
@@ -757,7 +828,7 @@ class SpiController extends ControllerBase {
         $ver['pr']['version'] = trim(file_get_contents($press_version_file));
       }
     }
-    // Determine if this is Open Atrium
+    // Determine if this is Open Atrium.
     elseif (is_dir($install_root . '/profiles/openatrium')) {
       $ver['distribution']  = 'Open Atrium';
       $version_file = $install_root . 'profiles/openatrium/VERSION.txt';
@@ -765,7 +836,7 @@ class SpiController extends ControllerBase {
         $ver['oa']['version'] = trim(file_get_contents($version_file));
       }
     }
-    // Determine if this is Commons
+    // Determine if this is Commons.
     elseif (is_dir($install_root . '/profiles/commons')) {
       $ver['distribution']  = 'Commons';
     }
@@ -835,7 +906,7 @@ class SpiController extends ControllerBase {
       $apache_modules = '';
     }
 
-    // Get some basic PHP vars
+    // Get some basic PHP vars.
     $php_quantum = array(
       'memory_limit' => ini_get('memory_limit'),
       'register_globals' => ini_get('register_globals'),
@@ -971,20 +1042,20 @@ class SpiController extends ControllerBase {
         $info['project'] = 'drupal';
       }
 
-      // Determine which files belong to this module and hash them
+      // Determine which files belong to this module and hash them.
       $module_path = explode('/', $info['filename']);
       array_pop($module_path);
 
       // We really only care about this module if it is in 'sites' or in 'modules' folder.
-      // Otherwise it is covered by the hash of the distro's modules
+      // Otherwise it is covered by the hash of the distro's modules.
       if ($module_path[0] == 'sites' || $module_path[0] == 'modules') {
         $contrib_path = implode('/', $module_path);
 
-        // Get a hash for this module's files. If we nest into another module, we'll return
+        // Get a hash for this module's files. If we nest into another module, we'll return.
         // and that other module will be covered by it's entry in the system table.
         //
         // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
-        // too hard to tell an individual module appart from a project
+        // too hard to tell an individual module apart from a project.
         list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = self::_generateHashes($contrib_path);
       }
       else {
@@ -1004,7 +1075,7 @@ class SpiController extends ControllerBase {
     $hashes = array();
     $fileinfo = array();
 
-    // Ensure that we have not nested into another module's dir
+    // Ensure that we have not nested into another module's dir.
     if ($dir != $orig_dir && $module_break) {
       if (is_dir($dir) && $handle = opendir($dir)) {
         while ($file = readdir($handle)) {
@@ -1076,11 +1147,20 @@ class SpiController extends ControllerBase {
    *
    * @param string $method Optional identifier for the method initiating request.
    *   Values could be 'cron' or 'menu callback' or 'drush'.
-   * @return mixed FALSE if data not sent else NSPI result array
+   *
+   * @return mixed FALSE if data not sent or environment change detected else NSPI response array.
    */
   public function sendFullSpi($method = '') {
     $spi = self::get($method);
     $config = $this->config('acquia_connector.settings');
+
+    if ($this->checkEnvironmentChange()) {
+      \Drupal::logger('acquia spi')->error('SPI data not sent, site environment change detected.');
+      drupal_set_message(t('SPI data not sent, site environment change detected. Please <a href="@environment_change">indicate how you wish to proceed</a>.', array(
+        '@environment_change' => Url::fromRoute('acquia_connector.environment_change')->toString(),
+      )), 'error');
+      return FALSE;
+    }
 
     $response = $this->client->sendNspi($config->get('identifier'), $config->get('key'), $spi);
 
@@ -1095,7 +1175,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Gather full SPI data and send to Acquia Network.
+   * Callback for sending SPI data.
    *
    * @return mixed FALSE if data not sent else NSPI result array
    */
@@ -1112,20 +1192,7 @@ class SpiController extends ControllerBase {
     $response = $this->sendFullSpi($method);
 
     if ($request->get('destination')) {
-      if (!empty($response['body'])) {
-        if (isset($response['body']['spi_data_received']) && $response['body']['spi_data_received'] === TRUE) {
-          drupal_set_message($this->t('SPI data sent.'));
-        }
-        if (!empty($response['body']['nspi_messages'])) {
-          drupal_set_message($this->t('Acquia Subscription returned the following messages. Further information may be in the logs.'));
-          foreach ($response['body']['nspi_messages'] as $nspi_message) {
-            drupal_set_message(Html::escape($nspi_message));
-          }
-        }
-      }
-      else {
-        drupal_set_message($this->t('Error sending SPI data. Consult the logs for more information.'), 'error');
-      }
+      $this->spiProcessMessages($response);
       $route_match = $route = RouteMatch::createFromRequest($request);
       return $this->redirect($route_match->getRouteName(), $route_match->getRawParameters()->all());
     }
@@ -1144,11 +1211,83 @@ class SpiController extends ControllerBase {
   }
 
   /**
+   * Parses and displays messages from the NSPI response.
+   *
+   * @param array $response Response array from NSPI.
+   */
+  public function spiProcessMessages($response) {
+    if (empty($response['body'])) {
+      drupal_set_message($this->t('Error sending SPI data. Consult the logs for more information.'), 'error');
+      return;
+    }
+
+    $message_type = 'status';
+
+    if (isset($response['body']['spi_data_received']) && $response['body']['spi_data_received'] === TRUE) {
+      drupal_set_message($this->t('SPI data sent.'));
+    }
+
+    if (!empty($response['body']['nspi_messages'])) {
+      drupal_set_message($this->t('Acquia Subscription returned the following messages. Further information may be in the logs.'));
+      foreach ($response['body']['nspi_messages'] as $nspi_message) {
+        if (!empty($response['body']['spi_error'])) {
+          $message_type = 'error';
+        }
+        drupal_set_message(Html::escape($nspi_message), $message_type);
+      }
+    }
+
+    if (!empty($response['body']['spi_environment_changes'])) {
+      \Drupal::configFactory()
+        ->getEditable('acquia_connector.settings')
+        ->set('spi.environment_changes', Json::decode($response['body']['spi_environment_changes']))
+        ->save();
+    }
+  }
+
+  /**
    * Act on specific elements of SPI update server response.
    *
    * @param array $spi_response Array response from SpiController->send().
    */
   private function handleServerResponse($spi_response) {
+
+    $config_set = \Drupal::configFactory()->getEditable('acquia_connector.settings');
+    $changed_action = $this->config('acquia_connector.settings')->get('spi.environment_changed_action');
+    $config_set->clear('spi.environment_changed_action')->save();
+    $site_uuid = $this->config('acquia_connector.settings')->get('spi.site_uuid');
+
+    // Set site_uuid if it changed or if it hasn't been previously captured.
+    if (isset($spi_response['body']['site_uuid']) && (is_null($site_uuid) || $spi_response['body']['site_uuid'] != $site_uuid)) {
+      $config_set->set('spi.site_uuid', $spi_response['body']['site_uuid'])->save();
+    }
+
+    // Wipe the site_uuid if it is set locally, but NSPI is trying to create a new site.
+    if (isset($spi_response['body']['site_uuid']) && empty($spi_response['body']['site_uuid']) && !is_null($site_uuid)) {
+      $config_set->clear('spi.site_uuid')->save();
+    }
+
+    $spi_environment_changes = isset($spi_response['body']['spi_environment_changes']) ? Json::decode($spi_response['body']['spi_environment_changes']) : array();
+    $site_blocked = array_key_exists('blocked', $spi_environment_changes);
+
+    // Address any actions taken based on a site environment change.
+    if (!empty($changed_action) || $site_blocked) {
+      if ($changed_action == 'create' && isset($spi_response['body']['site_uuid'])) {
+        $config_set->set('spi.site_uuid', $spi_response['body']['site_uuid'])->save();
+      }
+      elseif (($changed_action == 'block' && isset($spi_response['body']['spi_error']) && empty($spi_response['body']['spi_error'])) || $site_blocked) {
+        $config_set->set('spi.blocked', TRUE)->save();
+      }
+      elseif ($changed_action == 'unblock' && isset($spi_response['body']['spi_error']) && empty($spi_response['body']['spi_error'])) {
+        $config_set->set('spi.blocked', FALSE)->save();
+      }
+
+      // If there were no errors, clear any pending actions.
+      if (empty($spi_response['body']['spi_error'])) {
+        $config_set->clear('spi.environment_changes')->save();
+      }
+    }
+
     // Check result for command to update SPI definition.
     $update = isset($spi_response['body']['update_spi_definition']) ? $spi_response['body']['update_spi_definition'] : FALSE;
     if ($update === TRUE) {

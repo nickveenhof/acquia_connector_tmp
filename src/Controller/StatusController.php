@@ -108,7 +108,7 @@ class StatusController extends ControllerBase {
    * @return string
    *   The UUID taken from the subscription data.
    */
-  protected function getIdFromSub($sub_data) {
+  public function getIdFromSub($sub_data) {
     if (!empty($sub_data['uuid'])) {
       return $sub_data['uuid'];
     }
