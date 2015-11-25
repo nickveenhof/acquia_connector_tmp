@@ -132,9 +132,6 @@ function acquia_connector_toolbar() {
           'user.roles:authenticated',
         ],
       ],
-      'tray' => [
-        'shortcuts' => shortcut_renderable_links(),
-      ],
       '#attached' => [
         'library' => [
           'acquia_connector/acquia_connector.icons',
