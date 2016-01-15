@@ -139,7 +139,7 @@ class Migration {
     $options = [
       'headers' => ['User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)'],
       'allow_redirects' => FALSE,
-      'verify' => \Drupal::config('acquia_connector.settings')->get('spi.ssl_verify'),
+      'verify' => FALSE,
     ];
 
     $response = \Drupal::httpClient()->get($url, $options);
@@ -529,7 +529,7 @@ class Migration {
           $actual_uri = (string) $request_uri;
         }
       ],
-      'verify' => \Drupal::config('acquia_connector.settings')->get('spi.ssl_verify'),
+      'verify' => FALSE,
       'headers' => [
         'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
       ],
