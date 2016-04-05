@@ -373,6 +373,40 @@ class AcquiaConnectorSpiTest extends WebTestBase {
   }
 
   /**
+   * Validate Acquia SPI data.
+   */
+  public function testNoObjectInSpiData() {
+    // Connect site on non-error key and id.
+    $this->connectSite();
+
+    $edit_fields = array(
+      'name' => $this->acqtest_name,
+      'machine_name' => $this->acqtest_machine_name,
+    );
+    $submit_button = 'Save configuration';
+    $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
+
+    $spi = new spiControllerTest();
+    $spi_data = $spi->get();
+
+    $this->assertFalse($this->is_contain_objects($spi_data), 'SPI data does not contain PHP objects.');
+  }
+
+  /**
+   * Helper function determines whether given array contains PHP object.
+   */
+  public function is_contain_objects($arr) {
+    foreach ($arr as $key => $item) {
+      if (is_object($item)) {
+        return TRUE;
+      }
+      if (is_array($item) && $this->is_contain_objects($item)) {
+        return TRUE;
+      }
+    }
+  }
+
+  /**
    * Test Acquia SPI send.
    */
   public function testAcquiaSPISend() {

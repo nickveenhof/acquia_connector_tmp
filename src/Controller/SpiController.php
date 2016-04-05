@@ -520,11 +520,7 @@ class SpiController extends ControllerBase {
       $info = system_get_info('module', $profile);
       $data['install_profile'] = array(
         'title' => 'Install profile',
-        'value' => t('%profile_name (%profile-%version)', array(
-          '%profile_name' => $info['name'],
-          '%profile' => $profile,
-          '%version' => $info['version'],
-        )),
+        'value' => sprintf('%s (%s-%s)', $info['name'], $profile, $info['version']),
       );
     }
     $data['php'] = array(
@@ -558,7 +554,7 @@ class SpiController extends ControllerBase {
     }
     $data['cron'] = array(
       'title' => 'Cron maintenance tasks',
-      'value' => t('Last run @time ago', array('@time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last))),
+      'value' => sprintf('Last run %s ago', \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last)),
       'cron_last' => $cron_last,
     );
     if (!empty(Settings::get('update_free_access'))) {
@@ -931,7 +927,7 @@ class SpiController extends ControllerBase {
       'apache_modules'    => $apache_modules,
       'php_extensions'    => get_loaded_extensions(),
       'php_quantum'       => $php_quantum,
-      'database_type'     => $db_tasks->name(),
+      'database_type'     => (string) $db_tasks->name(),
       'database_version'  => Database\Database::getConnection()->version(),
       'system_type'       => php_uname('s'),
       // php_uname() only accepts one character, so we need to concatenate ourselves.

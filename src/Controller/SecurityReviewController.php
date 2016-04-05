@@ -636,11 +636,11 @@ class SecurityReviewController extends ControllerBase {
    * Helper function defines the default untrusted Drupal roles.
    */
   public function defaultUntrustedRoles() {
-    $roles = array(DRUPAL_ANONYMOUS_RID => t('anonymous user'));
+    $roles = array(DRUPAL_ANONYMOUS_RID => 'anonymous user');
     $user_register = \Drupal::config('user.settings')->get('register'); //need set default value
     // If visitors are allowed to create accounts they are considered untrusted.
     if ($user_register != USER_REGISTER_ADMINISTRATORS_ONLY) {
-      $roles[DRUPAL_AUTHENTICATED_RID] = t('authenticated user');
+      $roles[DRUPAL_AUTHENTICATED_RID] = 'authenticated user';
     }
     return $roles;
   }
