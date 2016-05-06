@@ -398,7 +398,7 @@ class SpiController extends ControllerBase {
       $count = 0;
       foreach ($result as $record) {
         $last_five_nodes[$count]['url'] = \Drupal::service('path.alias_manager')
-          ->getAliasByPath('node/' . $record->nid, $record->langcode);;
+          ->getAliasByPath('/node/' . $record->nid, $record->langcode);
         $last_five_nodes[$count]['title'] = $record->title;
         $last_five_nodes[$count]['type'] = $record->type;
         $last_five_nodes[$count]['created'] = $record->created;
