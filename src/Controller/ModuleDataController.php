@@ -1,20 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Form\Controller\StatusController.
- */
-
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\acquia_connector\Subscription;
 use Drupal\acquia_connector\CryptConnector;
-use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Component\Utility\Url;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -23,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ModuleDataController extends ControllerBase {
 
   /**
-   * Send a file's contents to the requestor
+   * Send a file's contents to the requestor.
    */
   public function sendModuleData($data = array()) {
     $request = \Drupal::request();
@@ -80,7 +72,7 @@ class ModuleDataController extends ControllerBase {
     $request = \Drupal::request();
     $data = json_decode($request->getContent(), TRUE);
 
-    // We only do this if we are on SSL
+    // We only do this if we are on SSL.
     $via_ssl = $request->isSecure();
     if ($this->config('acquia_connector.settings')->get('spi.ssl_override')) {
       $via_ssl = TRUE;
@@ -106,4 +98,5 @@ class ModuleDataController extends ControllerBase {
 
     return AccessResultForbidden::forbidden();
   }
+
 }

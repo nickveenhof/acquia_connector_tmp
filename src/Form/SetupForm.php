@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Form\SetupForm.
- */
-
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -189,7 +184,6 @@ class SetupForm extends ConfigFormBase {
     if (!$form_state->getErrors($form_state) && empty($storage['rebuild'])) {
       // Check subscription and send a heartbeat to Acquia Network via XML-RPC.
       // Our status gets updated locally via the return data.
-
       $subscription = Subscription::update();
 
       // Redirect to the path without the suffix.
@@ -199,7 +193,8 @@ class SetupForm extends ConfigFormBase {
 
       if ($subscription['active']) {
         drupal_set_message($this->t('<h3>Connection successful!</h3>You are now connected to Acquia Cloud. Please enter a name for your site to begin sending profile data.'));
-        drupal_flush_all_caches(); //@todo https://www.drupal.org/node/2560867
+        // @todo https://www.drupal.org/node/2560867
+        drupal_flush_all_caches();
       }
     }
   }

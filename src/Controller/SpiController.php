@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Controller\SpiController.
- */
-
 namespace Drupal\acquia_connector\Controller;
 
-use Drupal\Core\Database;
+use Drupal\Core\Database\Database;
 use Drupal\Core\DrupalKernel;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Access\AccessResultAllowed;
@@ -70,7 +65,7 @@ class SpiController extends ControllerBase {
     list($hashes, $fileinfo) = $this->getFileHashes();
     $hashes_string = serialize($hashes);
 
-    // Get the Drupal version
+    // Get the Drupal version.
     $drupal_version = $this->getVersionInfo();
 
     $stored = $this->dataStoreGet(array('platform'));
@@ -100,8 +95,10 @@ class SpiController extends ControllerBase {
     }
 
     $spi = array(
-      'rpc_version'        => ACQUIA_SPI_DATA_VERSION,      // Used in HMAC validation
-      'spi_data_version'   => ACQUIA_SPI_DATA_VERSION,    // Used in Fix it now feature
+    // Used in HMAC validation.
+      'rpc_version'        => ACQUIA_SPI_DATA_VERSION,
+    // Used in Fix it now feature.
+      'spi_data_version'   => ACQUIA_SPI_DATA_VERSION,
       'site_key'           => sha1(\Drupal::service('private_key')->get()),
       'site_uuid'          => $this->config('acquia_connector.settings')->get('spi.site_uuid'),
       'env_changed_action' => $this->config('acquia_connector.settings')->get('spi.environment_changed_action'),
@@ -145,7 +142,6 @@ class SpiController extends ControllerBase {
     // It's worth sending along node access control information even if there are
     // no modules implementing it - some alerts are simpler if we know we don't
     // have to worry about node access.
-
     // Check for node grants modules.
     $additional_data['node_grants_modules'] = \Drupal::moduleHandler()->getImplementations('node_grants');
 
@@ -239,7 +235,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Checks to see if SSL login is required
+   * Checks to see if SSL login is required.
    *
    * @param n/a
    *
@@ -271,7 +267,7 @@ class SpiController extends ControllerBase {
         }
       }
       // \Drupal::request()->isSecure() ($conf['https'] in D7) should be false for expected behavior.
-      if ($forms_safe && !\Drupal::request()->isSecure())  {
+      if ($forms_safe && !\Drupal::request()->isSecure()) {
         $login_safe = 1;
       }
     }
@@ -280,7 +276,7 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Check to see if the unneeded release files with Drupal are removed
+   * Check to see if the unneeded release files with Drupal are removed.
    *
    * @param n/a
    *
@@ -292,12 +288,14 @@ class SpiController extends ControllerBase {
     $server = (!empty($store) && isset($store['platform'])) ? $store['platform']['php_quantum']['SERVER'] : \Drupal::request()->server->all();
     $files_exist = FALSE;
     $files_to_remove = array('CHANGELOG.txt', 'COPYRIGHT.txt', 'INSTALL.mysql.txt', 'INSTALL.pgsql.txt', 'INSTALL.txt', 'LICENSE.txt',
-      'MAINTAINERS.txt', 'README.txt', 'UPGRADE.txt', 'PRESSFLOW.txt', 'install.php');
+      'MAINTAINERS.txt', 'README.txt', 'UPGRADE.txt', 'PRESSFLOW.txt', 'install.php',
+    );
 
     foreach ($files_to_remove as $file) {
       $path = $server['DOCUMENT_ROOT'] . base_path() . $file;
-      if (file_exists($path))
+      if (file_exists($path)) {
         $files_exist = TRUE;
+      }
     }
 
     return $files_exist ? 1 : 0;
@@ -353,7 +351,6 @@ class SpiController extends ControllerBase {
 
     return !empty($changes) && empty($change_action);
   }
-
 
   /**
    * Get last 15 users created. Useful for determining if your site is compromised.
@@ -643,7 +640,8 @@ class SpiController extends ControllerBase {
    */
   private function getSettingsPermissions() {
     $settings_permissions_read_only = TRUE;
-    $writes = array('2', '3', '6', '7'); // http://en.wikipedia.org/wiki/File_system_permissions.
+    // http://en.wikipedia.org/wiki/File_system_permissions.
+    $writes = array('2', '3', '6', '7');
     $settings_file = './' . DrupalKernel::findSitePath(\Drupal::request(), TRUE) . '/settings.php';
     $permissions = Unicode::substr(sprintf('%o', fileperms($settings_file)), -4);
 
@@ -689,11 +687,11 @@ class SpiController extends ControllerBase {
   /**
    * Recursive helper function for getFileHashes().
    */
-  private function generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir=NULL) {
+  private function generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir = NULL) {
     $hashes = array();
     $fileinfo = array();
 
-    // Ensure that we have not nested into another module's dir
+    // Ensure that we have not nested into another module's dir.
     if ($dir != $orig_dir && $module_break) {
       if (is_dir($dir) && $handle = opendir($dir)) {
         while ($file = readdir($handle)) {
@@ -713,7 +711,7 @@ class SpiController extends ControllerBase {
         if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git'))) {
           $path = $dir == '.' ? $file : "{$dir}/{$file}";
           if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
-            list($sub_hashes, $sub_fileinfo) =  $this->generateHashes($path, $exclude_dirs);
+            list($sub_hashes, $sub_fileinfo) = $this->generateHashes($path, $exclude_dirs);
             $hashes = array_merge($sub_hashes, $hashes);
             $fileinfo = array_merge($sub_fileinfo, $fileinfo);
             $hashes[$path] = $this->hashPath($path);
@@ -755,7 +753,7 @@ class SpiController extends ControllerBase {
       'js' => 1,
       'info' => 1,
       'sh' => 1,
-      // SSL certificates
+      // SSL certificates.
       'pem' => 1,
       'pl' => 1,
       'pm' => 1,
@@ -769,6 +767,7 @@ class SpiController extends ControllerBase {
    *
    * @param string $path
    *   The name of the file or a directory.
+   *
    * @return string
    *   base64 encoded sha1 hash. 'hash' is an empty string for directories.
    */
@@ -777,12 +776,12 @@ class SpiController extends ControllerBase {
     if (file_exists($path)) {
       if (!is_dir($path)) {
         $string = file_get_contents($path);
-        // Remove trailing whitespace
+        // Remove trailing whitespace.
         $string = rtrim($string);
-        // Replace all line endings and CVS/svn Id tags
+        // Replace all line endings and CVS/svn Id tags.
         $string = preg_replace('/\$Id[^;<>{}\(\)\$]*\$/', 'x$' . 'Id$', $string);
         $string = preg_replace('/\r\n|\n|\r/', ' ', $string);
-        $hash =  base64_encode(pack("H*", sha1($string)));
+        $hash = base64_encode(pack("H*", sha1($string)));
       }
     }
     return $hash;
@@ -847,12 +846,14 @@ class SpiController extends ControllerBase {
   /**
    * Put SPI data in local storage.
    *
-   * @param array $data Keyed array of data to store.
-   * @param int $expire Expire time or null to use default of 1 day.
+   * @param array $data
+   *   Keyed array of data to store.
+   * @param int $expire
+   *   Expire time or null to use default of 1 day.
    */
   public function dataStoreSet($data, $expire = NULL) {
     if (is_null($expire)) {
-      $expire = REQUEST_TIME + (60*60*24);
+      $expire = REQUEST_TIME + (60 * 60 * 24);
     }
     foreach ($data as $key => $value) {
       \Drupal::cache()->set('acquia.spi.' . $key, $value, $expire);
@@ -878,7 +879,6 @@ class SpiController extends ControllerBase {
     return $store;
   }
 
-
   /**
    * Gather platform specific information.
    *
@@ -887,8 +887,8 @@ class SpiController extends ControllerBase {
    */
   public static function getPlatform() {
     $server = \Drupal::request()->server;
-    // Database detection depends on the structure starting with the database
-    $db_class = '\Drupal\Core\Database\Driver\\' . Database\Database::getConnection()->driver() . '\Install\Tasks';
+    // Database detection depends on the structure starting with the database.
+    $db_class = '\Drupal\Core\Database\Driver\\' . Database::getConnection()->driver() . '\Install\Tasks';
     $db_tasks = new $db_class();
     // Webserver detection is based on name being before the slash, and
     // version being after the slash.
@@ -928,11 +928,11 @@ class SpiController extends ControllerBase {
       'php_extensions'    => get_loaded_extensions(),
       'php_quantum'       => $php_quantum,
       'database_type'     => (string) $db_tasks->name(),
-      'database_version'  => Database\Database::getConnection()->version(),
+      'database_version'  => Database::getConnection()->version(),
       'system_type'       => php_uname('s'),
       // php_uname() only accepts one character, so we need to concatenate ourselves.
       'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
-      'mysql'             => (Database\Database::getConnection()->driver() == 'mysql') ? self::getPlatformMysqlData() : array(),
+      'mysql'             => (Database::getConnection()->driver() == 'mysql') ? self::getPlatformMysqlData() : array(),
     );
 
     return $platform;
@@ -945,7 +945,7 @@ class SpiController extends ControllerBase {
    *   An associative array keyed by a mysql information type.
    */
   private static function getPlatformMysqlData() {
-    $connection = Database\Database::getConnection('default');
+    $connection = Database::getConnection('default');
     $result = $connection->query('SHOW GLOBAL STATUS', array(), array())->fetchAll();
 
     $ret = array();
@@ -961,48 +961,63 @@ class SpiController extends ControllerBase {
         case 'Table_locks_waited':
           $ret['Table_locks_waited'] = $record->Value;
           break;
+
         case 'Slow_queries':
           $ret['Slow_queries'] = $record->Value;
           break;
+
         case 'Qcache_hits':
           $ret['Qcache_hits'] = $record->Value;
           break;
+
         case 'Qcache_inserts':
           $ret['Qcache_inserts'] = $record->Value;
           break;
+
         case 'Qcache_queries_in_cache':
           $ret['Qcache_queries_in_cache'] = $record->Value;
           break;
+
         case 'Qcache_lowmem_prunes':
           $ret['Qcache_lowmem_prunes'] = $record->Value;
           break;
+
         case 'Open_tables':
           $ret['Open_tables'] = $record->Value;
           break;
+
         case 'Opened_tables':
           $ret['Opened_tables'] = $record->Value;
           break;
+
         case 'Select_scan':
           $ret['Select_scan'] = $record->Value;
           break;
+
         case 'Select_full_join':
           $ret['Select_full_join'] = $record->Value;
           break;
+
         case 'Select_range_check':
           $ret['Select_range_check'] = $record->Value;
           break;
+
         case 'Created_tmp_disk_tables':
           $ret['Created_tmp_disk_tables'] = $record->Value;
           break;
+
         case 'Created_tmp_tables':
           $ret['Created_tmp_tables'] = $record->Value;
           break;
+
         case 'Handler_read_rnd_next':
           $ret['Handler_read_rnd_next'] = $record->Value;
           break;
+
         case 'Sort_merge_passes':
           $ret['Sort_merge_passes'] = $record->Value;
           break;
+
         case 'Qcache_not_cached':
           $ret['Qcache_not_cached'] = $record->Value;
           break;
@@ -1085,13 +1100,13 @@ class SpiController extends ControllerBase {
       closedir($handle);
     }
 
-    // Standard nesting function
+    // Standard nesting function.
     if (is_dir($dir) && $handle = opendir($dir)) {
       while ($file = readdir($handle)) {
         if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git'))) {
           $path = $dir == '.' ? $file : "{$dir}/{$file}";
           if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
-            list($sub_hashes, $sub_fileinfo) =  $this->_generateHashes($path, $exclude_dirs);
+            list($sub_hashes, $sub_fileinfo) = $this->_generateHashes($path, $exclude_dirs);
             $hashes = array_merge($sub_hashes, $hashes);
             $fileinfo = array_merge($sub_fileinfo, $fileinfo);
             $hashes[$path] = $this->hashPath($path);
@@ -1141,7 +1156,8 @@ class SpiController extends ControllerBase {
   /**
    * Gather full SPI data and send to Acquia Network.
    *
-   * @param string $method Optional identifier for the method initiating request.
+   * @param string $method
+   *   Optional identifier for the method initiating request.
    *   Values could be 'cron' or 'menu callback' or 'drush'.
    *
    * @return mixed FALSE if data not sent or environment change detected else NSPI response array.
@@ -1209,7 +1225,8 @@ class SpiController extends ControllerBase {
   /**
    * Parses and displays messages from the NSPI response.
    *
-   * @param array $response Response array from NSPI.
+   * @param array $response
+   *   Response array from NSPI.
    */
   public function spiProcessMessages($response) {
     if (empty($response['body'])) {
@@ -1244,7 +1261,8 @@ class SpiController extends ControllerBase {
   /**
    * Act on specific elements of SPI update server response.
    *
-   * @param array $spi_response Array response from SpiController->send().
+   * @param array $spi_response
+   *   Array response from SpiController->send().
    */
   private function handleServerResponse($spi_response) {
 
@@ -1327,7 +1345,7 @@ class SpiController extends ControllerBase {
         'acquia_spi_variables' => 'array',
       );
       // Make sure that $response_data contains everything expected.
-      foreach($expected_data_types as $key => $values) {
+      foreach ($expected_data_types as $key => $values) {
         if (!array_key_exists($key, $response_data) || gettype($response_data[$key]) != $expected_data_types[$key]) {
           \Drupal::logger('acquia spi')->error('Received SPI data definition does not match expected pattern while checking "@key". Received and expected data: @data', array('@key' => $key, '@data' => var_export(array_merge(array('expected_data' => $expected_data_types), array('response_data' => $response_data)), 1), TRUE));
           return FALSE;
@@ -1345,9 +1363,9 @@ class SpiController extends ControllerBase {
       $old_vars = $this->config('acquia_connector.settings')->get('spi.def_vars');
       $new_vars = $response_data['acquia_spi_variables'];
       $new_optional_vars = 0;
-      foreach($new_vars as $new_var_name => $new_var) {
+      foreach ($new_vars as $new_var_name => $new_var) {
         // Count if received from NSPI optional variable is not present in old local SPI definition
-        // or if it already was in old SPI definition, but was not optional
+        // or if it already was in old SPI definition, but was not optional.
         if ($new_var['optional'] && !array_key_exists($new_var_name, $old_vars) ||
           $new_var['optional'] && isset($old_vars[$new_var_name]) && !$old_vars[$new_var_name]['optional']) {
           $new_optional_vars++;
@@ -1356,7 +1374,7 @@ class SpiController extends ControllerBase {
       // Clean up waived vars that are not exposed by NSPI anymore.
       $waived_spi_def_vars = $this->config('acquia_connector.settings')->get('spi.def_waived_vars');
       $changed_bool = FALSE;
-      foreach($waived_spi_def_vars as $key => $waived_var) {
+      foreach ($waived_spi_def_vars as $key => $waived_var) {
         if (!in_array($waived_var, $new_vars)) {
           unset($waived_spi_def_vars[$key]);
           $changed_bool = TRUE;
@@ -1393,4 +1411,5 @@ class SpiController extends ControllerBase {
     }
     return AccessResultForbidden::forbidden();
   }
+
 }

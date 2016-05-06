@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Client.
- */
-
 namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;
@@ -45,13 +40,13 @@ class Client {
 
     $this->headers = array(
       'Content-Type' => 'application/json',
-      'Accept' => 'application/json'
+      'Accept' => 'application/json',
     );
 
     $this->client = \Drupal::service('http_client_factory')->fromOptions(
       [
         'verify' => (boolean) $this->config->get('spi.ssl_verify'),
-        'exceptions' => false,
+        'http_errors' => FALSE,
       ]
     );
   }
@@ -59,7 +54,8 @@ class Client {
   /**
    * Get account settings to use for creating request authorizations.
    *
-   * @param string $email Acquia Network account email
+   * @param string $email
+   *   Acquia Network account email
    * @param string $password
    *   Plain-text password for Acquia Network account. Will be hashed for
    *   communication.
@@ -99,8 +95,10 @@ class Client {
   /**
    * Get Acquia subscription from Acquia Network.
    *
-   * @param string $id Network ID
-   * @param string $key Network Key
+   * @param string $id
+   *   Network ID
+   * @param string $key
+   *   Network Key
    * @param array $body
    *   (optional)
    *
@@ -128,7 +126,7 @@ class Client {
       foreach (array('acquia_search', 'search_api', 'search_api_solr') as $name) {
         $info = system_get_info('module', $name);
         // Send the version, or at least the core compatibility as a fallback.
-        $body['search_version'][$name] = isset($info['version']) ? (string)$info['version'] : (string)$info['core'];
+        $body['search_version'][$name] = isset($info['version']) ? (string) $info['version'] : (string) $info['core'];
       }
     }
 
@@ -161,8 +159,10 @@ class Client {
   /**
    * Get Acquia subscription from Acquia Network.
    *
-   * @param string $id Network ID
-   * @param string $key Network Key
+   * @param string $id
+   *   Network ID
+   * @param string $key
+   *   Network Key
    * @param array $body
    *   (optional)
    *
@@ -171,7 +171,7 @@ class Client {
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
 
-    try{
+    try {
       $response = $this->nspiCall('/spi-api/site', $body);
       if (!empty($response['result']['authenticator']) && $this->validateResponse($key, $response['result'], $response['authenticator'])) {
         return $response['result'];
@@ -247,7 +247,8 @@ class Client {
           }
 
           return $data;
-          break;
+
+        break;
 
         case 'POST':
           $response = $this->client->post($uri, $options);
@@ -260,7 +261,8 @@ class Client {
           }
 
           return $data;
-          break;
+
+        break;
       }
     }
     catch (RequestException $e) {
@@ -301,6 +303,7 @@ class Client {
    * @param int $time
    * @param string $nonce
    * @param array $params
+   *
    * @return string
    */
   protected function hash($key, $time, $nonce, $params = array()) {
@@ -322,8 +325,11 @@ class Client {
    *
    * @param string $method
    * @param array $params
-   * @param string $key or NULL
+   * @param string $key
+   *   or NULL
+   *
    * @return array
+   *
    * @throws ConnectorException
    */
   public function nspiCall($method, $params, $key = NULL) {
@@ -331,7 +337,8 @@ class Client {
       $config = \Drupal::config('acquia_connector.settings');
       $key = $config->get('key');
     }
-    $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION; // Used in HMAC validation
+    // Used in HMAC validation.
+    $params['rpc_version'] = ACQUIA_SPI_DATA_VERSION;
     $ip = \Drupal::request()->server->get('SERVER_ADDR', '');
     $host = \Drupal::request()->server->get('HTTP_HOST', '');
     $ssl = \Drupal::request()->isSecure();

@@ -1,16 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\EventSubscriber\MaintenanceModeSubscriber.
- */
-
 namespace Drupal\acquia_connector\EventSubscriber;
 
+use Drupal\update\Controller\UpdateController;
+use Drupal\acquia_connector\Controller\SpiController;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Path;
 use Drupal\Core\Url;
 use Drupal\acquia_connector\Subscription;
 use Drupal\acquia_connector\Controller;
@@ -46,6 +42,9 @@ class InitSubscriber implements EventSubscriberInterface {
    */
   protected $cache;
 
+  /**
+   * Construction method.
+   */
   public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, CacheBackendInterface $cache) {
     $this->configFactory = $config_factory;
     $this->state = $state;
@@ -65,11 +64,11 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
     // Check that we're not on an AJAX overlay page.
-    if(\Drupal::request()->isXmlHttpRequest()) {
+    if (\Drupal::request()->isXmlHttpRequest()) {
       return;
     }
 
-    // Check that we're not serving a private file or image
+    // Check that we're not serving a private file or image.
     $controller_name = \Drupal::request()->attributes->get('_controller');
     if (strpos($controller_name, 'FileDownloadController') !== FALSE || strpos($controller_name, 'ImageStyleDownloadController') !== FALSE) {
       return;
@@ -86,10 +85,10 @@ class InitSubscriber implements EventSubscriberInterface {
     // Determine if the required interval has passed.
     $now = REQUEST_TIME;
     if (($now - $last) > ($interval * 60)) {
-      $platform = Controller\SpiController::getPlatform();
+      $platform = SpiController::getPlatform();
 
       // acquia_spi_data_store_set() replacement.
-      $expire = REQUEST_TIME + (60*60*24);
+      $expire = REQUEST_TIME + (60 * 60 * 24);
       $this->cache->set('acquia.spi.platform', $platform, $expire);
       $this->state->set('acquia_connector.boot_last', $now);
     }
@@ -101,7 +100,7 @@ class InitSubscriber implements EventSubscriberInterface {
     // Check that we're not on one of our own config pages, all of which are prefixed
     // with admin/config/system/acquia-connector.
     $current_path = \Drupal::Request()->attributes->get('_system_path');
-    if (\Drupal::service('path.matcher')->matchPath($current_path,'admin/config/system/acquia-connector/*')) {
+    if (\Drupal::service('path.matcher')->matchPath($current_path, 'admin/config/system/acquia-connector/*')) {
       return;
     }
 
@@ -132,6 +131,7 @@ class InitSubscriber implements EventSubscriberInterface {
 
   /**
    * Refresh subscription information.
+   *
    * @param \Symfony\Component\HttpKernel\Event\FilterControllerEvent $event
    */
   public function onKernelController(FilterControllerEvent $event) {
@@ -149,7 +149,7 @@ class InitSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    if ($controller[0] instanceof \Drupal\update\Controller\UpdateController) {
+    if ($controller[0] instanceof UpdateController) {
       // Refresh subscription information, so we are sure about our update status.
       // We send a heartbeat here so that all of our status information gets
       // updated locally via the return data.

@@ -1,10 +1,13 @@
 <?php
 
-use Drupal\acquia_connector\Controller;
+/**
+ * @file
+ */
+
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\acquia_connector\Subscription;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
-use Drupal\Component\Utility\SafeMarkup;
 
 // Version of SPI data format.
 define('ACQUIA_SPI_DATA_VERSION', 3.0);
@@ -52,7 +55,7 @@ function acquia_connector_help($route_name, RouteMatchInterface $route_match) {
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function acquia_connector_form_system_modules_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+function acquia_connector_form_system_modules_alter(&$form, FormStateInterface $form_state, $form_id) {
   if (isset($form['modules']['Acquia']['acquia_search']['description']['#markup'])) {
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
 
@@ -102,7 +105,7 @@ function acquia_connector_toolbar() {
     '#type' => 'link',
     '#attributes' => [
       'class' => [
-        'toolbar-icon'
+        'toolbar-icon',
       ],
     ],
   ];
@@ -206,7 +209,6 @@ function acquia_connector_load_versions() {
   include_once 'acquia_connector_drupal_version.inc';
 }
 
-
 /**
  * Returns the stored subscription data if update service is enabled or FALSE otherwise.
  */
@@ -228,13 +230,13 @@ function acquia_connector_has_update_service() {
 
 /**
  * Set error message.
+ *
  * @param $code
  * @param $message
  */
 function acquia_connector_report_restapi_error($code, $message) {
   drupal_set_message(t('Error: @message (@errno)', array('@message' => $message, '@errno' => $code)), 'error');
 }
-
 
 /**
  * Returns an error message for the most recent (failed) attempt to connect
@@ -245,6 +247,7 @@ function acquia_connector_report_restapi_error($code, $message) {
  * Acquia Network; otherwise, it will not work correctly.
  *
  * @param int $errno.
+ *
  * @return string or FALSE.
  */
 function acquia_connector_connection_error_message($errno) {
@@ -252,22 +255,27 @@ function acquia_connector_connection_error_message($errno) {
     switch ($errno) {
       case Subscription::NOT_FOUND:
         return t('The identifier you have provided does not exist in the Acquia Subscription or is expired. Please make sure you have used the correct value and try again.');
-        break;
+
+      break;
       case Subscription::EXPIRED:
         return t('Your Acquia Subscription subscription has expired. Please renew your subscription so that you can resume using Acquia services.');
-        break;
+
+      break;
       case Subscription::MESSAGE_FUTURE:
         return t('Your server is unable to communicate with the Acquia Subscription due to a problem with your clock settings. For security reasons, we reject messages that are more than @time ahead of the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
-        break;
+
+      break;
       case Subscription::MESSAGE_EXPIRED:
         return t('Your server is unable to communicate with the Acquia Subscription due to a problem with your clock settings. For security reasons, we reject messages that are more than @time older than the actual time recorded by our servers. Please fix the clock on your server and try again.', array('@time' => \Drupal::service('date.formatter')->formatInterval(Subscription::MESSAGE_LIFETIME)));
-        break;
+
+      break;
       case Subscription::VALIDATION_ERROR:
         return t('The identifier and key you have provided for the Acquia Subscription do not match. Please make sure you have used the correct values and try again.');
-        break;
+
+      break;
       default:
         return t('There is an error communicating with the Acquia Subscription at this time. Please check your identifier and key and try again.');
-        break;
+      break;
     }
   }
   return FALSE;
@@ -276,7 +284,7 @@ function acquia_connector_connection_error_message($errno) {
 /**
  * Implements hook_modules_installed().
  */
-function acquia_connector_modules_installed($modules){
+function acquia_connector_modules_installed($modules) {
   foreach ($modules as $module) {
     if (function_exists($module . '_acquia_connector_spi_test')) {
       drupal_set_message(t("A new invocation of hook_acquia_connector_spi_test() has been detected in @module.", array('@module' => $module)));

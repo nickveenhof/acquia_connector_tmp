@@ -22,7 +22,7 @@ function acquia_connector_drush_command() {
     'examples' => array(
       'spi-get --format=json --outfile=spi.json' => 'Write JSON encoded SPI data to spi.json in current directory.',
     ),
-    'drupal dependencies' => array('acquia_connector')
+    'drupal dependencies' => array('acquia_connector'),
   );
   $items['spi-test-validate'] = array(
     'callback'    => 'drush_acquia_connector_custom_test_validate',
@@ -42,23 +42,28 @@ function acquia_connector_drush_help($section) {
   }
 }
 
-function drush_acquia_connector_spi_get(){
+/**
+ * Output raw Acquia SPI data.
+ */
+function drush_acquia_connector_spi_get() {
   $raw_spi = _acquia_connector_drush_get();
-  switch (drush_get_option('format','print_r')) {
+  switch (drush_get_option('format', 'print_r')) {
     case 'json':
       $spi = drush_json_encode($raw_spi);
       break;
+
     case 'var_dump':
     case 'var_export':
       $spi = var_export($raw_spi, 1);
       break;
+
     case 'print_r':
     default:
       $spi = print_r($raw_spi, 1);
       break;
   }
   if ($file = drush_get_option('outfile')) {
-    // reset our working directory so that relative paths work as expected
+    // Reset our working directory so that relative paths work as expected.
     $wd = getcwd();
     chdir($_SERVER['PWD']);
     if (file_put_contents($file, $spi)) {
@@ -85,7 +90,7 @@ function _acquia_connector_drush_get() {
   $client = \Drupal::service('acquia_connector.client');
   $spi = new SpiController($client);
 
-  if(!method_exists($spi, 'get')){
+  if (!method_exists($spi, 'get')) {
     drush_print(t('Method get not implement'));
   }
   if (!function_exists('acquia_connector_load_versions')) {
@@ -96,7 +101,6 @@ function _acquia_connector_drush_get() {
 
 /**
  * A command callback and drush wrapper for custom test validation.
- *
  */
 function drush_acquia_connector_custom_test_validate() {
   $pass = array();

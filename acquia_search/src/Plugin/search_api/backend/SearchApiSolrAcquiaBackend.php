@@ -11,7 +11,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 use Drupal\Core\Language\LanguageManagerInterface;
 
-
 /**
  * @SearchApiBackend(
  *   id = "search_api_solr_acquia",
@@ -22,6 +21,7 @@ use Drupal\Core\Language\LanguageManagerInterface;
 class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
 
   protected $eventDispatcher = FALSE;
+
   /**
    * {@inheritdoc}
    */

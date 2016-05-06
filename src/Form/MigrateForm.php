@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Form\SetupForm.
- */
-
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\acquia_connector\Migration;
@@ -79,7 +74,7 @@ class MigrateForm extends ConfigFormBase {
 
     $form['envs'] = array(
       '#type' => 'value',
-      '#value' => $result['body']['environments']
+      '#value' => $result['body']['environments'],
     );
 
     $envs = array();

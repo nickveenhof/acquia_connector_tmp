@@ -1,16 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Migration.
- */
-
 namespace Drupal\acquia_connector;
 
+use Drupal\Core\Archiver\ArchiveTar;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Url;
 use Drupal\Core\DrupalKernel;
-use Drupal\Core\Archiver;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
@@ -50,6 +45,7 @@ class Migration {
    *
    * @param array $environment
    *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
+   *
    * @return array $migration
    */
   public function prepare($environment) {
@@ -80,8 +76,9 @@ class Migration {
       // Parameters used in transfer request.
       'request_params' => array(
         // Return URL on this site.
-        'r' => Url::FromRoute('acquia_connector.settings',  array(), array('absolute' => TRUE))->toString(),
-        'y' => 'sar', // For Acquia Hosting
+        'r' => Url::FromRoute('acquia_connector.settings', array(), array('absolute' => TRUE))->toString(),
+        // For Acquia Hosting.
+        'y' => 'sar',
         'stage' => $environment['stage'],
         'nonce' => $environment['nonce'],
       ),
@@ -129,31 +126,30 @@ class Migration {
    * Test migration setup and destination.
    *
    * @param array
-   *  Array of migration information.
+   *   Array of migration information.
    *
    * @return boolean
    *  Whether migration can continue.
    */
   public function testSetup(&$migration) {
     $url = $migration['env']['url'];
-    $options = [
-      'headers' => ['User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)'],
-      'allow_redirects' => FALSE,
-      'verify' => FALSE,
-    ];
 
-    $response = \Drupal::httpClient()->get($url, $options);
+    try {
+      $client = \Drupal::service('http_client_factory')->fromOptions([
+        'headers' => ['User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)'],
+        'http_errors' => FALSE,
+        'allow_redirects' => FALSE,
+      ]
+      );
 
-    if ($response->getStatusCode() != '200') {
-      $migration['error'] = t('Unable to connect to migration destination site, please contact Acquia Support.');
-      return FALSE;
+      $response = $client->get($url);
+      if ($response->getStatusCode() != 400) {
+        $migration['error'] = (string) t('Unable to connect to migration destination site (unexpected response code: @code), please contact Acquia Support.', array('@code' => $response->getStatusCode()));
+        return FALSE;
+      }
     }
-
-    // A 200 response with body 'invalid request' is returned from the AH_UPLOAD
-    // script if receiving a GET request.
-    if (strpos($url, 'AH_UPLOAD') !== FALSE && trim($response->getBody()) != 'invalid request') {
-      $migration['error'] = t('Unable to connect to migration destination site, please contact Acquia Support.');
-      return FALSE;
+    catch (RequestException $e) {
+      throw new ConnectorException($e->getMessage(), $e->getCode());
     }
 
     return TRUE;
@@ -395,7 +391,7 @@ class Migration {
         $dest_file .= '.' . $migration['compression_ext'];
       }
 
-      $gz = new Archiver\ArchiveTar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
+      $gz = new ArchiveTar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
       if (!empty($migration['db_file'])) {
         // Add db file.
         $ret = $gz->addModify(array($migration['db_file']), '', $migration['dir'] . DIRECTORY_SEPARATOR);
@@ -527,9 +523,9 @@ class Migration {
         'max' => 0,
         'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $request_uri) use (&$actual_uri) {
           $actual_uri = (string) $request_uri;
-        }
+        },
       ],
-      'verify' => FALSE,
+      'http_errors' => FALSE,
       'headers' => [
         'User-Agent' => 'Acquia Migrate Client/1.x (Drupal ' . \Drupal::VERSION . ';)',
       ],
@@ -555,7 +551,7 @@ class Migration {
 
     if ($response->getStatusCode() == 200) {
       if (!is_array($data)) {
-        $migration['error'] = t('Error occurred, please try again or consult the logs.');
+        $migration['error'] = (string) t('Error occurred, please try again or consult the logs.');
         $migration['error_data'] = $data;
         return FALSE;
       }
@@ -576,7 +572,7 @@ class Migration {
 
         // Check if response is correct, if not stop migration.
         if ($signature != $response_signature) {
-          $migration['error'] = t('Signature from server is wrong');
+          $migration['error'] = (string) t('Signature from server is wrong');
           $migration['error_data'] = $data;
           return FALSE;
         }
@@ -612,21 +608,21 @@ class Migration {
           );
         }
         else {
-          $migration['error'] = t('Signature from server is wrong');
+          $migration['error'] = (string) t('Signature from server is wrong');
           $migration['error_data'] = $data;
           return FALSE;
         }
       }
     }
     else {
-      $migration['error'] = t('Transfer error');
+      $migration['error'] = (string) t('Transfer error');
       $migration['error_data'] = $data;
       return FALSE;
     }
   }
 
   /**
-   * Get upload security token
+   * Get upload security token.
    *
    * @param $now
    * @param $return
@@ -776,18 +772,18 @@ class Migration {
    */
   protected function getTableStructureSqlMysql($table) {
     $out = "";
-    $result = db_query("SHOW CREATE TABLE `". $table['name'] ."`", array(), array('fetch' => \PDO::FETCH_ASSOC));
+    $result = db_query("SHOW CREATE TABLE `" . $table['name'] . "`", array(), array('fetch' => \PDO::FETCH_ASSOC));
 
     foreach ($result as $create) {
       // Lowercase the keys because between Drupal 7.12 and 7.13/14 the default query behavior was changed.
       // See: http://drupal.org/node/1171866
       $create = array_change_key_case($create);
-      $out .= "DROP TABLE IF EXISTS `". $table['name'] ."`;\n";
+      $out .= "DROP TABLE IF EXISTS `" . $table['name'] . "`;\n";
       // Remove newlines and convert " to ` because PDO seems to convert those for some reason.
       $out .= strtr($create['create table'], array("\n" => ' ', '"' => '`'));
 
       if ($table['auto_increment']) {
-        $out .= " AUTO_INCREMENT=". $table['auto_increment'];
+        $out .= " AUTO_INCREMENT=" . $table['auto_increment'];
       }
 
       $out .= ";\n";
@@ -797,12 +793,12 @@ class Migration {
   }
 
   /**
-   *  Get the sql to insert the data for a given table
+   * Get the sql to insert the data for a given table.
    */
   protected function dumpTableDataSqlToFile($handle, $table) {
     $lines = 0;
 
-    // Escape backslashes, PHP code, special chars
+    // Escape backslashes, PHP code, special chars.
     $search = array('\\', "'", "\x00", "\x0a", "\x0d", "\x1a");
     $replace = array('\\\\', "''", '\0', '\n', '\r', '\Z');
     $result = db_query("SELECT * FROM `" . $table['name'] . "`", array(), array('fetch' => \PDO::FETCH_ASSOC));

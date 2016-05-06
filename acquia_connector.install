@@ -65,7 +65,8 @@ function acquia_connector_requirements($phase) {
           $config_url = Url::fromRoute('acquia_connector.settings')->toString();
           $description = 'You are not currently sending site profile data to Acquia Cloud. Please <a href="@config-page">provide a site name</a>.';
         }
-        elseif ($ago >= 60 * 60 * 36) { // 1.5 days ago.
+        // 1.5 days ago.
+        elseif ($ago >= 60 * 60 * 36) {
           $severity = REQUIREMENT_WARNING;
           $description = 'SPI data has not been reported to the Acquia Subscription for more than a day.<br/>';
         }
@@ -92,7 +93,7 @@ function acquia_connector_requirements($phase) {
           $value = t('SPI data has not been sent');
         }
         else {
-          $value = t('Last sent @time ago', array('@time' =>  \Drupal::service('date.formatter')->formatInterval($ago)));
+          $value = t('Last sent @time ago', array('@time' => \Drupal::service('date.formatter')->formatInterval($ago)));
         }
         $requirements['acquia_spi'] = array(
           'title' => t('Acquia Subscription SPI'),
@@ -119,7 +120,7 @@ function acquia_connector_requirements($phase) {
           'title' => t('Acquia Subscription status'),
           'severity' => REQUIREMENT_WARNING,
           'value' => t('Unknown'),
-          'description' => t('You did not complete your signup to the Acquia Subscription. You can provide the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page or try to <a href="@refresh-status">manually refresh the subscription status</a>.', ['@settings' => Url::fromRoute('acquia_connector.settings')->toString(), '@refresh-status' => Url::fromRoute('acquia_connector.refresh_status')->toString()])
+          'description' => t('You did not complete your signup to the Acquia Subscription. You can provide the subscription identifier and the subscription key at the <a href="@settings">Acquia settings</a> page or try to <a href="@refresh-status">manually refresh the subscription status</a>.', ['@settings' => Url::fromRoute('acquia_connector.settings')->toString(), '@refresh-status' => Url::fromRoute('acquia_connector.refresh_status')->toString()]),
         );
       }
       else {
@@ -169,7 +170,7 @@ function acquia_connector_requirements($phase) {
         'value'       => t($value, $variables),
         'severity'    => $severity,
       );
-    break;
+      break;
   }
 
   return $requirements;

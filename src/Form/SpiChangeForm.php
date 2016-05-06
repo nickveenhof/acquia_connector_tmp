@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Contains \Drupal\acquia_connector\Form\SpiChangeForm.
- */
-
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
@@ -57,8 +53,8 @@ class SpiChangeForm extends ConfigFormBase {
         '#title' => $this->t('<strong>The following changes have been detected in your site environment:</strong>'),
         '#description' => array(
           '#theme' => 'item_list',
-          '#items' => $env_changes
-        )
+          '#items' => $env_changes,
+        ),
       );
 
       $form['env_change_action'] = array(
@@ -137,7 +133,6 @@ class SpiChangeForm extends ConfigFormBase {
   public function exists() {
     return FALSE;
   }
-
 
   /**
    * {@inheritdoc}

@@ -1,14 +1,13 @@
 id: acquia_search_index
 name: 'Acquia Search Solr Index'
-uuid: c39b2493-bdfb-4045-b200-c8517ff04658
 langcode: en
 description: ''
 dependencies:
   config:
     - search_api.server.acquia_search_server
-  enforced:
-    module:
-      - acquia_search
+  module:
+    - search_api
+    - node
 datasource_settings:
   'entity:node':
     plugin_id: 'entity:node'

@@ -4,13 +4,19 @@ namespace Drupal\acquia_connector;
 
 use \Exception;
 
+/**
+ *
+ */
 class ConnectorException extends Exception {
   private $custom = [];
 
   /**
+   * Construction method.
+   *
    * @param string $message
    * @param int $code
-   * @param array $custom Exceotion messages as key => value
+   * @param array $custom
+   *   Exceotion messages as key => value
    * @param Exception $previous
    */
   public function __construct($message, $code = 0, $custom = [], Exception $previous = NULL) {
@@ -19,6 +25,8 @@ class ConnectorException extends Exception {
   }
 
   /**
+   * Check is customized.
+   *
    * @return bool
    */
   public function isCustomized() {
@@ -26,6 +34,8 @@ class ConnectorException extends Exception {
   }
 
   /**
+   * Set custom message.
+   *
    * @param $key
    * @param $value
    */
@@ -34,8 +44,12 @@ class ConnectorException extends Exception {
   }
 
   /**
+   * Get custom message.
+   *
    * @param string $key
-   * @param bool $fallback. Default is TRUE. Return standard code or message.
+   * @param bool $fallback.
+   *   Default is TRUE. Return standard code or message.
+   *
    * @return mixed
    */
   public function getCustomMessage($key = 'message', $fallback = TRUE) {
@@ -48,15 +62,23 @@ class ConnectorException extends Exception {
     switch ($key) {
       case 'code':
         return $this->getCode();
-        break;
+
+      break;
       case 'message':
         return $this->getMessage();
-        break;
+
+      break;
     }
     return FALSE;
   }
 
+  /**
+   * Get all custom messages.
+   *
+   * @return array
+   */
   public function getAllCustomMessages() {
     return $this->custom;
   }
+
 }

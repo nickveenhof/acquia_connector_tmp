@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Contains \Drupal\acquia_connector\Form\SettingsForm.
- */
-
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\acquia_connector\Client;
@@ -282,7 +278,7 @@ class SettingsForm extends ConfigFormBase {
         '#states' => array(
           'visible' => array(
             ':input[name="use_cron"]' => array('checked' => FALSE),
-          )
+          ),
         ),
       );
     }

@@ -4,10 +4,16 @@ namespace Drupal\acquia_connector;
 
 use Drupal\Core\Password\PhpassHashedPassword;
 
+/**
+ * Extends secure password hashing functions based on the Portable PHP password hashing framework.
+ */
 class CryptConnector extends PhpassHashedPassword {
 
   public $crypt_pass;
 
+  /**
+   * Construction method.
+   */
   function __construct($algo, $password, $setting, $extra_md5) {
     $this->algo = $algo;
     $this->password = $password;
@@ -15,6 +21,11 @@ class CryptConnector extends PhpassHashedPassword {
     $this->extra_md5 = $extra_md5;
   }
 
+  /**
+   * Crypt pass.
+   *
+   * @return string
+   */
   public function cryptPass() {
     // Server may state that password needs to be hashed with MD5 first.
     if ($this->extra_md5) {
@@ -31,8 +42,10 @@ class CryptConnector extends PhpassHashedPassword {
 
   /**
    * Helper function. Calculate sha1 hash.
+   *
    * @param $key
    * @param $string
+   *
    * @return string
    */
   static function acquiaHash($key, $string) {
@@ -41,13 +54,16 @@ class CryptConnector extends PhpassHashedPassword {
 
   /**
    * Derive a key for the solr hmac using a salt, id and key.
+   *
    * @param $salt
    * @param $id
    * @param $key
+   *
    * @return string
    */
   static function createDerivedKey($salt, $id, $key) {
     $derivation_string = $id . 'solr' . $salt;
     return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
   }
+
 }

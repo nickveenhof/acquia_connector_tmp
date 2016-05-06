@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Controller\TestController.
- */
-
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
@@ -13,12 +8,13 @@ use Drupal\Core\Controller\ControllerBase;
  * Class SpiController.
  */
 class TestStatusController extends ControllerBase {
+
   /**
    * Determines the status of all user-contributed tests and logs any failures to
    * a tracking table.
    *
-   * @param boolean $log
-   *  (Optional) If TRUE, log all failures.
+   * @param bool $log
+   *   (Optional) If TRUE, log all failures.
    *
    * @return array $custom_data
    *  An associative array containing any tests which failed validation.
@@ -68,7 +64,7 @@ class TestStatusController extends ControllerBase {
    * Validates data from custom test callbacks.
    *
    * @param array $collection
-   *  An associative array containing a collection of user-contributed tests.
+   *   An associative array containing a collection of user-contributed tests.
    *
    * @return array
    *  An associative array containing the validation result of the given tests,

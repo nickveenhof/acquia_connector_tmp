@@ -1,14 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Form\Controller\StatusController.
- */
-
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\acquia_connector\Subscription;
-use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Controller\ControllerBase;
@@ -103,7 +97,8 @@ class StatusController extends ControllerBase {
    *
    * @param array $sub_data
    *   An array of subscription data
-   *   @see acquia_agent_settings('acquia_subscription_data')
+   *
+   * @see acquia_agent_settings('acquia_subscription_data')
    *
    * @return string
    *   The UUID taken from the subscription data.

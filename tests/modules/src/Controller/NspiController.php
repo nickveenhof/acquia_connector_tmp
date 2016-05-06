@@ -1,22 +1,17 @@
 <?php
-/**
- * @file
- * Test endpoint for Acquia Connector.
- */
 
 namespace Drupal\acquia_connector_test\Controller;
 
-use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Drupal\acquia_connector\Client;
 use Drupal\acquia_connector\CryptConnector;
 
 /**
- * Class NspiController
+ * Class NspiController.
+ *
  * @package Drupal\acquia_connector_test\Controller
  */
 class NspiController extends ControllerBase {
@@ -36,7 +31,8 @@ class NspiController extends ControllerBase {
   const ACQTEST_SUBSCRIPTION_VALIDATION_ERROR = 1800;
   const ACQTEST_SUBSCRIPTION_SITE_NOT_FOUND = 1900;
   const ACQTEST_SUBSCRIPTION_PROVISION_ERROR = 9000;
-  const ACQTEST_SUBSCRIPTION_MESSAGE_LIFETIME = 900; //15*60
+  // 15*60.
+  const ACQTEST_SUBSCRIPTION_MESSAGE_LIFETIME = 900;
   const ACQTEST_SUBSCRIPTION_SERVICE_UNAVAILABLE = 503;
   const ACQTEST_EMAIL = 'TEST_networkuser@example.com';
   const ACQTEST_PASS = 'TEST_password';
@@ -51,7 +47,9 @@ class NspiController extends ControllerBase {
   const ACQTEST_site_uuid = 'TEST_cdbd59f5-ca7e-4652-989b-f9e46d309613';
   const ACQTEST_uuid = 'cdbd59f5-ca7e-4652-989b-f9e46d312458';
 
-
+  /**
+   * Construction method.
+   */
   public function __construct() {
     $this->acqtest_site_machine_name = \Drupal::state()->get('acqtest_site_machine_name');
     $this->acquia_hosted = \Drupal::state()->get('acqtest_site_acquia_hosted');
@@ -86,7 +84,7 @@ class NspiController extends ControllerBase {
       }
       else {
         $result = $this->validateAuthenticator($data);
-        // Needs for update definition
+        // Needs for update definition.
         $data['body']['spi_def_update'] = TRUE;
         $spi_data = $data['body'];
 
@@ -101,7 +99,8 @@ class NspiController extends ControllerBase {
         }
         $result['authenticator']['hash'] = CryptConnector::acquiaHash($result['secret']['key'], $result['authenticator']['time'] . ':' . $result['authenticator']['nonce']);
         if (isset($spi_data['test_validation_error'])) {
-          $result['authenticator']['nonce'] = 'TEST'; // Force a validation fail.
+          // Force a validation fail.
+          $result['authenticator']['nonce'] = 'TEST';
         }
 
         $site_action = $spi_data['env_changed_action'];
@@ -113,31 +112,36 @@ class NspiController extends ControllerBase {
         switch ($site_action) {
           case 'create':
             $result['body']['site_uuid'] = self::ACQTEST_site_uuid;
-            \Drupal::state()->set('acqtest_site_machine_name', $spi_data['machine_name']); // Set machine name.
-            \Drupal::state()->set('acqtest_site_name', $spi_data['name']); // Set name.
+            // Set machine name.
+            \Drupal::state()->set('acqtest_site_machine_name', $spi_data['machine_name']);
+            // Set name.
+            \Drupal::state()->set('acqtest_site_name', $spi_data['name']);
             $acquia_hosted = (int) filter_var($spi_data['acquia_hosted'], FILTER_VALIDATE_BOOLEAN);
             \Drupal::state()->set('acqtest_site_acquia_hosted', $acquia_hosted);
 
             $result['body']['nspi_messages'][] = t('This is the first connection from this site, it may take awhile for it to appear on the Acquia Network.');
             return new JsonResponse($result);
 
-            break;
+          break;
           case 'update':
             $update = $this->updateNSPISite($spi_data);
             $result['body']['nspi_messages'][] = $update;
             break;
+
           case 'unblock':
             \Drupal::state()->delete('acqtest_site_blocked');
             $result['body']['spi_error'] = '';
             $result['body']['nspi_messages'][] = t('Your site has been unblocked and is sending data to Acquia Cloud.');
             return new JsonResponse($result);
-            break;
+
+          break;
           case 'block':
             \Drupal::state()->set('acqtest_site_blocked', TRUE);
             $result['body']['spi_error'] = '';
             $result['body']['nspi_messages'][] = t('You have blocked your site from sending data to Acquia Cloud.');
             return new JsonResponse($result);
-            break;
+
+          break;
         }
 
         // Update site name if it has changed.
@@ -146,7 +150,7 @@ class NspiController extends ControllerBase {
           if (!empty($tacqtest_site_name)) {
             $name_update_message = t('Site name updated (from @old_name to @new_name).', array(
               '@old_name' => $tacqtest_site_name,
-              '@new_name' => $spi_data['name']
+              '@new_name' => $spi_data['name'],
             ));
 
             \Drupal::state()->set('acqtest_site_name', $spi_data['name']);
@@ -155,7 +159,7 @@ class NspiController extends ControllerBase {
         }
 
         // Detect Changes.
-        if($changes = $this->detectChanges($spi_data)) {
+        if ($changes = $this->detectChanges($spi_data)) {
           $result['body']['nspi_messages'][] = $changes['response'];
           $result['body']['spi_error'] = TRUE;
           $result['body']['spi_environment_changes'] = json_encode($changes['changes']);
@@ -177,13 +181,12 @@ class NspiController extends ControllerBase {
    * @param array $spi_data
    *
    * @return array|bool
-   *
    */
   public function detectChanges(array $spi_data) {
     $changes = array();
     $site_blocked = \Drupal::state()->get('acqtest_site_blocked');
 
-    if ($site_blocked){
+    if ($site_blocked) {
       $changes['changes']['blocked'] = t('Your site has been unblocked.');
     }
     else {
@@ -200,7 +203,7 @@ class NspiController extends ControllerBase {
       if ($this->checkMachineNameStatusChanged($spi_data)) {
         $changes['changes']['machine_name'] = t('Your site machine name changed from @old_machine_name to @new_machine_name.', array(
           '@old_machine_name' => $this->acqtest_site_machine_name,
-          '@new_machine_name' => $spi_data['machine_name']
+          '@new_machine_name' => $spi_data['machine_name'],
         ));
       }
 
@@ -218,6 +221,9 @@ class NspiController extends ControllerBase {
   /**
    * Save changes to the site entity.
    *
+   * @param array $spi_data
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup|string
    */
   public function updateNSPISite(array $spi_data) {
     $message = '';
@@ -233,7 +239,6 @@ class NspiController extends ControllerBase {
       \Drupal::state()->set('acqtest_site_machine_name', $spi_data['machine_name']);
       $this->acqtest_site_machine_name = $spi_data['machine_name'];
     }
-
 
     if ($this->checkAcquiaHostedStatusChanged($spi_data)) {
       if (!is_null($this->acquia_hosted)) {
@@ -271,6 +276,14 @@ class NspiController extends ControllerBase {
     return isset($spi_data['acquia_hosted']) && (bool) $spi_data['acquia_hosted'] != (bool) $this->acquia_hosted;
   }
 
+  /**
+   * Return spi definition.
+   *
+   * @param Request $request
+   * @param $version
+   *
+   * @return JsonResponse
+   */
   function spiDefinition(Request $request, $version) {
     $vars = array('file_temporary_path' => array('optional' => FALSE, 'description' => 'file_temporary_path'), 'page_compression' => array('optional' => TRUE, 'description' => 'page_compression'), 'user_admin_role' => array('optional' => TRUE, 'description' => 'user_admin_role'));
     $data = array(
@@ -282,7 +295,10 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Test return communication settings for an account.
+   *
    * @param Request $request
+   *
    * @return array|bool|\stdClass
    */
   public function getCommunicationSettings(Request $request) {
@@ -315,8 +331,11 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Basic authenticator.
+   *
    * @param $fields
    * @param $data
+   *
    * @return array
    */
   protected function basicAuthenticator($fields, $data) {
@@ -341,7 +360,10 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Test returns subscriptions for an email.
+   *
    * @param Request $request
+   *
    * @return JsonResponse
    */
   public function getCredentials(Request $request) {
@@ -385,7 +407,10 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Test validates an Acquia Network subscription.
+   *
    * @param \Symfony\Component\HttpFoundation\Request $request
+   *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function getSubscription(Request $request) {
@@ -401,7 +426,10 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Test validates an Acquia Network authenticator.
+   *
    * @param array $data
+   *
    * @return array
    */
   protected function validateAuthenticator($data) {
@@ -425,12 +453,15 @@ class NspiController extends ControllerBase {
       case self::ACQTEST_ID:
         $key = self::ACQTEST_KEY;
         break;
+
       case self::ACQTEST_EXPIRED_ID:
         $key = self::ACQTEST_EXPIRED_KEY;
         break;
+
       case self::ACQTEST_503_ID:
         $key = self::ACQTEST_503_KEY;
         break;
+
       default:
         $key = self::ACQTEST_ERROR_KEY;
         break;
@@ -475,7 +506,7 @@ class NspiController extends ControllerBase {
     $result['secret']['nid'] = '91990';
     $result['secret']['node'] = $data['authenticator']['identifier'] . '_NODE';
     $result['secret']['key'] = $key;
-    //$result['secret']['nonce'] = '';
+    // $result['secret']['nonce'] = '';.
     $result['authenticator'] = $data['authenticator'];
     $result['authenticator']['hash'] = '';
     $result['authenticator']['time'] += 1;
@@ -484,7 +515,10 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Test returns environments available for site import.
+   *
    * @param \Symfony\Component\HttpFoundation\Request $request
+   *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function cloudMigrationEnvironments(Request $request) {
@@ -526,20 +560,41 @@ class NspiController extends ControllerBase {
   }
 
   /**
+   * Test migration upload.
+   *
    * @param \Symfony\Component\HttpFoundation\Request $request
-   * @param $id
+   *
    * @return \Symfony\Component\HttpFoundation\Response
    */
-  public function testMigrationUpload(Request $request, $id) {
-    return new Response('', Response::HTTP_OK);
+  public function testMigrationUpload(Request $request) {
+    $server_to_fail = \Drupal::configFactory()->getEditable('acquia_connector.settings')->get('acquia_connector_test_upload_server_to_fail');
+    if ($server_to_fail) {
+      $data = array(
+        'network_url' => 'site.acquia.dev',
+        'success' => TRUE,
+        'error' => FALSE,
+        'sig' => 'rh4gr4@%#^fnreg',
+      );
+      return new JsonResponse($data, Response::HTTP_INTERNAL_SERVER_ERROR);
+    }
+
+    return new Response('invalid request', Response::HTTP_BAD_REQUEST);
   }
 
   /**
+   * Test complete final migration.
+   *
    * @param \Symfony\Component\HttpFoundation\Request $request
+   *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function testMigrationComplete(Request $request) {
-    return new JsonResponse(array('TRUE'));
+    $data = array(
+      'network_url' => 'site.acquia.dev',
+      'success' => TRUE,
+      'error' => FALSE,
+    );
+    return new JsonResponse($data);
   }
 
   /**
@@ -554,6 +609,7 @@ class NspiController extends ControllerBase {
    *
    * @param $code
    * @param $message
+   *
    * @return array
    */
   protected function errorResponse($code, $message) {
@@ -563,4 +619,5 @@ class NspiController extends ControllerBase {
       'error' => TRUE,
     );
   }
+
 }

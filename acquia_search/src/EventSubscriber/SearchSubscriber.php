@@ -5,10 +5,12 @@ namespace Drupal\acquia_search\EventSubscriber;
 use Solarium\Core\Event\Events;
 use Solarium\Core\Plugin\Plugin;
 use Drupal\Component\Utility\Crypt;
-use Symfony\Component\EventDispatcher\Event;
 use Solarium\Exception\HttpException;
 use Drupal\acquia_connector\CryptConnector;
 
+/**
+ * Extends Solarium plugin: authenticate, etc.
+ */
 class SearchSubscriber extends Plugin {
 
   protected $client;
@@ -16,6 +18,9 @@ class SearchSubscriber extends Plugin {
   protected $nonce = '';
   protected $uri = '';
 
+  /**
+   *
+   */
   public function initPlugin($client, $options) {
     $this->client = $client;
     $dispatcher = $this->client->getEventDispatcher();
@@ -39,13 +44,14 @@ class SearchSubscriber extends Plugin {
     if (!$string) {
       $parsed_url = parse_url($this->uri);
       $path = isset($parsed_url['path']) ? $parsed_url['path'] : '/';
-      $query = isset($parsed_url['query']) ? '?'. $parsed_url['query'] : '';
-      $string = $path . $query; // For pings only.
+      $query = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+      // For pings only.
+      $string = $path . $query;
     }
 
     $cookie = $this->calculateAuthCookie($string, $this->nonce);
     $request->addHeader('Cookie: ' . $cookie);
-    $request->addHeader('User-Agent: ' . 'acquia_search/'. \Drupal::config('acquia_search.settings')->get('version'));
+    $request->addHeader('User-Agent: ' . 'acquia_search/' . \Drupal::config('acquia_search.settings')->get('version'));
   }
 
   /**
@@ -55,7 +61,7 @@ class SearchSubscriber extends Plugin {
    */
   public function postExecuteRequest($event) {
     $response = $event->getResponse();
-    if($response->getStatusCode() != 200) {
+    if ($response->getStatusCode() != 200) {
       throw new HttpException($response->getStatusMessage());
     }
     if ($event->getRequest()->getHandler() == 'admin/ping') {
@@ -78,7 +84,7 @@ class SearchSubscriber extends Plugin {
   protected function authenticateResponse($response, $nonce, $url) {
     $hmac = $this->extractHmac($response->getHeaders());
     if (!$this->validateResponse($hmac, $nonce, $response->getBody())) {
-      throw new HttpException('Authentication of search content failed url: '. $url);
+      throw new HttpException('Authentication of search content failed url: ' . $url);
     }
     return $response;
   }

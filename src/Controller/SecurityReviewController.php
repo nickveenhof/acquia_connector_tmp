@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Controller\SecurityReviewController
- */
-
 namespace Drupal\acquia_connector\Controller;
 
+use Drupal\views\Views;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\DrupalKernel;
@@ -16,6 +12,7 @@ use Drupal\field\Entity\FieldConfig;
  * Class SecurityReviewController.
  */
 class SecurityReviewController extends ControllerBase {
+
   /**
    * Run some checks from the Security Review module.
    */
@@ -32,7 +29,7 @@ class SecurityReviewController extends ControllerBase {
       'admin_permissions',
       'untrusted_php',
       'private_files',
-      'upload_extensions'
+      'upload_extensions',
     );
     foreach ($checklist as $module => $checks) {
       foreach ($checks as $check_name => $args) {
@@ -67,9 +64,13 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Function for running Security Review checklist and returning results.
    *
-   * @param array $checklist Array of checks to run, indexed by module namespace.
-   * @param boolean $log Whether to log check processing using security_review_log.
-   * @param boolean $help Whether to load the help file and include in results.
+   * @param array $checklist
+   *   Array of checks to run, indexed by module namespace.
+   * @param bool $log
+   *   Whether to log check processing using security_review_log.
+   * @param bool $help
+   *   Whether to load the help file and include in results.
+   *
    * @return array Results from running checklist, indexed by module namespace.
    */
   private function securityReviewRun($checklist = NULL, $log = FALSE, $help = FALSE) {
@@ -110,14 +111,15 @@ class SecurityReviewController extends ControllerBase {
 
       $return = call_user_func(array(
         __NAMESPACE__ . '\SecurityReviewController',
-        $function
+        $function,
       ));
 
     }
     $check_result = array_merge($check, $return);
     $check_result['lastrun'] = REQUEST_TIME;
 
-    if ($log && !is_null($return['result'])) { // Do not log if result is NULL.
+    // Do not log if result is NULL.
+    if ($log && !is_null($return['result'])) {
       $variables = array('@name' => $check_result['title']);
       if ($check_result['result']) {
         $this->_securityReviewLog($module, $check_name, '@name check passed', $variables, WATCHDOG_INFO);
@@ -155,10 +157,12 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Checks for acquia_spi_security_review_get_checks().
+   *
    * @return array
    */
   private function securityReviewSecurityChecks() {
-    $checks['file_perms'] = array( //@todo need review
+    // @todo need review
+    $checks['file_perms'] = array(
       'title' => t('File system permissions'),
       'callback' => 'acquia_spi_security_review_check_file_perms',
       'success' => t('Drupal installation files and directories (except required) are not writable by the server.'),
@@ -171,19 +175,22 @@ class SecurityReviewController extends ControllerBase {
       'failure' => t('Untrusted users are allowed to input dangerous HTML tags.'),
     );
     $checks['field'] = array(
-      'title' => t('Content'), //@todo need review
+    // @todo need review
+      'title' => t('Content'),
       'callback' => 'acquia_spi_security_review_check_field',
       'success' => t('Dangerous tags were not found in any submitted content (fields).'),
       'failure' => t('Dangerous tags were found in submitted content (fields).'),
     );
     $checks['error_reporting'] = array(
-      'title' => t('Error reporting'), //@todo need review
+    // @todo need review
+      'title' => t('Error reporting'),
       'callback' => 'acquia_spi_security_review_check_error_reporting',
       'success' => t('Error reporting set to log only.'),
       'failure' => t('Errors are written to the screen.'),
     );
     $checks['private_files'] = array(
-      'title' => t('Private files'), //@todo need review
+    // @todo need review
+      'title' => t('Private files'),
       'callback' => 'acquia_spi_security_review_check_private_files',
       'success' => t('Private files directory is outside the web server root.'),
       'failure' => t('Private files is enabled but the specified directory is not secure outside the web server root.'),
@@ -191,14 +198,16 @@ class SecurityReviewController extends ControllerBase {
     // Checks dependent on dblog.
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
       $checks['query_errors'] = array(
-        'title' => t('Database errors'), //@todo need review
+      // @todo need review
+        'title' => t('Database errors'),
         'callback' => 'acquia_spi_security_review_check_query_errors',
         'success' => t('Few query errors from the same IP.'),
         'failure' => t('Query errors from the same IP. These may be a SQL injection attack or an attempt at information disclosure.'),
       );
 
       $checks['failed_logins'] = array(
-        'title' => t('Failed logins'), //@todo need review
+      // @todo need review
+        'title' => t('Failed logins'),
         'callback' => 'acquia_spi_security_review_check_failed_logins',
         'success' => t('Few failed login attempts from the same IP.'),
         'failure' => t('Failed login attempts from the same IP. These may be a brute-force attack to gain access to your site.'),
@@ -259,7 +268,9 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Check if $base_url is set in settings.php.
+   *
    * @param null $last_check
+   *
    * @return array
    */
   private function checkBaseUrl($last_check = NULL) {
@@ -297,7 +308,9 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Check for sensitive temporary files like settings.php~.
+   *
    * @param null $last_check
+   *
    * @return array
    */
   private function checkTemporaryFiles($last_check = NULL) {
@@ -332,7 +345,8 @@ class SecurityReviewController extends ControllerBase {
     $result = TRUE;
     $check_result_value = array();
     $timestamp = NULL;
-    $views = \Drupal\views\Views::getEnabledViews(); // Need review
+    // Need review.
+    $views = Views::getEnabledViews();
     foreach ($views as $view) {
       $view_name = $view->get('originalId');
       $view_display = $view->get('display');
@@ -417,8 +431,10 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
-   * Check upload extensions
+   * Check upload extensions.
+   *
    * @param null $last_check
+   *
    * @return array
    */
   private function checkUploadExtensions($last_check = NULL) {
@@ -458,7 +474,7 @@ class SecurityReviewController extends ControllerBase {
     $check_result_value = array();
 
     // Check formats that are accessible by untrusted users.
-    //$untrusted_roles = acquia_spi_security_review_untrusted_roles();
+    // $untrusted_roles = acquia_spi_security_review_untrusted_roles();
     $untrusted_roles = $this->untrustedRoles();
     $untrusted_roles = array_keys($untrusted_roles);
     foreach ($formats as $id => $format) {
@@ -474,7 +490,7 @@ class SecurityReviewController extends ControllerBase {
           $unsafe_tags = $this->unsafeTags();
           foreach ($unsafe_tags as $tag) {
             if (strpos($allowed_tags, '<' . $tag . '>') !== FALSE) {
-              // Found an unsafe tag
+              // Found an unsafe tag.
               $check_result_value['tags'][$id] = $tag;
             }
           }
@@ -637,11 +653,13 @@ class SecurityReviewController extends ControllerBase {
    */
   public function defaultUntrustedRoles() {
     $roles = array(DRUPAL_ANONYMOUS_RID => 'anonymous user');
-    $user_register = \Drupal::config('user.settings')->get('register'); //need set default value
+    // Need set default value.
+    $user_register = \Drupal::config('user.settings')->get('register');
     // If visitors are allowed to create accounts they are considered untrusted.
     if ($user_register != USER_REGISTER_ADMINISTRATORS_ONLY) {
       $roles[DRUPAL_AUTHENTICATED_RID] = 'authenticated user';
     }
     return $roles;
   }
+
 }

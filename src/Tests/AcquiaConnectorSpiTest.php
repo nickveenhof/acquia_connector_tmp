@@ -72,7 +72,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
   public static $modules = array('acquia_connector', 'toolbar', 'acquia_connector_test', 'node');
 
   /**
-   *{@inheritdoc}
+   * {@inheritdoc}
    */
   public function setUp() {
     parent::setUp();
@@ -93,12 +93,11 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $this->status_report_url = 'admin/reports/status';
     $this->base_url = $base_url;
 
-    //local env
+    // Local env.
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.server', $this->base_url)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_verify', FALSE)->save();
     \Drupal::configFactory()->getEditable('acquia_connector.settings')->set('spi.ssl_override', TRUE)->save();
   }
-
 
   /**
    * Helper function for storing UI strings.
@@ -107,28 +106,40 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     switch ($id) {
       case 'spi-status-text':
         return 'SPI data will be sent once every 30 minutes once cron is called';
+
       case 'spi-not-sent';
         return 'SPI data has not been sent';
+
       case 'spi-send-text';
         return 'manually send SPI data';
+
       case 'spi-data-sent':
         return 'SPI data sent';
+
       case 'spi-data-sent-error':
         return 'Error sending SPI data. Consult the logs for more information.';
+
       case 'spi-new-def':
         return 'There are new checks that will be performed on your site by the Acquia Connector';
+
       case 'provide-site-name':
         return 'provide a site name';
+
       case 'change-env-detected':
         return 'A change in your site\'s environment has been detected. SPI data cannot be submitted until this is resolved.';
+
       case 'confirm-action':
         return 'confirm the action you wish to take';
+
       case 'block-site-message':
         return 'This site has been blocked from sending profile data to Acquia Cloud.';
+
       case 'unblock-site':
         return 'Unblock this site';
+
       case 'acquia-hosted':
         return 'Your site is now Acquia hosted.';
+
       case 'no-acquia-hosted':
         return 'Your site is no longer Acquia hosted.';
     }
@@ -290,7 +301,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     );
 
     $submit_button = 'Save configuration';
-    $this->drupalPostForm($this->settings_path,  $edit_fields, $submit_button);
+    $this->drupalPostForm($this->settings_path, $edit_fields, $submit_button);
     $this->assertText('A change has been detected in your site environment. Please check the Acquia SPI status on your Status Report page for more information.', 'Change environment detected on settings page');
     $this->assertText('Site name updated (from ' . $host_name . ' to ' . $this->acqtest_name . ').', 'Change name');
 
@@ -315,7 +326,7 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $this->assertTrue(empty($diff), 'Storage can store simple array');
 
     $this->drupalGet($this->base_url);
-     //Platform data should have been written.
+    // Platform data should have been written.
     $stored = $spi->dataStoreGet(array('platform'));
     $diff = array_diff(array_keys($stored['platform']), $this->platformKeys);
     $this->assertTrue(empty($diff), 'Platform element contains expected keys');
@@ -578,15 +589,20 @@ class AcquiaConnectorSpiTest extends WebTestBase {
     $submit_button = 'Connect';
     $this->drupalPostForm($this->credentials_path, $edit_fields, $submit_button);
   }
+
 }
 
 /**
- * Class spiControllerTest
+ * Class spiControllerTest.
+ *
  * @package Drupal\acquia_connector\Tests
  */
 class spiControllerTest extends SpiController {
   protected $client;
 
+  /**
+   * Construction method.
+   */
   public function __construct() {
     $client = \Drupal::service('acquia_connector.client');
     $this->client = $client;
@@ -609,8 +625,10 @@ class spiControllerTest extends SpiController {
   /**
    * Put SPI data in local storage.
    *
-   * @param array $data Keyed array of data to store.
-   * @param int $expire Expire time or null to use default of 1 day.
+   * @param array $data
+   *   Keyed array of data to store.
+   * @param int $expire
+   *   Expire time or null to use default of 1 day.
    */
   public function dataStoreSet($data, $expire = NULL) {
     parent::dataStoreSet($data, $expire);
@@ -630,8 +648,10 @@ class spiControllerTest extends SpiController {
   /**
    * Gather full SPI data and send to Acquia Network.
    *
-   * @param string $method Optional identifier for the method initiating request.
+   * @param string $method
+   *   Optional identifier for the method initiating request.
    *   Values could be 'cron' or 'menu callback' or 'drush'.
+   *
    * @return mixed FALSE if data not sent else NSPI result array
    */
   public function sendFullSpi($method = '') {
@@ -655,25 +675,28 @@ class spiControllerTest extends SpiController {
   public function getAcquiaHostedName() {
     return parent::getAcquiaHostedName();
   }
+
 }
 
 /**
- * Class VariablesControllerTest
+ * Class VariablesControllerTest.
+ *
  * @package Drupal\acquia_connector\Tests
  */
 class VariablesControllerTest extends VariablesController {
+
   /**
-   * @param array $set_variables
-   * @return NULL|void
+   * {@inheritdoc}
    */
   public function setVariables($set_variables) {
     parent::setVariables($set_variables);
   }
 
   /**
-   * @return array
+   * {@inheritdoc}
    */
   public function getVariablesData() {
     return parent::getVariablesData();
   }
+
 }

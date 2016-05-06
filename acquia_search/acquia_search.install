@@ -14,9 +14,8 @@ function acquia_search_install() {
   // Send a heartbeat so the Acquia Network knows the module is enabled.
   // This causes an invocation of hook_acquia_subscription_status() which is
   // implemented in this module to set up the environment.
-
   // Rebuild data about all currently available modules.
-   system_rebuild_module_data();
+  system_rebuild_module_data();
 
   _acquia_search_set_version();
   Subscription::update();

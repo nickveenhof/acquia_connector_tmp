@@ -1,16 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\acquia_connector\Controller\VariablesController.
- */
-
 namespace Drupal\acquia_connector\Controller;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Utility;
 
 /**
  * Class MappingController.
@@ -18,6 +13,9 @@ use Drupal\Component\Utility;
 class VariablesController extends ControllerBase {
   protected $mapping = [];
 
+  /**
+   * Construction method.
+   */
   public function __construct() {
     $this->mapping = \Drupal::config('acquia_connector.settings')->get('mapping');
   }
@@ -91,7 +89,7 @@ class VariablesController extends ControllerBase {
     $spi_def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');
     $waived_spi_def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_waived_vars');
     // Merge hard coded $variables with vars from SPI definition.
-    foreach($spi_def_vars as $var_name => $var) {
+    foreach ($spi_def_vars as $var_name => $var) {
       if (!in_array($var_name, $waived_spi_def_vars) && !in_array($var_name, $variables)) {
         $variables[] = $var_name;
       }
@@ -101,17 +99,17 @@ class VariablesController extends ControllerBase {
 
     foreach ($variables as $name) {
       if (!empty($this->mapping[$name])) {
-        // state
+        // State.
         if ($this->mapping[$name][0] == 'state' and !empty($this->mapping[$name][1])) {
           $data[$name] = \Drupal::state()->get($this->mapping[$name][1]);
         }
-        elseif($this->mapping[$name][0] == 'settings' and !empty($this->mapping[$name][1])) {
+        elseif ($this->mapping[$name][0] == 'settings' and !empty($this->mapping[$name][1])) {
           $data[$name] = Settings::get($this->mapping[$name][1]);
         }
-        // variable
+        // Variable.
         else {
           $key_exists = NULL;
-          $value = Utility\NestedArray::getValue($allConfigData, $this->mapping[$name], $key_exists);
+          $value = NestedArray::getValue($allConfigData, $this->mapping[$name], $key_exists);
           if ($key_exists) {
             $data[$name] = $value;
           }
@@ -127,7 +125,7 @@ class VariablesController extends ControllerBase {
     }
 
     // Unset waived vars so they won't be sent to NSPI.
-    foreach($data as $var_name => $var) {
+    foreach ($data as $var_name => $var) {
       if (in_array($var_name, $waived_spi_def_vars)) {
         unset($data[$var_name]);
       }
@@ -140,7 +138,9 @@ class VariablesController extends ControllerBase {
   /**
    * Set variables from NSPI response.
    *
-   * @param  array $set_variables Variables to be set.
+   * @param array $set_variables
+   *   Variables to be set.
+   *
    * @return NULL
    */
   public function setVariables($set_variables) {
@@ -158,19 +158,19 @@ class VariablesController extends ControllerBase {
     $ignored = array_merge($ignored, array('drupal_private_key', 'site_mail', 'site_name', 'maintenance_mode', 'user_register'));
     // Variables that can be automatically set.
     $whitelist = \Drupal::config('acquia_connector.settings')->get('spi.set_variables_automatic');
-    foreach($set_variables as $key => $value) {
+    foreach ($set_variables as $key => $value) {
       // Approved variables get set immediately unless ignored.
       if (in_array($key, $whitelist) && !in_array($key, $ignored)) {
         if (!empty($this->mapping[$key])) {
-          // state
+          // State.
           if ($this->mapping[$key][0] == 'state' and !empty($this->mapping[$key][1])) {
             \Drupal::state()->set($this->mapping[$key][1], $value);
             $saved[] = $key;
           }
-          elseif($this->mapping[$key][0] == 'settings') {
+          elseif ($this->mapping[$key][0] == 'settings') {
             // @todo no setter for Settings
           }
-          // variable
+          // Variable.
           else {
             $mapping_row_copy = $this->mapping[$key];
             $config_name = array_shift($mapping_row_copy);
@@ -180,7 +180,7 @@ class VariablesController extends ControllerBase {
             $saved[] = $key;
           }
         }
-        // todo: for future D8 implementation. "config.name:variable.name"
+        // @todo: for future D8 implementation. "config.name:variable.name".
         elseif (preg_match('/^([^\s]+):([^\s]+)$/ui', $key, $regs)) {
           $config_name = $regs[1];
           $variable_name = $regs[2];
