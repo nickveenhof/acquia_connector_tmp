@@ -7,6 +7,11 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\RequestException;
 
+/**
+ * Class Client.
+ *
+ * @package Drupal\acquia_connector
+ */
 class Client {
 
   /**
@@ -17,22 +22,31 @@ class Client {
   protected $client;
 
   /**
+   * Request headers.
+   *
    * @var array
    */
   protected $headers;
 
   /**
+   * Acquia SPI server.
+   *
    * @var string
    */
   protected $server;
 
   /**
+   * Config Factory Interface.
+   *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $config;
 
   /**
-   * @param ConfigFactoryInterface $config
+   * Client constructor.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config
+   *   Config Factory Interface.
    */
   public function __construct(ConfigFactoryInterface $config) {
     $this->config = $config->get('acquia_connector.settings');
@@ -55,12 +69,13 @@ class Client {
    * Get account settings to use for creating request authorizations.
    *
    * @param string $email
-   *   Acquia Network account email
+   *   Acquia Network account email.
    * @param string $password
    *   Plain-text password for Acquia Network account. Will be hashed for
    *   communication.
    *
-   * @return array | FALSE
+   * @return array|false
+   *   Credentials array or FALSE.
    */
   public function getSubscriptionCredentials($email, $password) {
     $body = array('email' => $email);
@@ -76,7 +91,11 @@ class Client {
       $crypt_pass = new CryptConnector($communication_setting['algorithm'], $password, $communication_setting['hash_setting'], $communication_setting['extra_md5']);
       $pass = $crypt_pass->cryptPass();
 
-      $body = array('email' => $email, 'pass' => $pass, 'rpc_version' => ACQUIA_SPI_DATA_VERSION);
+      $body = array(
+        'email' => $email,
+        'pass' => $pass,
+        'rpc_version' => ACQUIA_SPI_DATA_VERSION,
+      );
       $authenticator = $this->buildAuthenticator($pass, array('rpc_version' => ACQUIA_SPI_DATA_VERSION));
       $data = array(
         'body' => $body,
@@ -96,13 +115,14 @@ class Client {
    * Get Acquia subscription from Acquia Network.
    *
    * @param string $id
-   *   Network ID
+   *   Acquia Subscription ID.
    * @param string $key
-   *   Network Key
+   *   Acquia Subscription key.
    * @param array $body
-   *   (optional)
+   *   Optional.
    *
-   * @return array|false or throw Exception
+   * @return array|false
+   *   Acquia Subscription array or FALSE.
    *
    * @throws \Exception
    */
@@ -160,13 +180,14 @@ class Client {
    * Get Acquia subscription from Acquia Network.
    *
    * @param string $id
-   *   Network ID
+   *   Acquia Subscription ID.
    * @param string $key
-   *   Network Key
+   *   Acquia Subscription key.
    * @param array $body
-   *   (optional)
+   *   Optional.
    *
    * @return array|false
+   *   Response result or FALSE.
    */
   public function sendNspi($id, $key, array $body = array()) {
     $body['identifier'] = $id;
@@ -184,9 +205,13 @@ class Client {
   }
 
   /**
-   * @param $apiEndpoint
+   * Get SPI definition.
    *
-   * @return array|bool|false
+   * @param string $apiEndpoint
+   *   API endpoint.
+   *
+   * @return array|bool
+   *   Definition array or FALSE.
    */
   public function getDefinition($apiEndpoint) {
     try {
@@ -202,10 +227,14 @@ class Client {
    * Validate the response authenticator.
    *
    * @param string $key
+   *   Acquia Subscription key.
    * @param array $response
+   *   Response.
    * @param array $requestAuthenticator
+   *   Authenticator array.
    *
    * @return bool
+   *   TRUE if valid response, FALSE otherwise.
    */
   protected function validateResponse($key, array $response, array $requestAuthenticator) {
     $responseAuthenticator = $response['authenticator'];
@@ -220,10 +249,14 @@ class Client {
    * Create and send a request.
    *
    * @param string $method
+   *   Method to call.
    * @param string $path
+   *   Path to call.
    * @param array $data
+   *   Data to send.
    *
    * @return array|false
+   *   Response array or FALSE.
    *
    * @throws ConnectorException
    */
@@ -240,7 +273,7 @@ class Client {
           $response = $this->client->get($uri);
           $status_code = $response->getStatusCode();
           $stream_size = $response->getBody()->getSize();
-          $data = Json::decode($response->getBody()->read($stream_size), TRUE);
+          $data = Json::decode($response->getBody()->read($stream_size));
 
           if ($status_code < 200 || $status_code > 299) {
             throw new ConnectorException($data['message'], $data['code'], $data);
@@ -254,7 +287,7 @@ class Client {
           $response = $this->client->post($uri, $options);
           $status_code = $response->getStatusCode();
           $stream_size = $response->getBody()->getSize();
-          $data = Json::decode($response->getBody()->read($stream_size), TRUE);
+          $data = Json::decode($response->getBody()->read($stream_size));
 
           if ($status_code < 200 || $status_code > 299) {
             throw new ConnectorException($data['message'], $data['code'], $data);
@@ -275,11 +308,14 @@ class Client {
   /**
    * Build authenticator to sign requests to the Acquia Network.
    *
-   * @params string $key Secret key to use for signing the request.
-   * @params array $params Optional parameters to include.
-   *   'identifier' - Network Identifier
+   * @param string $key
+   *   Secret key to use for signing the request.
+   * @param array $params
+   *   Optional parameters to include.
+   *   'identifier' - Network Identifier.
    *
    * @return array
+   *   Authenticator array.
    */
   protected function buildAuthenticator($key, $params = array()) {
     $authenticator = array();
@@ -297,14 +333,21 @@ class Client {
   }
 
   /**
-   * Calculates a HMAC-SHA1 according to RFC2104 (http://www.ietf.org/rfc/rfc2104.txt).
+   * Calculates a HMAC-SHA1 according to RFC2104.
    *
    * @param string $key
+   *   Key.
    * @param int $time
+   *   Timestamp.
    * @param string $nonce
+   *   Nonce.
    * @param array $params
+   *   Deprecated since API 3.0.
    *
    * @return string
+   *   HMAC-SHA1 hash.
+   *
+   * @see http://www.ietf.org/rfc/rfc2104.txt
    */
   protected function hash($key, $time, $nonce, $params = array()) {
     $string = $time . ':' . $nonce;
@@ -315,6 +358,7 @@ class Client {
    * Get a random base 64 encoded string.
    *
    * @return string
+   *   Random base 64 encoded string.
    */
   protected function getNonce() {
     return Crypt::hashBase64(uniqid(mt_rand(), TRUE) . Crypt::randomBytes(55));
@@ -324,11 +368,14 @@ class Client {
    * Prepare and send a REST request to Acquia Network with an authenticator.
    *
    * @param string $method
+   *   HTTP method.
    * @param array $params
+   *   Parameters to pass to the NSPI.
    * @param string $key
-   *   or NULL
+   *   Acquia Key or NULL.
    *
    * @return array
+   *   NSPI response.
    *
    * @throws ConnectorException
    */

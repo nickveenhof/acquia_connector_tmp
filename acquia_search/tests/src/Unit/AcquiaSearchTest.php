@@ -12,7 +12,8 @@ if (!defined('REQUEST_TIME')) {
 
 /**
  * @coversDefaultClass \Drupal\acquia_search\EventSubscriber\SearchSubscriber
- * @group acquia_search
+ *
+ * @group Acquia search
  */
 class AcquiaSearchTest extends UnitTestCase {
   protected $id;
@@ -61,6 +62,8 @@ class AcquiaSearchTest extends UnitTestCase {
   }
 
   /**
+   * Covers calculateAuthCookie.
+   *
    * @covers ::calculateAuthCookie
    */
   public function testCalculateAuthCookie() {
@@ -87,6 +90,8 @@ class AcquiaSearchTest extends UnitTestCase {
   }
 
   /**
+   * Covers validateResponse.
+   *
    * @covers ::validateResponse
    */
   public function testValidResponse() {
@@ -121,9 +126,11 @@ class AcquiaSearchTest extends UnitTestCase {
   }
 
   /**
+   * Covers extractHmac.
+   *
    * @covers ::extractHmac
    */
-  public function testExtractHMACHeader() {
+  public function testExtractHmacHeader() {
     // Generate the expected hash.
     $nonce = $this->randomMachineName(32);
     $string = $this->randomMachineName(32);

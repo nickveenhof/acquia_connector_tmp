@@ -6,12 +6,26 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
 use Drupal\Component\Serialization\Json;
+use Symfony\Component\DependencyInjection\Exception\ParameterNotFoundException;
 
 /**
  * Class MappingController.
  */
 class VariablesController extends ControllerBase {
+
+  /**
+   * Mapping array. Loaded from configuration.
+   *
+   * @var array
+   */
   protected $mapping = [];
+
+  /**
+   * All config for the site.
+   *
+   * @var null|array
+   */
+  protected $configs = NULL;
 
   /**
    * Construction method.
@@ -24,23 +38,93 @@ class VariablesController extends ControllerBase {
    * Load configs for all enabled modules.
    *
    * @return array
+   *   Array of Drupal configs.
    */
   public function getAllConfigs() {
-    $result = array();
+    if (!is_null($this->configs)) {
+      return $this->configs;
+    }
+
+    $this->configs = [];
     $names = \Drupal::configFactory()->listAll();
     foreach ($names as $key => $config_name) {
-      $result[$config_name] = \Drupal::config($config_name)->get();
+      $this->configs[$config_name] = \Drupal::config($config_name)->get();
     }
-    return $result;
+
+    return $this->configs;
+  }
+
+  /**
+   * Get a variable value by the variable name.
+   *
+   * @param string $var
+   *   Variable name.
+   *
+   * @return mixed
+   *   Variable value.
+   *
+   * @throws \UnexpectedValueException
+   */
+  public function getVariableValue($var) {
+
+    // We have no mapping for the variable.
+    if (empty($this->mapping[$var])) {
+      throw new \UnexpectedValueException($var);
+    }
+
+    // Variable type (for state, setting and container parameter only).
+    // Holds Config name for the configuration object variables.
+    $var_type = $this->mapping[$var][0];
+    // Variable machine name (for state, settings and container parameter only).
+    $var_name = !empty($this->mapping[$var][1]) ? $this->mapping[$var][1] : NULL;
+
+    // Variable is Drupal state.
+    if ($var_type == 'state') {
+      return \Drupal::state()->get($var_name);
+    }
+
+    // Variable is Drupal setting.
+    if ($var_type == 'settings') {
+      return Settings::get($var_name);
+    }
+
+    // Variable is Container Parameter.
+    if ($var_type == 'container_parameter') {
+      if (\Drupal::hasContainer()) {
+        try {
+          return \Drupal::getContainer()->getParameter($var_name);
+        }
+        catch (ParameterNotFoundException $e) {
+          // Parameter not found.
+        }
+      }
+      throw new \UnexpectedValueException($var);
+    }
+
+    // Variable is data from Configuration object (D7 Variable).
+    // We can not detect this variable type so we're processing it in last turn.
+    $key_exists = NULL;
+    $config = self::getAllConfigs();
+    $value = NestedArray::getValue($config, $this->mapping[$var], $key_exists);
+    if ($key_exists) {
+      return $value;
+    }
+
+    throw new \UnexpectedValueException($var);
+
   }
 
   /**
    * Get all system variables.
    *
-   * @return array()
+   * @return array
+   *   Variables values keyed by the variable name.
    */
   public function getVariablesData() {
-    $data = [];
+    // Send SPI definition timestamp to see if the site needs updates.
+    $data = [
+      'acquia_spi_def_timestamp' => \Drupal::config('acquia_connector.settings')->get('spi.def_timestamp'),
+    ];
     $variables = [
       'acquia_spi_send_node_user',
       'acquia_spi_admin_priv',
@@ -83,9 +167,9 @@ class VariablesController extends ControllerBase {
       'acquia_spi_set_variables_automatic',
       'acquia_spi_ignored_set_variables',
       'acquia_spi_set_variables_override',
+      'http_response_debug_cacheability_headers',
     ];
 
-    $allConfigData = self::getAllConfigs();
     $spi_def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_vars');
     $waived_spi_def_vars = \Drupal::config('acquia_connector.settings')->get('spi.def_waived_vars');
     // Merge hard coded $variables with vars from SPI definition.
@@ -96,31 +180,12 @@ class VariablesController extends ControllerBase {
     }
 
     // @todo Add comment settings for node types.
-
     foreach ($variables as $name) {
-      if (!empty($this->mapping[$name])) {
-        // State.
-        if ($this->mapping[$name][0] == 'state' and !empty($this->mapping[$name][1])) {
-          $data[$name] = \Drupal::state()->get($this->mapping[$name][1]);
-        }
-        elseif ($this->mapping[$name][0] == 'settings' and !empty($this->mapping[$name][1])) {
-          $data[$name] = Settings::get($this->mapping[$name][1]);
-        }
-        // Variable.
-        else {
-          $key_exists = NULL;
-          $value = NestedArray::getValue($allConfigData, $this->mapping[$name], $key_exists);
-          if ($key_exists) {
-            $data[$name] = $value;
-          }
-          else {
-            $data[$name] = 0;
-          }
-        }
+      try {
+        $data[$name] = $this->getVariableValue($name);
       }
-      else {
-        // @todo: Implement D8 way to update variables mapping.
-        $data[$name] = 'Variable not implemented.';
+      catch (\UnexpectedValueException $e) {
+        // Variable does not exist.
       }
     }
 
@@ -140,8 +205,6 @@ class VariablesController extends ControllerBase {
    *
    * @param array $set_variables
    *   Variables to be set.
-   *
-   * @return NULL
    */
   public function setVariables($set_variables) {
     \Drupal::logger('acquia spi')->notice('SPI set variables: @messages', array('@messages' => implode(', ', $set_variables)));
@@ -155,7 +218,13 @@ class VariablesController extends ControllerBase {
       $ignored[] = 'acquia_spi_set_variables_automatic';
     }
     // Some variables can never be set.
-    $ignored = array_merge($ignored, array('drupal_private_key', 'site_mail', 'site_name', 'maintenance_mode', 'user_register'));
+    $ignored = array_merge($ignored, array(
+      'drupal_private_key',
+      'site_mail',
+      'site_name',
+      'maintenance_mode',
+      'user_register',
+    ));
     // Variables that can be automatically set.
     $whitelist = \Drupal::config('acquia_connector.settings')->get('spi.set_variables_automatic');
     foreach ($set_variables as $key => $value) {

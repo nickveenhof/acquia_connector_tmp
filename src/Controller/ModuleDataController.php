@@ -10,7 +10,9 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Class StatusController.
+ * Class ModuleDataController.
+ *
+ * @package Drupal\acquia_connector\Controller
  */
 class ModuleDataController extends ControllerBase {
 
@@ -46,9 +48,15 @@ class ModuleDataController extends ControllerBase {
   }
 
   /**
-   * @param $data
-   * @param $message
+   * Validate request.
+   *
+   * @param array $data
+   *   Data array.
+   * @param string $message
+   *   Data string.
+   *
    * @return bool
+   *   TRUE if request is valid, FALSE otherwise.
    */
   public function isValidRequest($data, $message) {
     $key = $this->config('acquia_connector.settings')->get('key');

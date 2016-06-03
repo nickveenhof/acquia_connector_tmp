@@ -10,14 +10,16 @@ use Drupal\Core\Controller\ControllerBase;
 class TestStatusController extends ControllerBase {
 
   /**
-   * Determines the status of all user-contributed tests and logs any failures to
-   * a tracking table.
+   * Determines status of user-contributed tests.
+   *
+   * Determines the status of all user-contributed tests and logs any failures
+   * to a tracking table.
    *
    * @param bool $log
    *   (Optional) If TRUE, log all failures.
    *
-   * @return array $custom_data
-   *  An associative array containing any tests which failed validation.
+   * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   An associative array containing any tests which failed validation.
    */
   public function testStatus($log = FALSE) {
     $custom_data = array();
@@ -54,7 +56,7 @@ class TestStatusController extends ControllerBase {
     // If a full validation check is being performed, go to the status page to
     // show the results.
     if ($log) {
-      $this->redirect('system.status');
+      return $this->redirect('system.status');
     }
 
     return $custom_data;
@@ -67,8 +69,8 @@ class TestStatusController extends ControllerBase {
    *   An associative array containing a collection of user-contributed tests.
    *
    * @return array
-   *  An associative array containing the validation result of the given tests,
-   *  along with any failed parameters.
+   *   An associative array containing the validation result of the given tests,
+   *   along with any failed parameters.
    */
   public function testValidate($collection) {
     $result = TRUE;

@@ -19,8 +19,8 @@ class AcquiaConnectorSearchTest extends WebTestBase {
   protected $url;
   protected $server;
   protected $index;
-  protected $settings_path;
-  protected $acquia_search_environment_id = 'acquia_search';
+  protected $settingsPath;
+  protected $acquiaSearchEnvironmentId = 'acquia_search';
 
 
   /**
@@ -28,7 +28,14 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('acquia_connector', 'search_api', 'search_api_solr', 'toolbar', 'acquia_connector_test', 'node');
+  public static $modules = [
+    'acquia_connector',
+    'search_api',
+    'search_api_solr',
+    'toolbar',
+    'acquia_connector_test',
+    'node',
+  ];
 
   /**
    * {@inheritdoc}
@@ -41,7 +48,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
     $this->salt = $this->randomString(32);
     $this->server = 'acquia_search_server';
     $this->index = 'acquia_search_index';
-    $this->settings_path = 'admin/config/search/search-api';
+    $this->settingsPath = 'admin/config/search/search-api';
 
     // Create a new content type.
     $content_type = $this->drupalCreateContentType();
@@ -108,6 +115,8 @@ class AcquiaConnectorSearchTest extends WebTestBase {
   }
 
   /**
+   * Tests Environment UI.
+   *
    * Tests that the Acquia Search environment shows up in the interface and that
    * administrators cannot delete it.
    *
@@ -115,8 +124,8 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    * - Acquia Search environment is present in the UI.
    * - Admin user receives 403 when attempting to delete the environment.
    */
-  public function testEnvironmentUI() {
-    $this->drupalGet($this->settings_path);
+  public function testEnvironmentUi() {
+    $this->drupalGet($this->settingsPath);
     // Check the Acquia Search Server is displayed.
     $this->assertLinkByHref('/admin/config/search/search-api/server/' . $this->server, 0, t('The Acquia Search Server is displayed in the UI.'));
     // Check the Acquia Search Index is displayed.
@@ -135,7 +144,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    * - Сheck all fields on the existence of
    * - Admin user receives 403 when attempting to delete the server.
    */
-  public function testAcquiaSearchServerUI() {
+  public function testAcquiaSearchServerUi() {
     $settings_path = 'admin/config/search/search-api';
     $this->drupalGet($settings_path);
     $this->clickLink('Edit', 0);
@@ -175,7 +184,7 @@ class AcquiaConnectorSearchTest extends WebTestBase {
    * - Check save index
    * - Admin user receives 403 when attempting to delete the index.
    */
-  public function testAcquiaSearchIndexUI() {
+  public function testAcquiaSearchIndexUi() {
     $settings_path = 'admin/config/search/search-api';
     $this->drupalGet($settings_path);
     $this->clickLink('Edit', 1);

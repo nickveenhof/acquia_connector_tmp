@@ -2,6 +2,7 @@
 
 /**
  * @file
+ * Drush integration for the acquia search module.
  */
 
 use Drupal\search_api\Entity\Server;
@@ -15,9 +16,6 @@ define('ACQUIA_SEARCH_ENVIRONMENT_ID', 'acquia_search_server_1');
 
 /**
  * Implements hook_drush_command().
- *
- * @return array
- *   An associative array describing your command(s).
  */
 function acquia_search_drush_command() {
   $items = array();
@@ -46,15 +44,6 @@ function acquia_search_drush_command() {
 
 /**
  * Implements hook_drush_help().
- *
- * This function is called whenever a drush user calls
- * 'drush help <name-of-your-command>'
- *
- * @param string $section
- *   A string with the help section (prepend with 'drush:')
- *
- * @return string
- *   A string with the help text for your command.
  */
 function acquia_search_drush_help($section) {
   switch ($section) {
@@ -65,10 +54,11 @@ function acquia_search_drush_help($section) {
 }
 
 /**
- * Drush callback
+ * Drush callback.
+ *
  * Set the derived key for a specific environment, using an id and key.
- * Also set the url to point to the acquia service to make it easier for customers
- * to set any environment as an acquia environment.
+ * Also set the url to point to the acquia service to make it easier for
+ * customers to set any environment as an acquia environment.
  */
 function acquia_search_set_derived_key_for_env() {
   // Environment id.
@@ -98,7 +88,8 @@ function acquia_search_set_derived_key_for_env() {
     return drush_set_error('DRUSH_VARIABLE_ERROR', dt('No Acquia subscription key specified'));
   }
 
-  // We do not want to send a heartbeat to the server, we only need subscription data.
+  // We do not want to send a heartbeat to the server, we only need subscription
+  // data.
   $params = array(
     'active' => FALSE,
     'no_heartbeat' => 1,

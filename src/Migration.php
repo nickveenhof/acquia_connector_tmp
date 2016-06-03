@@ -6,6 +6,7 @@ use Drupal\Core\Archiver\ArchiveTar;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Url;
 use Drupal\Core\DrupalKernel;
+use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
@@ -19,10 +20,11 @@ class Migration {
   /**
    * Check server for migration capabilities.
    *
-   * @return Array of environment capabilities or 'error' is set.
+   * @return array
+   *   Array of environment capabilities or 'error' is set.
    */
   public function checkEnv() {
-    $env = array('error' => FALSE);
+    $env = ['error' => FALSE];
 
     // Check available compression libs.
     if (function_exists('gzopen')) {
@@ -44,9 +46,11 @@ class Migration {
    * Setup archive directory and internal migrate data struct.
    *
    * @param array $environment
-   *   Environment to migrate to, from NSPI acquia_agent_cloud_migration_environments()
+   *   Environment to migrate to, from NSPI
+   *   acquia_agent_cloud_migration_environments().
    *
-   * @return array $migration
+   * @return array
+   *   Migration array.
    */
   public function prepare($environment) {
     // Internal migration store is an array because objects cannot be stored
@@ -96,7 +100,12 @@ class Migration {
    * Ensure this response can work through migration.
    */
   public function processSetup() {
-    if (!defined('OS_WINDOWS') && defined('PHP_OS') && in_array(PHP_OS, array('WINNT', 'WIN32', 'Windows'))) {
+    if (!defined('OS_WINDOWS') && defined('PHP_OS') && in_array(PHP_OS, [
+      'WINNT',
+      'WIN32',
+      'Windows',
+    ])
+    ) {
       // OS_WINDOWS constant used by Archive_Tar.
       define('OS_WINDOWS', TRUE);
     }
@@ -125,11 +134,13 @@ class Migration {
   /**
    * Test migration setup and destination.
    *
-   * @param array
+   * @param array $migration
    *   Array of migration information.
    *
-   * @return boolean
-   *  Whether migration can continue.
+   * @return bool
+   *   Whether migration can continue.
+   *
+   * @throws ConnectorException
    */
   public function testSetup(&$migration) {
     $url = $migration['env']['url'];
@@ -193,8 +204,12 @@ class Migration {
   }
 
   /**
-   * @param $migration
-   * @param $context
+   * Test migration.
+   *
+   * @param array $migration
+   *   Migration array.
+   * @param array $context
+   *   Context.
    */
   public function batchTest($migration, &$context) {
     $this->processSetup();
@@ -217,8 +232,12 @@ class Migration {
   }
 
   /**
-   * @param $migration
-   * @param $context
+   * Backup database.
+   *
+   * @param array $migration
+   *   Migration array.
+   * @param array $context
+   *   Context.
    */
   public function batchDb($migration, &$context) {
     $this->processSetup();
@@ -241,8 +260,12 @@ class Migration {
   }
 
   /**
-   * @param $migration
-   * @param $context
+   * Archive data.
+   *
+   * @param array $migration
+   *   Migration array.
+   * @param array $context
+   *   Context.
    */
   public function batchTar($migration, &$context) {
     $this->processSetup();
@@ -267,8 +290,12 @@ class Migration {
   }
 
   /**
-   * @param $migration
-   * @param $context
+   * Transmit data.
+   *
+   * @param array $migration
+   *   Migration array.
+   * @param array $context
+   *   Context.
    */
   public function batchTransmit($migration, &$context) {
     $this->processSetup();
@@ -314,9 +341,15 @@ class Migration {
   }
 
   /**
-   * @param $success
-   * @param $results
-   * @param $operations
+   * Batch finished callback.
+   *
+   * @param bool $success
+   *   Indicate that the batch API tasks were all completed successfully.
+   * @param array $results
+   *   An array of all the results that were updated in update_do_one().
+   * @param array $operations
+   *   A list of all the operations that had not been completed by the batch
+   *   API.
    */
   public function batchFinished($success, $results, $operations) {
     $migration = !empty($results['migration']) ? $results['migration'] : FALSE;
@@ -326,7 +359,10 @@ class Migration {
       $this->complete($migration);
 
       if ($migration['error'] != FALSE) {
-        $message = t('There was an error checking for completed migration. @err<br/>See the @network for more information.', array('@err' => $migration['error'], '@network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://insight.acquia.com/'))));
+        $message = t('There was an error checking for completed migration. @err<br/>See the @network for more information.', [
+          '@err' => $migration['error'],
+          '@network' => \Drupal::l(t('Network dashboard'), Url::fromUri('https://insight.acquia.com/')),
+        ]);
         drupal_set_message($message);
       }
       else {
@@ -356,12 +392,16 @@ class Migration {
   }
 
   /**
-   * @param $migration
+   * Get list of folders to exclude.
+   *
+   * @param array $migration
+   *   Migration array.
    *
    * @return array
+   *   Array of folders to exclude.
    */
   public function exclude($migration) {
-    $exclude = array('.', '..', '.git', '.svn', 'CVS', '.bzr');
+    $exclude = ['.', '..', '.git', '.svn', 'CVS', '.bzr'];
 
     // Exclude the migration directory.
     $exclude[] = basename($migration['dir']);
@@ -374,7 +414,10 @@ class Migration {
   }
 
   /**
-   * @param $migration
+   * Archive site.
+   *
+   * @param array $migration
+   *   Migration array.
    */
   protected function archiveSite(&$migration) {
     $exclude = $this->exclude($migration);
@@ -463,11 +506,17 @@ class Migration {
   }
 
   /**
-   * @param $migration
-   * @param $position
-   * @param $length
+   * Transmit chunk.
+   *
+   * @param array $migration
+   *   Migration array.
+   * @param int $position
+   *   The offset.
+   * @param int $length
+   *   Number of bytes read.
    *
    * @return bool|int
+   *   Current position of FALSE on EOF/transmit fail.
    */
   protected function transmitChunk(&$migration, $position, $length) {
     // Open file in binary mode.
@@ -482,7 +531,8 @@ class Migration {
     // Transfer contents.
     $result = $this->transmit($migration, $contents);
 
-    // Set position to FALSE if the whole file has been read or if transmit failed.
+    // Set position to FALSE if the whole file has been read or if transmit
+    // failed.
     if (feof($handle) || $result === FALSE) {
       $position = FALSE;
     }
@@ -497,10 +547,13 @@ class Migration {
   /**
    * Perform POST of archive chunk to Acquia hosting environment URL.
    *
-   * @param $migration
-   * @param $content
+   * @param array $migration
+   *   Migration array.
+   * @param string $content
+   *   Archived data.
    *
    * @return bool
+   *   TRUE on success, FALSE otherwise.
    */
   protected function transmit(&$migration, $content) {
     $params = $migration['request_params'];
@@ -624,11 +677,15 @@ class Migration {
   /**
    * Get upload security token.
    *
-   * @param $now
-   * @param $return
-   * @param $secret
+   * @param int $now
+   *   Timestamp.
+   * @param string $return
+   *   Message to be hashed.
+   * @param string $secret
+   *   Shared secret key used for generating the HMAC.
    *
-   * @return string a string containing the calculated message digest as lowercase hexits
+   * @return string
+   *   A string containing the calculated message digest as lowercase hexits.
    */
   public function getToken($now, $return, $secret) {
     return hash_hmac('sha256', $now . $return, $secret);
@@ -637,10 +694,13 @@ class Migration {
   /**
    * Recursive function to find files to archive.
    *
-   * @param $directory
-   * @param $exclude
+   * @param string $directory
+   *   Directory.
+   * @param array $exclude
+   *   Do not include these directories.
    *
    * @return array
+   *   Files to archive
    */
   public function filesToBackup($directory, $exclude) {
     $array_items = array();
@@ -668,7 +728,8 @@ class Migration {
   /**
    * Remove database file created for migration.
    *
-   * @param $migration
+   * @param array $migration
+   *   Migration array.
    */
   protected function cleanupDb(&$migration) {
     if (isset($migration['db_file'])) {
@@ -680,7 +741,8 @@ class Migration {
   /**
    * Remove files and directory created for migration.
    *
-   * @param $migration
+   * @param array $migration
+   *   Migration array.
    */
   public function cleanup(&$migration) {
     if (isset($migration['db_file'])) {
@@ -719,7 +781,8 @@ class Migration {
   /**
    * Dump the database to the specified file.
    *
-   * @param $migration
+   * @param array $migration
+   *   Migration array.
    */
   protected function backupDbToFileMysql(&$migration) {
     // Check migration file at first to avoid dumping db to a hidden file.
@@ -766,20 +829,24 @@ class Migration {
   /**
    * Get the sql for the structure of the given table.
    *
-   * @param $table
+   * @param string $table
+   *   Mysql table.
    *
    * @return string
+   *   SQL for the table.
    */
   protected function getTableStructureSqlMysql($table) {
     $out = "";
     $result = db_query("SHOW CREATE TABLE `" . $table['name'] . "`", array(), array('fetch' => \PDO::FETCH_ASSOC));
 
     foreach ($result as $create) {
-      // Lowercase the keys because between Drupal 7.12 and 7.13/14 the default query behavior was changed.
+      // Lowercase the keys because between Drupal 7.12 and 7.13/14 the default
+      // query behavior was changed.
       // See: http://drupal.org/node/1171866
       $create = array_change_key_case($create);
       $out .= "DROP TABLE IF EXISTS `" . $table['name'] . "`;\n";
-      // Remove newlines and convert " to ` because PDO seems to convert those for some reason.
+      // Remove newlines and convert " to ` because PDO seems to convert those
+      // for some reason.
       $out .= strtr($create['create table'], array("\n" => ' ', '"' => '`'));
 
       if ($table['auto_increment']) {
@@ -836,8 +903,13 @@ class Migration {
   }
 
   /**
-   * The header for the top of the sql dump file. These commands set the connection
-   *  character encoding to help prevent encoding conversion issues.
+   * The header for the top of the sql dump file.
+   *
+   * These commands set the connection character encoding to help prevent
+   * encoding conversion issues.
+   *
+   * @return string
+   *   The header for the top of the sql dump file.
    */
   protected function getSqlFileHeaderMysql() {
     return "

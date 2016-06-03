@@ -36,6 +36,7 @@ class SpiController extends ControllerBase {
    * Constructs a \Drupal\system\ConfigFormBase object.
    *
    * @param Client $client
+   *   Acquia Client.
    */
   public function __construct(Client $client) {
     $this->client = $client;
@@ -139,9 +140,9 @@ class SpiController extends ControllerBase {
     $security_review = new SecurityReviewController();
     $security_review_results = $security_review->runSecurityReview();
 
-    // It's worth sending along node access control information even if there are
-    // no modules implementing it - some alerts are simpler if we know we don't
-    // have to worry about node access.
+    // It's worth sending along node access control information even if there
+    // are no modules implementing it - some alerts are simpler if we know we
+    // don't have to worry about node access.
     // Check for node grants modules.
     $additional_data['node_grants_modules'] = \Drupal::moduleHandler()->getImplementations('node_grants');
 
@@ -214,7 +215,8 @@ class SpiController extends ControllerBase {
    * Collects all user-contributed test results that pass validation.
    *
    * @return array $custom_data
-   *  An associative array containing properly formatted user-contributed tests.
+   *   An associative array containing properly formatted user-contributed
+   *   tests.
    */
   private function testCollect() {
     $custom_data = array();
@@ -237,9 +239,8 @@ class SpiController extends ControllerBase {
   /**
    * Checks to see if SSL login is required.
    *
-   * @param n/a
-   *
-   * @return int 1|0
+   * @return int
+   *   1 if SSL login is required.
    */
   private function checkLogin() {
     $login_safe = 0;
@@ -266,7 +267,8 @@ class SpiController extends ControllerBase {
           }
         }
       }
-      // \Drupal::request()->isSecure() ($conf['https'] in D7) should be false for expected behavior.
+      // \Drupal::request()->isSecure() ($conf['https'] in D7) should be false
+      // for expected behavior.
       if ($forms_safe && !\Drupal::request()->isSecure()) {
         $login_safe = 1;
       }
@@ -278,10 +280,8 @@ class SpiController extends ControllerBase {
   /**
    * Check to see if the unneeded release files with Drupal are removed.
    *
-   * @param n/a
-   *
-   * @return int 1|0
-   *   True if they are removed, false if they aren't
+   * @return int
+   *   1 if they are removed, 0 if they aren't.
    */
   private function checkFilesPresent() {
     $store = $this->dataStoreGet(array('platform'));
@@ -304,7 +304,7 @@ class SpiController extends ControllerBase {
   /**
    * Attempt to determine if this site is hosted with Acquia.
    *
-   * @return boolean
+   * @return bool
    *   TRUE if site is hosted with Acquia, otherwise FALSE.
    */
   public function checkAcquiaHosted() {
@@ -314,7 +314,8 @@ class SpiController extends ControllerBase {
   /**
    * Generate the name for acquia hosted sites.
    *
-   * @return string The suggested Acquia Hosted name.
+   * @return string
+   *   The Acquia Hosted name.
    */
   public function getAcquiaHostedName() {
     $subscription_name = $this->config('acquia_connector.settings')->get('subscription_name');
@@ -327,7 +328,8 @@ class SpiController extends ControllerBase {
   /**
    * Generate the machine name for acquia hosted sites.
    *
-   * @return string The suggested Acquia Hosted machine name.
+   * @return string
+   *   The suggested Acquia Hosted machine name.
    */
   public function getAcquiaHostedMachineName() {
     $sub_data = $this->config('acquia_connector.settings')->get('subscription_data');
@@ -343,7 +345,8 @@ class SpiController extends ControllerBase {
   /**
    * Check if a site environment change has been detected.
    *
-   * @return TRUE if change detected that needs to be addressed, otherwise FALSE.
+   * @return bool
+   *   TRUE if change detected that needs to be addressed, otherwise FALSE.
    */
   public function checkEnvironmentChange() {
     $changes = $this->config('acquia_connector.settings')->get('spi.environment_changes');
@@ -353,7 +356,9 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Get last 15 users created. Useful for determining if your site is compromised.
+   * Get last 15 users created.
+   *
+   * Useful for determining if your site is compromised.
    *
    * @return array
    *   The details of last 15 users created.
@@ -380,10 +385,12 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Get last 15 nodes created--this can be useful to determine if you have some
-   * sort of spam on your site.
+   * Get last 15 nodes created.
    *
-   * @return array of the details of last 15 nodes created.
+   * This can be useful to determine if you have some sort of spam on your site.
+   *
+   * @return array
+   *   Array of the details of last 15 nodes created.
    */
   private function getLastNodes() {
     $last_five_nodes = array();
@@ -410,10 +417,12 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Get the latest (last hour) critical and emergency warnings from watchdog
+   * Get the latest (last hour) critical and emergency warnings from watchdog.
+   *
    * These errors are 'severity' 0 and 2.
    *
    * @return array
+   *   EMERGENCY and CRITICAL watchdog records for last hour.
    */
   private function getWatchdogData() {
     $wd = array();
@@ -436,6 +445,7 @@ class SpiController extends ControllerBase {
    * Get the number of rows in watchdog.
    *
    * @return int
+   *   Number of watchdog records.
    */
   private function getWatchdogSize() {
     if (\Drupal::moduleHandler()->moduleExists('dblog')) {
@@ -444,7 +454,10 @@ class SpiController extends ControllerBase {
   }
 
   /**
-   * Grabs the last 404 errors in logs, excluding the checks we run for drupal files like README.
+   * Grabs the last 404 errors in logs.
+   *
+   * Grabs the last 404 errors in logs, excluding the checks we run for drupal
+   * files like README.
    *
    * @return array
    *   An array of the pages not found and some associated data.
@@ -458,7 +471,17 @@ class SpiController extends ControllerBase {
         ->fields('w', array('message', 'hostname', 'referer', 'timestamp'))
         ->condition('w.type', 'page not found', '=')
         ->condition('w.timestamp', REQUEST_TIME - 3600, '>')
-        ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
+        ->condition('w.message', array(
+          "UPGRADE.txt",
+          "MAINTAINERS.txt",
+          "README.txt",
+          "INSTALL.pgsql.txt",
+          "INSTALL.txt",
+          "LICENSE.txt",
+          "INSTALL.mysql.txt",
+          "COPYRIGHT.txt",
+          "CHANGELOG.txt",
+        ), 'NOT IN')
         ->orderBy('w.timestamp', 'DESC')
         ->range(0, 10)
         ->execute();
@@ -478,7 +501,8 @@ class SpiController extends ControllerBase {
   /**
    * Get the information on failed logins in the last cron interval.
    *
-   * @return array.
+   * @return array
+   *   Array of last 10 failed logins.
    */
   private function getFailedLogins() {
     $last_logins = array();
@@ -489,7 +513,17 @@ class SpiController extends ControllerBase {
         ->fields('w', array('message', 'variables', 'timestamp'))
         ->condition('w.message', 'login attempt failed%', 'LIKE')
         ->condition('w.timestamp', REQUEST_TIME - $cron_interval, '>')
-        ->condition('w.message', array("UPGRADE.txt", "MAINTAINERS.txt", "README.txt", "INSTALL.pgsql.txt", "INSTALL.txt", "LICENSE.txt", "INSTALL.mysql.txt", "COPYRIGHT.txt", "CHANGELOG.txt"), 'NOT IN')
+        ->condition('w.message', array(
+          "UPGRADE.txt",
+          "MAINTAINERS.txt",
+          "README.txt",
+          "INSTALL.pgsql.txt",
+          "INSTALL.txt",
+          "LICENSE.txt",
+          "INSTALL.mysql.txt",
+          "COPYRIGHT.txt",
+          "CHANGELOG.txt",
+        ), 'NOT IN')
         ->orderBy('w.timestamp', 'DESC')
         ->range(0, 10)
         ->execute();
@@ -507,7 +541,8 @@ class SpiController extends ControllerBase {
   /**
    * This function is a trimmed version of Drupal's system_status function.
    *
-   * @return array.
+   * @return array
+   *   System status array.
    */
   private function getSystemStatus() {
     $data = array();
@@ -584,7 +619,8 @@ class SpiController extends ControllerBase {
   /**
    * Check the presence of UID 0 in the users table.
    *
-   * @return bool Whether UID 0 is present.
+   * @return bool
+   *   Whether UID 0 is present.
    */
   private function getUidZerroIsPresent() {
     $count = db_query("SELECT uid FROM {users} WHERE uid = 0")->fetchAll();
@@ -595,6 +631,7 @@ class SpiController extends ControllerBase {
    * The number of users who have admin-level user roles.
    *
    * @return int
+   *   Count of admin users.
    */
   private function getAdminCount() {
     $roles_name = array();
@@ -626,7 +663,8 @@ class SpiController extends ControllerBase {
   /**
    * Determine if the super user has a weak name.
    *
-   * @return int 0|1
+   * @return int
+   *   1 if the super user has a weak name, 0 otherwise.
    */
   private function getSuperName() {
     $result = db_query("SELECT name FROM {users_field_data} WHERE uid = 1 AND (name LIKE '%admin%' OR name LIKE '%root%')")->fetchAll();
@@ -636,7 +674,8 @@ class SpiController extends ControllerBase {
   /**
    * Determines if settings.php is read-only.
    *
-   * @return boolean
+   * @return bool
+   *   TRUE if settings.php is read-only, FALSE otherwise.
    */
   private function getSettingsPermissions() {
     $settings_permissions_read_only = TRUE;
@@ -669,7 +708,12 @@ class SpiController extends ControllerBase {
     $exclude_dirs[] = 'core/assets';
     // The list of directories for the third parameter are the only ones that
     // will be recursed into.  Thus, we avoid sending hashes for any others.
-    list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, ['modules', 'profiles', 'themes', 'core']);
+    list($hashes, $fileinfo) = $this->generateHashes('.', $exclude_dirs, [
+      'modules',
+      'profiles',
+      'themes',
+      'core',
+    ]);
     ksort($hashes);
     // Add .htaccess file.
     $htaccess = DRUPAL_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
@@ -789,10 +833,11 @@ class SpiController extends ControllerBase {
 
   /**
    * Attempt to determine the version of Drupal being used.
+   *
    * Note, there is better information on this in the common.inc file.
    *
    * @return array
-   *    An array containing some detail about the version
+   *   An array containing some detail about the version
    */
   private function getVersionInfo() {
     $store = $this->dataStoreGet(array('platform'));
@@ -863,9 +908,11 @@ class SpiController extends ControllerBase {
   /**
    * Get SPI data out of local storage.
    *
-   * @param array Array of keys to extract data for.
+   * @param array $keys
+   *   Array of keys to extract data for.
    *
-   * @return array Stored data or false if no data is retrievable from storage.
+   * @return array
+   *   Stored data or false if no data is retrievable from storage.
    */
   public function dataStoreGet($keys) {
     $store = array();
@@ -930,7 +977,8 @@ class SpiController extends ControllerBase {
       'database_type'     => (string) $db_tasks->name(),
       'database_version'  => Database::getConnection()->version(),
       'system_type'       => php_uname('s'),
-      // php_uname() only accepts one character, so we need to concatenate ourselves.
+      // php_uname() only accepts one character, so we need to concatenate
+      // ourselves.
       'system_version'    => php_uname('r') . ' ' . php_uname('v') . ' ' . php_uname('m') . ' ' . php_uname('n'),
       'mysql'             => (Database::getConnection()->driver() == 'mysql') ? self::getPlatformMysqlData() : array(),
     );
@@ -1057,17 +1105,20 @@ class SpiController extends ControllerBase {
       $module_path = explode('/', $info['filename']);
       array_pop($module_path);
 
-      // We really only care about this module if it is in 'sites' or in 'modules' folder.
+      // We really only care about this module if it is in 'sites' or in
+      // 'modules' folder.
       // Otherwise it is covered by the hash of the distro's modules.
       if ($module_path[0] == 'sites' || $module_path[0] == 'modules') {
         $contrib_path = implode('/', $module_path);
 
-        // Get a hash for this module's files. If we nest into another module, we'll return.
-        // and that other module will be covered by it's entry in the system table.
+        // Get a hash for this module's files. If we nest into another module,
+        // we'll return. and that other module will be covered by it's entry in
+        // the system table.
         //
-        // !! At present we aren't going to do a per module hash, but rather a per-project hash. The reason being that it is
-        // too hard to tell an individual module apart from a project.
-        list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = self::_generateHashes($contrib_path);
+        // !! At present we aren't going to do a per module hash, but rather a
+        // per-project hash. The reason being that it is too hard to tell an
+        // individual module apart from a project.
+        list($info['module_data']['hashes'], $info['module_data']['fileinfo']) = self::generateHashesHelper($contrib_path);
       }
       else {
         $info['module_data']['hashes'] = array();
@@ -1081,8 +1132,22 @@ class SpiController extends ControllerBase {
 
   /**
    * Recursive helper function for getFileHashes().
+   *
+   * @param string $dir
+   *   Directory to generate hashes.
+   * @param array $exclude_dirs
+   *   Exclude directories.
+   * @param array $limit_dirs
+   *   Generate only for the directories.
+   * @param bool $module_break
+   *   Currently is not used directly by Acquia Connector.
+   * @param string $orig_dir
+   *   Currently is not used directly by Acquia Connector.
+   *
+   * @return mixed
+   *   Array of generated hashes or void.
    */
-  private function _generateHashes($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir = NULL) {
+  private function generateHashesHelper($dir, $exclude_dirs = array(), $limit_dirs = array(), $module_break = FALSE, $orig_dir = NULL) {
     $hashes = array();
     $fileinfo = array();
 
@@ -1106,7 +1171,7 @@ class SpiController extends ControllerBase {
         if (!in_array($file, array('.', '..', 'CVS', '.svn', '.git'))) {
           $path = $dir == '.' ? $file : "{$dir}/{$file}";
           if (is_dir($path) && !in_array($path, $exclude_dirs) && (empty($limit_dirs) || in_array($path, $limit_dirs)) && ($file != 'translations')) {
-            list($sub_hashes, $sub_fileinfo) = $this->_generateHashes($path, $exclude_dirs);
+            list($sub_hashes, $sub_fileinfo) = $this->generateHashesHelper($path, $exclude_dirs);
             $hashes = array_merge($sub_hashes, $hashes);
             $fileinfo = array_merge($sub_fileinfo, $fileinfo);
             $hashes[$path] = $this->hashPath($path);
@@ -1160,7 +1225,9 @@ class SpiController extends ControllerBase {
    *   Optional identifier for the method initiating request.
    *   Values could be 'cron' or 'menu callback' or 'drush'.
    *
-   * @return mixed FALSE if data not sent or environment change detected else NSPI response array.
+   * @return mixed
+   *   FALSE if data is not sent or environment change detected,
+   *   otherwise return NSPI response array.
    */
   public function sendFullSpi($method = '') {
     $spi = self::get($method);
@@ -1189,7 +1256,11 @@ class SpiController extends ControllerBase {
   /**
    * Callback for sending SPI data.
    *
-   * @return mixed FALSE if data not sent else NSPI result array
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   Request.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
+   *   Redirect to the destination or return HTTP_BAD_REQUEST|HTTP_OK response.
    */
   public function send(Request $request) {
     // Mark this page as being uncacheable.
@@ -1276,7 +1347,8 @@ class SpiController extends ControllerBase {
       $config_set->set('spi.site_uuid', $spi_response['body']['site_uuid'])->save();
     }
 
-    // Wipe the site_uuid if it is set locally, but NSPI is trying to create a new site.
+    // Wipe the site_uuid if it is set locally, but NSPI is trying to create a
+    // new site.
     if (isset($spi_response['body']['site_uuid']) && empty($spi_response['body']['site_uuid']) && !is_null($site_uuid)) {
       $config_set->clear('spi.site_uuid')->save();
     }
@@ -1322,10 +1394,11 @@ class SpiController extends ControllerBase {
 
   /**
    * Checks if NSPI server has an updated SPI data definition.
+   *
    * If it does, then this function updates local copy of SPI definition data.
    *
-   * @return boolean
-   *   True if SPI definition data has been updated
+   * @return bool
+   *   True if SPI definition data has been updated.
    */
   private function updateDefinition() {
     $core_version = substr(\Drupal::VERSION, 0, 1);
@@ -1347,7 +1420,11 @@ class SpiController extends ControllerBase {
       // Make sure that $response_data contains everything expected.
       foreach ($expected_data_types as $key => $values) {
         if (!array_key_exists($key, $response_data) || gettype($response_data[$key]) != $expected_data_types[$key]) {
-          \Drupal::logger('acquia spi')->error('Received SPI data definition does not match expected pattern while checking "@key". Received and expected data: @data', array('@key' => $key, '@data' => var_export(array_merge(array('expected_data' => $expected_data_types), array('response_data' => $response_data)), 1), TRUE));
+          \Drupal::logger('acquia spi')
+            ->error('Received SPI data definition does not match expected pattern while checking "@key". Received and expected data: @data', array(
+              '@key' => $key,
+              '@data' => var_export(array_merge(array('expected_data' => $expected_data_types), array('response_data' => $response_data)), TRUE),
+            ));
           return FALSE;
         }
       }
@@ -1364,8 +1441,9 @@ class SpiController extends ControllerBase {
       $new_vars = $response_data['acquia_spi_variables'];
       $new_optional_vars = 0;
       foreach ($new_vars as $new_var_name => $new_var) {
-        // Count if received from NSPI optional variable is not present in old local SPI definition
-        // or if it already was in old SPI definition, but was not optional.
+        // Count if received from NSPI optional variable is not present in old
+        // local SPI definition or if it already was in old SPI definition, but
+        // was not optional.
         if ($new_var['optional'] && !array_key_exists($new_var_name, $old_vars) ||
           $new_var['optional'] && isset($old_vars[$new_var_name]) && !$old_vars[$new_var_name]['optional']) {
           $new_optional_vars++;

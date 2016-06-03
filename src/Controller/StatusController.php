@@ -96,7 +96,7 @@ class StatusController extends ControllerBase {
    * Gets the subscription UUID from subscription data.
    *
    * @param array $sub_data
-   *   An array of subscription data
+   *   An array of subscription data.
    *
    * @see acquia_agent_settings('acquia_subscription_data')
    *

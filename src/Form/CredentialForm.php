@@ -29,6 +29,7 @@ class CredentialForm extends ConfigFormBase {
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
    * @param Client $client
+   *   The Acquia client.
    */
   public function __construct(ConfigFactoryInterface $config_factory, Client $client) {
     $this->configFactory = $config_factory;

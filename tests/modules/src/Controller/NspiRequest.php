@@ -6,10 +6,18 @@ use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * Class NspiRequest.
+ *
+ * @package Drupal\acquia_connector_test\Controller.
+ */
 class NspiRequest implements EventSubscriberInterface {
 
   /**
+   * Counts requests to the test NSPI server.
+   *
    * @param GetResponseEvent $event
+   *   The kernel request event.
    */
   public function onKernelRequest(GetResponseEvent $event) {
     $route = $event->getRequest()->attributes->get('_route');

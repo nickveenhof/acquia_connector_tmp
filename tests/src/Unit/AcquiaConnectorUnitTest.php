@@ -17,7 +17,8 @@ if (!defined('REQUEST_TIME')) {
 
 /**
  * @coversDefaultClass \Drupal\acquia_connector\Client
- * @group Acquia
+ *
+ * @group Acquia connector
  */
 class AcquiaConnectorUnitTest extends UnitTestCase {
   protected $id;
@@ -40,7 +41,7 @@ class AcquiaConnectorUnitTest extends UnitTestCase {
     $key = $this->randomMachineName();
     $params = array('time', 'nonce', 'hash');
 
-    $client = new clientTest();
+    $client = new ClientTest();
     $result = $client->buildAuthenticator($key, $params);
     // Test Client::buildAuthenticator.
     $valid = is_array($result);
@@ -85,7 +86,7 @@ class AcquiaConnectorUnitTest extends UnitTestCase {
 /**
  * {@inheritdoc}
  */
-class clientTest extends Client {
+class ClientTest extends Client {
 
   /**
    * Construction method.
@@ -115,14 +116,14 @@ class StatusControllerTest extends StatusController {
    * Gets the subscription UUID from subscription data.
    *
    * @param array $sub_data
-   *   An array of subscription data
+   *   An array of subscription data.
    *
    * @see acquia_agent_settings('acquia_subscription_data')
    *
    * @return string
    *   The UUID taken from the subscription data.
    */
-  public  function getIdFromSub($sub_data) {
+  public function getIdFromSub($sub_data) {
     return parent::getIdFromSub($sub_data);
   }
 

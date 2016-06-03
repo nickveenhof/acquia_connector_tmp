@@ -28,7 +28,8 @@ function acquia_search_requirements($phase) {
   $requirements = array();
   // Ensure translations don't break at install time
   // Skip install checks if install.php is running. The weak install profile
-  // API means install.php calls hook_requirements for every module in a profile.
+  // API means install.php calls hook_requirements for every module in
+  // a profile.
   if ($phase == 'install' && (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'install')) {
     if (class_exists('Drupal\acquia_connector\Subscription')) {
       if (Subscription::hasCredentials()) {

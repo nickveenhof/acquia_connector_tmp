@@ -1,8 +1,11 @@
 <?php
 
 namespace Drupal\acquia_connector;
+
 /**
+ * Class Subscription.
  *
+ * @package Drupal\acquia_connector.
  */
 class Subscription {
 
@@ -33,10 +36,12 @@ class Subscription {
    * $params['no_heartbeat'] == 1.
    *
    * @param array $params
+   *   Optional parameters for \Drupal\acquia_connector\Client::getSubscription.
    *
-   * @return FALSE, integer (error number), or subscription data.
+   * @return mixed
+   *   FALSE, integer (error number), or subscription data.
    */
-  static function update($params = array()) {
+  static public function update($params = array()) {
     $config = \Drupal::configFactory()->getEditable('acquia_connector.settings');
     $current_subscription = $config->get('subscription_data');
     $subscription = FALSE;
@@ -78,7 +83,7 @@ class Subscription {
   /**
    * Helper function to check if an identifier and key exist.
    */
-  static function hasCredentials() {
+  static public function hasCredentials() {
     $config = \Drupal::config('acquia_connector.settings');
     return $config->get('identifier') && $config->get('key');
   }
@@ -86,7 +91,7 @@ class Subscription {
   /**
    * Helper function to check if the site has an active subscription.
    */
-  static function isActive() {
+  static public function isActive() {
     $active = FALSE;
     // Subscription cannot be active if we have no credentials.
     if (self::hasCredentials()) {

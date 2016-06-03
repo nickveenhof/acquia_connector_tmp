@@ -7,9 +7,12 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\DrupalKernel;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Class SecurityReviewController.
+ *
+ * @package Drupal\acquia_connector\Controller
  */
 class SecurityReviewController extends ControllerBase {
 
@@ -20,7 +23,7 @@ class SecurityReviewController extends ControllerBase {
     // Collect the checklist.
     $checklist = $this->securityReviewGetChecks();
     // Run only specific checks.
-    $to_check = array(
+    $to_check = [
       'views_access',
       'temporary_files',
       'base_url_set',
@@ -30,7 +33,7 @@ class SecurityReviewController extends ControllerBase {
       'untrusted_php',
       'private_files',
       'upload_extensions',
-    );
+    ];
     foreach ($checklist as $module => $checks) {
       foreach ($checks as $check_name => $args) {
         if (!in_array($check_name, $to_check)) {
@@ -71,7 +74,8 @@ class SecurityReviewController extends ControllerBase {
    * @param bool $help
    *   Whether to load the help file and include in results.
    *
-   * @return array Results from running checklist, indexed by module namespace.
+   * @return array
+   *   Results from running checklist, indexed by module namespace.
    */
   private function securityReviewRun($checklist = NULL, $log = FALSE, $help = FALSE) {
     // @todo Use Security Review module if available.
@@ -80,6 +84,14 @@ class SecurityReviewController extends ControllerBase {
 
   /**
    * Private function the review and returns the full results.
+   *
+   * @param array $checklist
+   *   Array of checks.
+   * @param bool $log
+   *   If TRUE logs result.
+   *
+   * @return array
+   *   Result.
    */
   private function _securityReviewRun($checklist, $log = FALSE) {
     $results = array();
@@ -132,14 +144,30 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
-   * @param $module
-   * @param $check_name
-   * @param $message
-   * @param $variables
-   * @param $type
+   * Log results.
+   *
+   * @param string $module
+   *   Module.
+   * @param string $check_name
+   *   Check name.
+   * @param string $message
+   *   Message.
+   * @param array $variables
+   *   Variables.
+   * @param string $type
+   *   Event type.
+   *
+   * @todo needs review.
    */
   private function _securityReviewLog($module, $check_name, $message, $variables, $type) {
-    \Drupal::moduleHandler()->invokeAll('acquia_spi_security_review_log', [$module, $check_name, $message, $variables, $type]);
+    \Drupal::moduleHandler()
+      ->invokeAll('acquia_spi_security_review_log', [
+        $module,
+        $check_name,
+        $message,
+        $variables,
+        $type,
+      ]);
   }
 
   /**
@@ -159,6 +187,7 @@ class SecurityReviewController extends ControllerBase {
    * Checks for acquia_spi_security_review_get_checks().
    *
    * @return array
+   *   Result.
    */
   private function securityReviewSecurityChecks() {
     // @todo need review
@@ -236,7 +265,7 @@ class SecurityReviewController extends ControllerBase {
     }
     $checks['executable_php'] = array(
       'title' => t('Executable PHP'),
-      'callback' => 'checkExecutablePHP',
+      'callback' => 'checkExecutablePhp',
       'success' => t('PHP files in the Drupal files directory cannot be executed.'),
       'failure' => t('PHP files in the Drupal files directory can be executed.'),
     );
@@ -269,9 +298,13 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Check if $base_url is set in settings.php.
    *
-   * @param null $last_check
+   * @param int $last_check
+   *   Last check.
    *
    * @return array
+   *   Result array.
+   *
+   * @todo needs review.
    */
   private function checkBaseUrl($last_check = NULL) {
     // Support different methods to check for $base_url.
@@ -309,9 +342,11 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Check for sensitive temporary files like settings.php~.
    *
-   * @param null $last_check
+   * @param int $last_check
+   *   Timestamp.
    *
    * @return array
+   *   Result.
    */
   private function checkTemporaryFiles($last_check = NULL) {
     $result = TRUE;
@@ -338,8 +373,13 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
-   * @param null $last_check
+   * Check views access.
+   *
+   * @param int $last_check
+   *   Timestamp.
+   *
    * @return array
+   *   Result.
    */
   private function checkViewsAccess($last_check = NULL) {
     $result = TRUE;
@@ -366,7 +406,7 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Check if PHP files written to the files directory can be executed.
    */
-  private function checkExecutablePHP($last_check = NULL) {
+  private function checkExecutablePhp($last_check = NULL) {
     global $base_url;
     $result = TRUE;
     $check_result_value = array();
@@ -433,9 +473,11 @@ class SecurityReviewController extends ControllerBase {
   /**
    * Check upload extensions.
    *
-   * @param null $last_check
+   * @param int $last_check
+   *   Last check.
    *
    * @return array
+   *   Result.
    */
   private function checkUploadExtensions($last_check = NULL) {
     $check_result = TRUE;
@@ -463,8 +505,13 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
+   * Check input formats fo unsafe tags.
+   *
    * Check for formats that either do not have HTML filter that can be used by
    * untrusted users, or if they do check if unsafe tags are allowed.
+   *
+   * @return array
+   *   Result.
    */
   private function checkInputFormats() {
     $result = TRUE;
@@ -496,7 +543,8 @@ class SecurityReviewController extends ControllerBase {
           }
         }
         elseif (!in_array('filter_html_escape', array_keys($filters)) || !$filters['filter_html_escape']['status'] == 1) {
-          // Format is usable by untrusted users but does not contain the HTML Filter or the HTML escape.
+          // Format is usable by untrusted users but does not contain
+          // the HTML Filter or the HTML escape.
           $check_result_value['formats'][$id] = $format;
         }
       }
@@ -539,7 +587,10 @@ class SecurityReviewController extends ControllerBase {
   }
 
   /**
+   * Check if untrusted users can use PHP Filter format.
+   *
    * @return array
+   *   Result.
    */
   protected function checkPhpFilter() {
     $result = TRUE;
@@ -564,14 +615,14 @@ class SecurityReviewController extends ControllerBase {
       }
     }
 
-    return array('result' => $result, 'value' => $check_result_value);
+    return ['result' => $result, 'value' => $check_result_value];
   }
 
   /**
    * Helper function defines file extensions considered unsafe.
    */
   public function unsafeExtensions() {
-    return array(
+    return [
       'swf',
       'exe',
       'html',
@@ -583,7 +634,7 @@ class SecurityReviewController extends ControllerBase {
       'vb',
       'vbe',
       'vbs',
-    );
+    ];
   }
 
   /**
@@ -592,7 +643,7 @@ class SecurityReviewController extends ControllerBase {
    * Based on wysiwyg_filter_get_elements_blacklist().
    */
   public function unsafeTags() {
-    return array(
+    return [
       'applet',
       'area',
       'audio',
@@ -634,13 +685,15 @@ class SecurityReviewController extends ControllerBase {
       'title',
       'video',
       'vmlframe',
-    );
+    ];
   }
 
   /**
-   * Helper function for user-defined or default unstrusted Drupal roles.
+   * Helper function for user-defined or default untrusted Drupal roles.
    *
-   * @return array An associative array with the role id as the key and the role name as value.
+   * @return array
+   *   An associative array with the role id as the key and the role name as
+   *   value.
    */
   public function untrustedRoles() {
     $defaults = $this->defaultUntrustedRoles();
@@ -652,12 +705,12 @@ class SecurityReviewController extends ControllerBase {
    * Helper function defines the default untrusted Drupal roles.
    */
   public function defaultUntrustedRoles() {
-    $roles = array(DRUPAL_ANONYMOUS_RID => 'anonymous user');
+    $roles = array(AccountInterface::ANONYMOUS_ROLE => 'anonymous user');
     // Need set default value.
     $user_register = \Drupal::config('user.settings')->get('register');
     // If visitors are allowed to create accounts they are considered untrusted.
     if ($user_register != USER_REGISTER_ADMINISTRATORS_ONLY) {
-      $roles[DRUPAL_AUTHENTICATED_RID] = 'authenticated user';
+      $roles[AccountInterface::AUTHENTICATED_ROLE] = 'authenticated user';
     }
     return $roles;
   }

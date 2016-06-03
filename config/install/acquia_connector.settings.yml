@@ -182,3 +182,6 @@ mapping:
   allow_insecure_uploads:
     - system.file
     - allow_insecure_uploads
+  http_response_debug_cacheability_headers:
+    - container_parameter
+    - http.response.debug_cacheability_headers
