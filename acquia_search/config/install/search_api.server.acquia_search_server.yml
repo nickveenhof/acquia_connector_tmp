@@ -10,26 +10,17 @@ backend_config:
   host: search.acquia.com
   port: 80
   path: /solr
-  http:
-    http_user: ''
-    http_pass: ''
-  advanced:
-    excerpt: 0
-    retrieve_data: 1
-    highlight_data: 1
-    skip_schema_check: 0
-    solr_version: 4
-    http_method: AUTO
   http_user: ''
   http_pass: ''
   excerpt: 0
   retrieve_data: 1
   highlight_data: 1
   skip_schema_check: 0
-  solr_version: 4
+  solr_version: ''
   http_method: AUTO
   autocorrect_spell: true
   autocorrect_suggest_words: true
+  core: ''
 langcode: en
 dependencies:
   module:

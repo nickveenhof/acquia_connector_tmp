@@ -4,6 +4,7 @@ langcode: en
 description: ''
 dependencies:
   config:
+    - field.storage.node.body
     - search_api.server.acquia_search_server
   module:
     - search_api
@@ -12,24 +13,26 @@ datasource_settings:
   'entity:node':
     plugin_id: 'entity:node'
     settings:
-      default: '1'
       bundles:
-        article: '0'
-        page: '0'
-      languages: {  }
+        default: true
+        selected: {  }
+      languages:
+        default: true
+        selected: {  }
 field_settings:
   search_api_language:
     label: 'Item language'
     datasource_id: null
     property_path: search_api_language
     type: string
-    indexed_locked: true
-    type_locked: true
   body:
     label: Body
     datasource_id: 'entity:node'
     property_path: body
     type: text
+    dependencies:
+      config:
+        - field.storage.node.body
   title:
     label: Title
     datasource_id: 'entity:node'
@@ -45,6 +48,12 @@ processor_settings:
 options:
   index_directly: false
   cron_limit: 50
+  processors:
+    language:
+      status: '1'
+      weight: -50
+      settings: {  }
+      processorPluginId: language
 read_only: false
 server: acquia_search_server
 status: false
