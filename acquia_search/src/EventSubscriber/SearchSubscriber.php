@@ -191,7 +191,6 @@ class SearchSubscriber extends Plugin {
 
       // See if we need to overwrite these values.
       // @todo: Implement the derived key per solr environment storage.
-
       // In any case, this is equal for all subscriptions. Also
       // even if the search sub is different, the main subscription should be
       // active.

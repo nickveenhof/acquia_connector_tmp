@@ -437,7 +437,7 @@ class Migration {
       $gz = new ArchiveTar($dest_file, $migration['compression_ext'] ? $migration['compression_ext'] : NULL);
       if (!empty($migration['db_file'])) {
         // Add db file.
-        $ret = $gz->addModify(array($migration['db_file']), '', $migration['dir'] . DIRECTORY_SEPARATOR);
+        $gz->addModify(array($migration['db_file']), '', $migration['dir'] . DIRECTORY_SEPARATOR);
       }
       // Remove Drupal root from the file paths, OS dependent.
       if (defined('OS_WINDOWS') && OS_WINDOWS) {
@@ -446,7 +446,7 @@ class Migration {
       else {
         $remove_dir = DRUPAL_ROOT . '/';
       }
-      $ret = $gz->addModify($files, '', $remove_dir);
+      $gz->addModify($files, '', $remove_dir);
       $migration['tar_file'] = $dest_file;
     }
     else {
@@ -648,7 +648,7 @@ class Migration {
         unset($query['sig']);
 
         $sig = '';
-        foreach ($query as $k => $v) {
+        foreach ($query as $v) {
           $sig .= $v;
         }
         $signature = hash_hmac('sha256', $sig, $migration['env']['secret']);

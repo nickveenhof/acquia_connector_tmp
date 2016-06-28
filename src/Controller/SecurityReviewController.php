@@ -26,7 +26,6 @@ class SecurityReviewController extends ControllerBase {
     $to_check = [
       'views_access',
       'temporary_files',
-      'base_url_set',
       'executable_php',
       'input_formats',
       'admin_permissions',
@@ -269,21 +268,13 @@ class SecurityReviewController extends ControllerBase {
       'success' => t('PHP files in the Drupal files directory cannot be executed.'),
       'failure' => t('PHP files in the Drupal files directory can be executed.'),
     );
-    $checks['base_url_set'] = array(
-      'title' => t('Drupal base URL'),
-      'callback' => 'checkBaseUrl',
-      'success' => t('Base URL is set in settings.php.'),
-      'failure' => t('Base URL is not set in settings.php.'),
-    );
     $checks['temporary_files'] = array(
       'title' => t('Temporary files'),
       'callback' => 'checkTemporaryFiles',
       'success' => t('No sensitive temporary files were found.'),
       'failure' => t('Sensitive temporary files were found on your files system.'),
     );
-    if (\Drupal::moduleHandler()
-        ->moduleExists('views') && function_exists('views_get_all_views')
-    ) {
+    if (\Drupal::moduleHandler()->moduleExists('views')) {
       $checks['views_access'] = array(
         'title' => t('Views access'),
         'callback' => 'checkViewsAccess',
@@ -293,50 +284,6 @@ class SecurityReviewController extends ControllerBase {
     }
 
     return array('security_review' => $checks);
-  }
-
-  /**
-   * Check if $base_url is set in settings.php.
-   *
-   * @param int $last_check
-   *   Last check.
-   *
-   * @return array
-   *   Result array.
-   *
-   * @todo needs review.
-   */
-  private function checkBaseUrl($last_check = NULL) {
-    // Support different methods to check for $base_url.
-    $method = 'include';
-    $result = NULL;
-    $site_path = \Drupal::service('site.path');
-
-    if ($method === 'token') {
-      if (file_exists(DRUPAL_ROOT . '/' . $site_path . '/settings.php')) {
-        $content = file_get_contents(DRUPAL_ROOT . '/' . $site_path . '/settings.php');
-        $tokens = token_get_all($content);
-      }
-      $result = FALSE;
-      foreach ($tokens as $token) {
-        if (is_array($token) && $token[0] === T_VARIABLE && $token[1] == '$base_url') {
-          $result = TRUE;
-          break;
-        }
-      }
-    }
-    elseif ($method === 'include') {
-      if (file_exists(DRUPAL_ROOT . '/' . $site_path . '/settings.php')) {
-        include DRUPAL_ROOT . '/' . $site_path . '/settings.php';
-      }
-      if (isset($base_url)) {
-        $result = TRUE;
-      }
-      else {
-        $result = FALSE;
-      }
-    }
-    return array('result' => $result, 'value' => '');
   }
 
   /**
@@ -384,7 +331,6 @@ class SecurityReviewController extends ControllerBase {
   private function checkViewsAccess($last_check = NULL) {
     $result = TRUE;
     $check_result_value = array();
-    $timestamp = NULL;
     // Need review.
     $views = Views::getEnabledViews();
     foreach ($views as $view) {
@@ -422,7 +368,7 @@ class SecurityReviewController extends ControllerBase {
     }
     $file = '/security_review_test.php';
     if ($file_create = @fopen('./' . $directory . $file, 'w')) {
-      $create_status = fwrite($file_create, $content);
+      fwrite($file_create, $content);
       fclose($file_create);
     }
 
@@ -484,7 +430,7 @@ class SecurityReviewController extends ControllerBase {
     $check_result_value = array();
     $unsafe_extensions = $this->unsafeExtensions();
     $fields = FieldConfig::loadMultiple();
-    foreach ($fields as $field_name => $field) {
+    foreach ($fields as $field) {
       $dependencies = $field->get('dependencies');
       if (isset($dependencies) && !empty($dependencies['module'])) {
         foreach ($dependencies['module'] as $module) {

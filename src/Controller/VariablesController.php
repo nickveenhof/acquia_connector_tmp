@@ -47,7 +47,7 @@ class VariablesController extends ControllerBase {
 
     $this->configs = [];
     $names = \Drupal::configFactory()->listAll();
-    foreach ($names as $key => $config_name) {
+    foreach ($names as $config_name) {
       $this->configs[$config_name] = \Drupal::config($config_name)->get();
     }
 

@@ -124,7 +124,6 @@ function drush_acquia_connector_custom_test_validate() {
       if (!$result['result']) {
         $failure[] = $module;
         drush_print_r((string) dt("[FAILED]  Validation failed for '@module' and has been logged.", array('@module' => $module)));
-        $custom_data[$module] = $result;
 
         foreach ($result['failure'] as $test_name => $test_failures) {
           foreach ($test_failures as $test_param => $test_value) {
