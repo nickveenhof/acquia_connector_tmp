@@ -195,3 +195,23 @@ function acquia_connector_update_8002() {
   $config->set('mapping', $mapping);
   $config->save(TRUE);
 }
+
+/**
+ * Remove cache and cache_lifetime from the mapping.
+ */
+function acquia_connector_update_8003() {
+  $config_factory = \Drupal::configFactory();
+  $config = $config_factory->getEditable('acquia_connector.settings');
+  $config->clear('mapping.cache');
+  $config->clear('mapping.cache_lifetime');
+
+  $variables_automatic = $config->get('spi.set_variables_automatic');
+
+  foreach(['cache_lifetime', 'cache'] as $variable) {
+    if (($key = array_search($variable, $variables_automatic)) !== FALSE) {
+      unset($variables_automatic[$key]);
+    }
+  }
+  $config->set('spi.set_variables_automatic', array_values($variables_automatic));
+  $config->save(TRUE);
+}

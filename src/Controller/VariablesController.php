@@ -142,8 +142,6 @@ class VariablesController extends ControllerBase {
       'block_cache',
       'preprocess_css',
       'page_compression',
-      'cache',
-      'cache_lifetime',
       'cron_last',
       'clean_url',
       'redirect_global_clean',
