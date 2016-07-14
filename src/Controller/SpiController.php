@@ -173,6 +173,9 @@ class SpiController extends ControllerBase {
     // Based on code from system.install.
     $additional_data['pending_updates'] = FALSE;
     foreach (\Drupal::moduleHandler()->getModuleList() as $module => $filename) {
+      drupal_static_reset('drupal_get_schema_versions');
+      module_load_install($module);
+
       $updates = drupal_get_schema_versions($module);
       if ($updates !== FALSE) {
         $default = drupal_get_installed_schema_version($module);
