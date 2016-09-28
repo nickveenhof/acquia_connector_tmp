@@ -185,9 +185,6 @@ class SpiController extends ControllerBase {
         }
       }
     }
-    if (!$additional_data['pending_updates'] && \Drupal::service('entity.definition_update_manager')->needsUpdates()) {
-      $additional_data['pending_updates'] = TRUE;
-    }
 
     if (!empty($additional_data)) {
       // JSON encode this additional data.
