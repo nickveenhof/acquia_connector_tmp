@@ -9,6 +9,12 @@ use Drupal\search_api\Entity\Server;
 use Drupal\search_api\Entity\Index;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\acquia_connector\Subscription;
+use Drupal\acquia_search\PreferredSearchCoreService;
+use Drupal\Core\Render\Markup;
+
+define('ACQUIA_SEARCH_OVERRIDE_AUTO_SET', 1);
+define('ACQUIA_SEARCH_AUTO_OVERRIDE_READ_ONLY', 2);
+define('ACQUIA_SEARCH_EXISTING_OVERRIDE', 3);
 
 /**
  * Implements hook_acquia_subscription_status().
@@ -34,6 +40,7 @@ function acquia_search_acquia_subscription_status($subscription = FALSE) {
     }
   }
   elseif (is_int($subscription)) {
+    # @todo: Maybe we don't want to switch off search/index because there could be an override in place. But perhaps we need to log it or show a message.
     switch ($subscription) {
       case Subscription::NOT_FOUND:
       case Subscription::EXPIRED:
@@ -98,4 +105,331 @@ function acquia_search_entity_operation_alter(array &$operations, EntityInterfac
   if (array_search($entity->id(), $do_not_delete) !== FALSE) {
     unset($operations['delete']);
   }
+}
+
+/**
+ * Determine if we should enforce read-only mode for a certain server.
+ * @todo: maybe we can't do it per-server
+ */
+function acquia_search_should_we_set_read_only_mode($server_id) {
+
+  // If acquia_search_multi_subs module is enabled, don't auto-enforce read_only mode.
+  if (\Drupal::moduleHandler()->moduleExists('acquia_search_multi_subs')) {
+    return false;
+  }
+
+  // If settings.php overrides found, don't auto-enforce read_only mode.
+  $overrides = \Drupal::config('acquia_search.settings')->get('connection_override');
+  if (!empty($overrides) && !empty($overrides['host']) && !empty($overrides['path']) && !empty($overrides['index_id']) && !empty($overrides['derived_key'])) {
+    # @todo: throw exceptions or add logging when we get bad overrides? E.g. acquia-search.com domains with no derived keys, or missing elements like host/path.
+    #$message = 'Something something.';
+    #\Drupal::logger('acquia search')->error($message);
+    #throw new \Exception($message);
+    return false;
+  }
+
+  // If settings.php overrides found for this server, don't auto-enforce read_only mode.
+  // @todo: we can't implement a per-server override?
+  $overrides = \Drupal::config('acquia_search.settings')->get('server_override');
+  if (!empty($overrides[$server_id])) {
+    return false;
+  }
+
+  // Return flag depending on environment and subscription.
+  $auto_switch_disabled = \Drupal::config('acquia_search.settings')->get('disable_auto_switch');
+  $read_only_switch_disabled = \Drupal::config('acquia_search.settings')->get('disable_auto_read_only');
+  $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+  $sub_active = !empty($subscription['active']);
+
+  return (!$auto_switch_disabled && !$read_only_switch_disabled && $sub_active);
+}
+
+
+/**
+ * Implements hook_search_api_server_load().
+ *
+ * Flag when a certain server should be enforcing read_only mode.
+ *
+ * @param array $entities
+ *   Array of Search API server entities.
+ */
+function acquia_search_search_api_server_load($entities) {
+  // Get the coreService that will tell us the preferred core to use.
+  $core_service = acquia_search_get_core_service();
+  // If we could find a preferred core to connect to, do not attempt to
+  // automatically set read-only mode.
+  if ($core_service->isPreferredCoreAvailable()) {
+    return;
+  }
+
+  // No preferred core found, find Acquia connections and determine their status.
+  foreach ($entities as $server_name => $server) {
+    if (acquia_search_should_we_set_read_only_mode($server_name)) {
+      $backend_config = $server->getBackendConfig();
+      // Only for servers where the backend is Acquia.
+      if (!empty($backend_config['connector']) && $backend_config['connector'] == 'solr_acquia_connector') {
+        // Note that this index shouldn't be writing through this server connection.
+        $backend_config['overridden_by_acquia_search'] = ACQUIA_SEARCH_AUTO_OVERRIDE_READ_ONLY;
+        $backend_config['acquia_search_possible_cores'] = $core_service->getListOfPossibleCores();
+        $server->setBackendConfig($backend_config);
+      }
+    }
+  }
+
+}
+
+/**
+ * Implements hook_search_api_index_load().
+ *
+ * This takes care of enforcing read-only mode, because that happens at the
+ * Search API index (and not at the server).
+ *
+ * @param array $entities
+ *   Array of Search API index entities.
+ */
+function acquia_search_search_api_index_load($entities) {
+  // Loop through the Index entities.
+  foreach ($entities as $index_name => &$index) {
+    if ($index->getServerId()) {
+      // Load server.
+      $server = Server::load($index->getServerId());
+      if ($server) {
+        // We will look at the backend config to see what actions to take, since
+        //   that has already been flagged by acquia_search_search_api_server_load()
+        $backend_config = $server->getBackendConfig();
+        if (
+          isset($backend_config['overridden_by_acquia_search'])
+          && $backend_config['overridden_by_acquia_search'] == ACQUIA_SEARCH_AUTO_OVERRIDE_READ_ONLY
+        ) {
+          // Set this index to read-only mode.
+          $index->set('read_only', TRUE);
+          // Flag this index as having been altered by this module.
+          # TODO: Check that this does NOT get into the 'hard' configuration if we save a the index edit form!
+          $index->setOption('overridden_by_acquia_search', ACQUIA_SEARCH_AUTO_OVERRIDE_READ_ONLY);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * TODO: Remove this debugging function.
+ */
+function acquia_search_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  #drupal_set_message("$form_id");
+}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Shows messages when viewing a Search API server's configuration and
+ * acquia_search_search_api_server_load() marked it as read-only.
+ *
+ * @param $form
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ * @param $form_id
+ */
+function acquia_search_form_search_api_server_status_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  $server =$form['#server'];
+  acquia_search_server_show_read_only_mode_warning($server);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Shows message when editing a Search API server's configuration and
+ * acquia_search_search_api_server_load() marked it as read-only.
+ *
+ * @param $form
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ * @param $form_id
+ */
+function acquia_search_form_search_api_server_edit_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  $server = Server::load($form['id']['#default_value']);
+  acquia_search_server_show_read_only_mode_warning($server);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Shows message if we are editing a Search API server's configuration.
+ *
+ * @param $form
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ * @param $form_id
+ */
+function acquia_search_form_search_api_index_edit_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  $server = Server::load($form['server']['#default_value']);
+  acquia_search_server_show_read_only_mode_warning($server);
+}
+
+/**
+ * If server has been marked as read-only, show a message.
+ *
+ * @param Drupal\search_api\Entity\Server $server
+ */
+function acquia_search_server_show_read_only_mode_warning($server) {
+  if ($server) {
+    $backend_config = $server->getBackendConfig();
+    if (!empty($backend_config['overridden_by_acquia_search']) && $backend_config['overridden_by_acquia_search'] == ACQUIA_SEARCH_AUTO_OVERRIDE_READ_ONLY) {
+      $message = acquia_search_get_read_only_mode_warning($server);
+      drupal_set_message($message, 'warning');
+    }
+  }
+}
+
+/**
+ * Returns formatted message about read-only mode.
+ *
+ * @param Drupal\search_api\Entity\Server $server
+ *   The Search API server.
+ * @param string $t
+ *
+ * @return string
+ */
+function acquia_search_get_read_only_mode_warning($server, $t = 't') {
+
+  $msg = $t('To protect your data, the Acquia Search module is enforcing 
+    read-only mode on the Search API indexes, because it could not figure out what Acquia-hosted Solr 
+    index to connect to. This helps you avoid writing to a production index 
+    if you copy your site to a development or other environment(s).');
+
+  $backend_config = $server->getBackendConfig();
+
+  if (!empty($backend_config['acquia_search_possible_cores'])) {
+
+    $item_list = array(
+      '#theme' => 'item_list',
+      '#items' => $backend_config['acquia_search_possible_cores'],
+    );
+    $list = drupal_render($item_list);
+
+    $msg .= '<p>';
+    $msg .= $t('The following Acquia Search Solr index IDs would have worked for your current environment, but could not be found on your Acquia subscription: @list', array('@list' => $list));
+    $msg .= '</p>';
+
+  }
+
+  $msg .= PHP_EOL . $t('To fix this problem, please read <a href="@url">our documentation</a>.', array(
+      '@url' => 'https://docs.acquia.com/acquia-search/multiple-cores'
+    ));
+
+  return Markup::create((string) $msg);
+
+}
+
+/**
+ * Returns formatted message about Acquia Search connection details.
+ * #TODO: THIS function isn't used, do we need this verbosity? Maybe for hook_requirements?
+ *
+ * @param SearchApiServer $server
+ * @return string
+ */
+function acquia_search_get_search_status_message($server) {
+
+  $configuration = $server->getBackend()->getSolrConnector()->getConfiguration();
+
+  $url = $configuration['scheme'] . '://' . $configuration['host'] . ':' . $configuration['port'] . $configuration['path'];
+  $items = array(
+    t('search_api_solr.module server ID: @env', array('@env' => $server->machine_name)),
+    t('URL: @url', array('@url' => $url)),
+  );
+
+  /*
+  if (search_api_acquia_ping($server->machine_name)) {
+    $items[] = t('Solr index is currently reachable and up.');
+  }
+  else {
+    // Add message with error class.
+    $items[] = array(
+      'data' => t('Solr index is currently unreachable.'),
+      'class' => array('error'),
+    );
+  }
+
+  // Deep-ping the Solr index to ensure authentication is working.
+  if (search_api_acquia_ping($server->machine_name, 'deep-ping')) {
+    $items[] = t('Requests to Solr index are passing authentication checks.');
+  }
+  else {
+    // Add message with error class.
+    $items[] = array(
+      'data' => t('Solr core authentication check fails.'),
+      'class' => array('error'),
+    );
+  }
+  */
+
+  $list = ['#theme' => 'item_list', '#items' => $items];
+  $list = drupal_render($list);
+
+  return t('Connection managed by Search API Acquia module.') . $list;
+}
+
+/**
+ * Instantiates the PreferredSearchCoreService class to detect what Acquia
+ * index ID from those available in the subscription should be used.
+ *
+ * @return \Drupal\acquia_search\PreferredSearchCoreService
+ */
+function acquia_search_get_core_service() {
+  static $core_service;
+
+  if (isset($core_service)) {
+    return $core_service;
+  }
+
+  $acquia_identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
+  $ah_env = isset($_ENV['AH_SITE_ENVIRONMENT']) ? $_ENV['AH_SITE_ENVIRONMENT'] : '';
+  $ah_site_name = isset($_ENV['AH_SITE_NAME']) ? $_ENV['AH_SITE_NAME'] : '';
+  $ah_site_group = isset($_ENV['AH_SITE_GROUP']) ? $_ENV['AH_SITE_GROUP'] : '';
+  $conf_path = \Drupal::service('site.path');
+  $sites_foldername = substr($conf_path, strrpos($conf_path, '/') + 1);
+  $ah_db_name = '';
+  if ($ah_env && $ah_site_name && $ah_site_group) {
+    $tmp = \Drupal\Core\Database\Database::getConnection()->getConnectionOptions();
+    $ah_db_name = $tmp['database'];
+  }
+
+  $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+
+  $available_cores = array();
+  if (!empty($subscription['heartbeat_data']['search_cores'])) {
+    $available_cores = $subscription['heartbeat_data']['search_cores'];
+  }
+
+  $core_service = new PreferredSearchCoreService($acquia_identifier, $ah_env, $sites_foldername, $ah_db_name, $available_cores);
+  return $core_service;
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ *
+ * Helps us alter some Search API status pages.
+ *
+ * @see acquia_search_theme_search_api_index()
+ */
+function acquia_search_theme_registry_alter(&$theme_registry) {
+  $theme_registry['search_api_index']['function'] = 'acquia_search_theme_search_api_index';
+  #$theme_registry['search_api_server']['function'] = 'acquia_search_theme_search_api_server'; #@todo
+}
+
+/**
+ * Theme override function for Search API index status page.
+ * @param array $variables
+ * @return string
+ *   Resulting HTML.
+ *
+ * @see acquia_search_theme_registry_alter()
+ */
+function acquia_search_theme_search_api_index($variables) {
+  $server = Server::load($variables['index']->get('server'));
+  acquia_search_server_show_read_only_mode_warning($server);
+
+  // Call the parent theme_search_api_index($variables);
+  $output = '';
+  #$output .= acquia_search_get_search_status_message($server); #@todo: do we really need it?
+  $output .= theme_search_api_index($variables);
+  return $output;
 }

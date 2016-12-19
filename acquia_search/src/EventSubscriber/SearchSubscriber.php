@@ -184,9 +184,15 @@ class SearchSubscriber extends Plugin {
       $env_id = $this->client->getEndpoint()->getKey();
     }
     if (!isset($this->derivedKey[$env_id])) {
-      // If we set an explicit environment, check if this needs to overridden.
-      // Use the default.
-      $identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
+      $server = $this->client->getEndpoint();
+
+      // If derived_key comes from configuration, use that.
+      // @TODO: make sure the derived_key doesn't make it permanently into the DB!
+      if (!empty($server->getOption('derived_key'))) {
+        return $server->getOption('derived_key');
+      }
+
+      $acquia_index_id = $server->getOption('index_id');
       $key = \Drupal::config('acquia_connector.settings')->get('key');
 
       // See if we need to overwrite these values.
@@ -201,12 +207,12 @@ class SearchSubscriber extends Plugin {
       // or all clients to use a new derived key.  We also use a string
       // ('solr') specific to the service, since we want each service using a
       // derived key to have a separate one.
-      if (empty($derived_key_salt) || empty($key) || empty($identifier)) {
+      if (empty($derived_key_salt) || empty($key) || empty($acquia_index_id)) {
         // Expired or invalid subscription - don't continue.
         $this->derivedKey[$env_id] = '';
       }
       elseif (!isset($this->derivedKey[$env_id])) {
-        $this->derivedKey[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $identifier, $key);
+        $this->derivedKey[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $acquia_index_id, $key);
       }
     }
 
