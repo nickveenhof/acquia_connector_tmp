@@ -39,8 +39,10 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
     // Instantiate the coreService that will tell us the preferred core to use.
     $this->preferredCoreService = acquia_search_get_core_service();
 
+    $disable_auto_switch = \Drupal::config('acquia_search.settings')->get('disable_auto_switch');
+
     // If the preferred core is available, use that.
-    if ($this->preferredCoreService->isPreferredCoreAvailable()) {
+    if (empty($disable_auto_switch) && $this->preferredCoreService->isPreferredCoreAvailable()) {
       // If we found a proper search core, specify that one as the target.
       $preferred_core_id = $this->preferredCoreService->getPreferredCoreId();
       $configuration['index_id'] = $preferred_core_id;
