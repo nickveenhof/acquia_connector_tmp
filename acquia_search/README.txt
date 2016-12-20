@@ -44,10 +44,16 @@ Hidden variables
     (in read-write mode). Also, if TRUE, the disable_read_only setting below
      is ignored.
 
-- acquia_search.settings.disable_read_only
+   Example settings.php override:
+   # $config['acquia_search.settings']['disable_auto_switch'] = true;
+
+- acquia_search.settings.disable_auto_read_only
     Boolean value; if TRUE (only when disable_auto_switch is FALSE or not set)
     then there is no enforcing of read-only mode. This means, regardless whether
     a proper index was found or not, no read-only enforcement will happen.
+
+   Example settings.php override:
+   # $config['acquia_search.settings']['disable_auto_read_only'] = true;
 
 - acquia_search.settings.connection_override
     Array that overrides the Acquia Search connection for all your Search API

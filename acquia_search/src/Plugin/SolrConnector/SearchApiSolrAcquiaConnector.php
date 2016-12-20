@@ -77,7 +77,6 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
 
     // Add any global Acquia Search connection overrides.
     // These apply to every Search API Server using this Solr connector.
-    // @todo: Document the how overrides work.
     // @TODO: make sure the overrides don't make it permanently into the DB!
     $override = \Drupal::config('acquia_search.settings')->get('connection_override');
     if (!empty($override) && is_array($override)) {
