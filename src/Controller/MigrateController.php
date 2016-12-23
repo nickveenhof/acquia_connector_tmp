@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_connector\Controller;
 
 use Drupal\acquia_connector\Migration;

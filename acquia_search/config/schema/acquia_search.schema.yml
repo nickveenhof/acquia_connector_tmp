@@ -1,5 +1,4 @@
 # Schema for the configuration files of the acquia_search module.
-
 acquia_search.settings:
   type: mapping
   label: 'Acquia search settings'
@@ -13,9 +12,6 @@ acquia_search.settings:
     derived_key_salt:
       type: string
       label: 'Acquia derived key salt'
-    derived_key:
-      type: string
-      label: 'Acquia derived key'
     version:
       type: string
       label: 'Acquia Search version'
