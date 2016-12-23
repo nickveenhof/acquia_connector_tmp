@@ -63,7 +63,10 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
       //   $this->getUpdateQuery() and avoiding all updates just in case
       //   something is still attempting to directly call a Solr update.
       //
-      // TODO: Evaluate other options to protect the index. Example: Connect to a fallback (local?) search index. The URL and key could be defined in settings. However, this could still allow easy polluting of production?
+      // TODO: Evaluate other options to protect the index. Example: Connect to
+      // a fallback (local?) search index. The URL and key could be defined in
+      // settings. However, this could still allow easy polluting of production?
+      //
       // No proper search core found, therefore we fall back to the one named
       //   the same as the acquia_identifier.
       $acquia_identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
@@ -156,7 +159,6 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
       $message = 'The Search API Server serving this index is currently in read-only mode.';
       \Drupal::logger('acquia search')->error($message);
       throw new \Exception($message);
-      return NULL;
     }
     return $this->solr->createUpdate();
   }

@@ -38,7 +38,7 @@ class InitSubscriber implements EventSubscriberInterface {
   /**
    * The state factory.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 

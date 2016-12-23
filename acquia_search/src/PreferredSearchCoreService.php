@@ -7,7 +7,9 @@
 namespace Drupal\acquia_search;
 
 /**
- * Class SAPIPreferredSearchCoreService.
+ * Class PreferredSearchCoreService.
+ *
+ * @package Drupal\acquia_search\
  */
 class PreferredSearchCoreService {
 
