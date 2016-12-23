@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_connector_test\Controller;
 
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;

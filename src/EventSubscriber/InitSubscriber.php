@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_connector\EventSubscriber;
 
 use Drupal\update\Controller\UpdateController;
@@ -9,7 +13,6 @@ use Drupal\Core\State\StateInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Url;
 use Drupal\acquia_connector\Subscription;
-use Drupal\acquia_connector\Controller;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;

@@ -1,11 +1,13 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_search\Plugin\SolrConnector;
 
 use Drupal\Core\Url;
-use Drupal\search_api_solr\Annotation\SolrConnector;
 use Drupal\search_api_solr\SolrConnector\SolrConnectorPluginBase;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 use Solarium\Client;
@@ -54,7 +56,6 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
     else {
       // This means we can't detect which Index should be used, so we need to
       // protect it.
-
       // We enforce read-only mode in 2 ways:
       // * The module implements hook_search_api_index_load() and alters
       //   indexes' read-only flag.
@@ -63,7 +64,6 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
       //   something is still attempting to directly call a Solr update.
       //
       // TODO: Evaluate other options to protect the index. Example: Connect to a fallback (local?) search index. The URL and key could be defined in settings. However, this could still allow easy polluting of production?
-
       // No proper search core found, therefore we fall back to the one named
       //   the same as the acquia_identifier.
       $acquia_identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
@@ -122,9 +122,9 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
     if (!$this->solr) {
       $this->solr = new Client();
       $this->solr->createEndpoint($this->configuration + [
-          'key' => 'core',
-          'port' => ($this->configuration['scheme'] == 'https') ? 443 : 80,
-        ], TRUE);
+        'key' => 'core',
+        'port' => ($this->configuration['scheme'] == 'https') ? 443 : 80,
+      ], TRUE);
       $this->attachServerEndpoint();
       $this->eventDispatcher = $this->solr->getEventDispatcher();
       $plugin = new SearchSubscriber();
@@ -156,7 +156,7 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
       $message = 'The Search API Server serving this index is currently in read-only mode.';
       \Drupal::logger('acquia search')->error($message);
       throw new \Exception($message);
-      return null;
+      return NULL;
     }
     return $this->solr->createUpdate();
   }
@@ -170,6 +170,7 @@ class SearchApiSolrAcquiaConnector extends SolrConnectorPluginBase {
 
   /**
    * {@inheritdoc}
+   *
    * @todo: check if we can move things from theme_ to here?
    */
   public function viewSettings() {
