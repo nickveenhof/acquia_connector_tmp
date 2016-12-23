@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_connector\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;

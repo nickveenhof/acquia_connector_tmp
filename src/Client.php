@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_connector;
 
 use Drupal\Component\Utility\Crypt;

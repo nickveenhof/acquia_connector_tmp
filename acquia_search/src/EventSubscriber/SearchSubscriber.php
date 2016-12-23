@@ -1,9 +1,12 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drupal\acquia_search\EventSubscriber;
 
 use Solarium\Core\Client\Response;
-use Solarium\Core\Client\Client;
 use Solarium\Core\Event\Events;
 use Solarium\Core\Event\preExecuteRequest;
 use Solarium\Core\Event\postExecuteRequest;
