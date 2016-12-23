@@ -23,7 +23,7 @@ function acquia_search_install() {
 
 /**
  * Implements hook_requirements().
- * # TODO: add connection status information to hook_requirements()
+ * @TODO: add connection status information to hook_requirements()
  */
 function acquia_search_requirements($phase) {
   $requirements = array();

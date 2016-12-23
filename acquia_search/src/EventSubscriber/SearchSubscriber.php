@@ -23,7 +23,7 @@ class SearchSubscriber extends Plugin {
   /**
    * Solarium client.
    *
-   * @var Client
+   * @var \Solarium\Core\Client\Client;
    */
   protected $client;
 
